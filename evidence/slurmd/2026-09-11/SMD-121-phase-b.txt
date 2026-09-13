@@ -1,0 +1,65 @@
+SMD-121 Phase B Attempt 2
+date=2026-09-11T18:56:57+0900
+mode=timeout
+run_dir=/tmp/slurm-smd121-timeout-20260911T185657
+
+[driver-output]
+mode=timeout run_dir=/tmp/slurm-smd121-timeout-20260911T185657
+failure_config_active mode=timeout slurmd_pid=310 old_start=2026-09-11T18:53:39 new_start=2026-09-11T18:56:58
+submitted failure_job=363 mode=timeout
+failure_observed mode=timeout job_id=363 node_state=IDLE+DRAIN job_state=PENDING priority=0 wait_seconds=8
+timeout_process_group_cleanup=PASS pid=67552 pgid=67552
+failure_state=PASS mode=timeout job_id=363 node_reason=Prolog job_reason=launch_failed_requeued_held restarts=1 payload_executed=NO
+job_gone job_id=363 wait_seconds=0
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T18:57:10
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+submitted smoke_job=364
+job_gone job_id=364 wait_seconds=3
+SMD121_PHASE_COMPLETE mode=timeout failure_job=363 smoke_job=364 slurmd_pid=310 run_dir=/tmp/slurm-smd121-timeout-20260911T185657
+
+[worker-timeout-log]
+[2026-09-11T18:57:09.962] error: run_command_poll_child: prolog poll timeout @ 5000 msec
+[2026-09-11T18:57:09.994] error: prolog killed by signal 15 output:
+[2026-09-11T18:57:09.994] prolog for JobId=363 SLUID=sCT1M27YCCZ000 ran for 5 seconds
+[2026-09-11T18:57:09.994] error: JobId=363 SLUID=sCT1M27YCCZ000 prolog failed status=0:15
+
+[failure-state]
+node_state=IDLE+DRAIN
+node_reason=Prolog error
+job_state=PENDING
+job_reason=launch_failed_requeued_held
+priority=0
+requeue=1
+restarts=1
+payload_executed=NO
+
+[process-group]
+timeout_pid=67552
+timeout_pgid=67552
+same_pgid_process_after_timeout=NONE
+same_pgid_process_at_final_followup=NONE
+
+[failure-accounting-after-cancel]
+363|testuser|REQUEUED|0:0|PC-210
+363.batch||CANCELLED||PC-210
+
+[smoke-accounting]
+364|testuser|COMPLETED|0:0|PC-210
+364.batch||COMPLETED|0:0|PC-210
+
+[restoration]
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+slurmd_pid_before=310
+slurmd_pid_after=310
+final_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_queue=EMPTY
+
+[classification]
+result=PASS_PHASE_B
+smd121_overall=PASS
+

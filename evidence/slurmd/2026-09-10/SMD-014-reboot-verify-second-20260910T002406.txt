@@ -1,0 +1,101 @@
+SMD-014 controlled reboot second verify evidence
+Date: 2026-09-10 00:24-00:29 JST
+
+[controller-resume-and-state]
+/usr/local/slurm/26.11.0/bin/scontrol update NodeName=PC-210 State=RESUME
+State=IDLE+NOT_RESPONDING
+BootTime=None
+SlurmdStartTime=2026-09-10T00:08:26
+LastBusyTime=2026-09-10T00:23:27
+CPUAlloc=0
+AllocTRES=(empty)
+sinfo_state=idle*
+
+[second-verify-output]
+mode=verify run_dir=/tmp/slurm-smd014-reboot-verify-20260910T002406 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+reboot_detected old_boot_epoch=1786117889 new_boot_epoch=1788966497
+error: launchd/slurmd/controller did not become stable after reboot
+recovery: no daemon or launchd configuration was changed; inspect run_dir=/tmp/slurm-smd014-reboot-verify-20260910T002406 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+
+[independent-worker-network-readback]
+hostname=PC-210.local
+ComputerName=PC-210
+LocalHostName=PC-210
+en0_address=192.168.10.128
+en0_state=active
+slurm_config_NodeName=PC-210
+slurm_config_explicit_NodeAddr=absent
+SlurmdPort=6818
+listener=tcp4 *.6818 LISTEN slurmd:310
+connect_127.0.0.1_6818=PASS
+connect_192.168.10.128_6818=PASS
+Application_Firewall=disabled
+Application_Firewall_block_all=disabled
+Application_Firewall_stealth=off
+
+[before-after-address]
+Before reboot, SMD-001 and SMD-010 evidence recorded en0=192.168.10.127.
+After reboot, en0=192.168.10.128.
+
+[observed-facts]
+launchd RunAtLoad process remains running as PID 310 and PPID 1.
+slurmd listens on all IPv4 interfaces at TCP 6818.
+The current en0 address accepts TCP 6818 locally.
+The macOS Application Firewall is disabled.
+The controller still reports NodeAddr=PC-210 and NOT_RESPONDING.
+
+[hypothesis-not-yet-confirmed]
+The controller may resolve PC-210 to the pre-reboot address 192.168.10.127, while the worker now uses DHCP address 192.168.10.128.
+Head-side name resolution and TCP reachability are still required before calling this the confirmed cause.
+
+[bundled-source-readback]
+src/common/read_config.c:633-636 defaults NodeHostname to NodeName and NodeAddr to NodeHostname when they are omitted.
+src/common/read_config.c:2684-2692 resolves the configured address and caches it after the first successful initialization for a non-cloud node.
+This supports, but does not by itself prove, a stale-name-resolution or stale-controller-address hypothesis after the DHCP address change.
+
+[decision]
+administrator_RESUME=ACCEPTED
+controller_to_slurmd_response=BLOCKED
+smoke_job=NOT_RUN
+marker=RETAINED
+system_configuration_change=NONE
+
+[required-read-only-check-on-ubuntu2504]
+getent ahostsv4 PC-210
+getent hosts PC-210
+ping -c 2 192.168.10.128
+nc -vz -w 3 PC-210 6818
+nc -vz -w 3 192.168.10.128 6818
+
+[ubuntu2504-read-only-result]
+getent_ahostsv4_PC-210=192.168.10.127
+getent_hosts_PC-210=192.168.10.127
+ping_192.168.10.128=PASS 2_of_2
+nc_PC-210_6818=TIMEOUT resolved_address=192.168.10.127
+nc_192.168.10.128_6818=PASS
+
+[confirmed-cause]
+PC-210 resolves to the pre-reboot address 192.168.10.127 on ubuntu2504.
+The worker now uses 192.168.10.128 and TCP 6818 is reachable directly from ubuntu2504.
+Therefore the post-reboot failure is caused by stale head-side name-to-address mapping after the DHCP address change, not by the macOS Application Firewall.
+
+[next-controlled-step]
+Use a runtime-only NodeAddr override to 192.168.10.128 and RESUME PC-210 to finish SMD-014 without first changing persistent configuration.
+After validation, reserve a stable worker address and update the canonical name service or NodeAddr consistently on controller and worker.
+
+[runtime-nodeaddr-update-result]
+scontrol_update=PASS NodeName=PC-210 NodeAddr=192.168.10.128 State=RESUME
+controller_NodeAddr=192.168.10.128
+controller_NodeHostName=PC-210
+node_state=IDLE
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+CPUAlloc=0
+AllocTRES=(empty)
+sinfo_state=idle
+
+[runtime-fix-decision]
+controller_to_slurmd_response=RESTORED
+root_cause_and_runtime_fix=CONFIRMED
+post_reboot_smoke_job=READY_TO_RUN
+persistent_address_fix=NOT_APPLIED

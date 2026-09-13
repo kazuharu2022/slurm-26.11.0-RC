@@ -1,0 +1,70 @@
+SMD-015 Phase B job-running sleep/wake final evidence
+captured_at=2026-09-10T09:43:35+09:00
+prepare_run_dir=/tmp/slurm-smd015-job-prepare-20260910T093206
+verify_run_dir=/tmp/slurm-smd015-job-verify-20260910T094335
+completed_marker=/opt/slurm/26.11.0/.smd015-job-sleep.env.completed-20260910T094335
+
+[terminal result]
+mode=verify run_dir=/tmp/slurm-smd015-job-verify-20260910T094335 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env
+survivor_after_wake job_id=66 state=RUNNING heartbeat=2@1789000332->592@1789001016 pause_estimate_seconds=94
+job_gone job_id=66 wait_seconds=1
+SMD015_JOB_SLEEP_COMPLETE job_id=66 sleep_count=28->30 boot=1788966497 pid=310 start=2026-09-10T00:08:26 pause_estimate_seconds=94 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env.completed-20260910T094335 run_dir=/tmp/slurm-smd015-job-verify-20260910T094335
+
+[power evidence]
+2026-09-10 09:41:43 +0900 Sleep: Entering Sleep state due to Software Sleep pid=24900
+2026-09-10 09:41:48 +0900 DarkWake from Deep Idle
+2026-09-10 09:42:33 +0900 Sleep: Entering Sleep state due to Maintenance Sleep
+2026-09-10 09:43:17 +0900 Wake from Deep Idle due to HID Activity
+sleep_count_before=28
+sleep_count_after=30
+
+[survival evidence]
+boot_epoch_before=1788966497
+boot_epoch_after=1788966497
+slurmd_pid_before=310
+slurmd_pid_after=310
+SlurmdStartTime_before=2026-09-10T00:08:26
+SlurmdStartTime_after=2026-09-10T00:08:26
+launchd_state=running
+launchd_runs=1
+launchd_last_exit=(never exited)
+job_state_after_wake=RUNNING
+node_state_after_wake=MIXED
+batch_pid_before=23059
+child_pid_before=23060
+original_process_tree_alive_after_wake=YES
+heartbeat_before=2@1789000332
+heartbeat_after=592@1789001016
+heartbeat_resumed=YES
+pause_estimate_seconds=94
+minimum_pause_seconds=30
+SlurmdTimeout=300
+pause_within_short_sleep_window=YES
+
+[workload finish]
+ready batch_pid=23059 child_pid=23060 job_id=66
+finish_seen count=593 epoch=1789001017
+payload_complete batch_pid=23059 child_pid=23060 rc=0 epoch=1789001017
+job_stderr=(empty)
+batch_pid_residual=NO
+child_pid_residual=NO
+
+[accounting]
+JobID|JobName|User|State|ReqTRES|AllocTRES|ExitCode|NodeList
+66|smd015-job-sleep|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+66.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+
+[final state]
+controller=UP
+queue=(empty)
+NodeState=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=(empty)
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+
+[judgement]
+phase_a=PASS
+phase_b=PASS
+SMD-015=PASS

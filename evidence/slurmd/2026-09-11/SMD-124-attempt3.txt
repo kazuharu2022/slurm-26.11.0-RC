@@ -1,0 +1,63 @@
+SMD-124 SPANK Phase A Attempt 3
+Date: 2026-09-11 19:42 JST
+Classification: PASS_PHASE_A
+
+[user execution]
+PC-210:~ root# sudo env SMD124_SPANK_CONFIRMED=YES /bin/sh \
+>   /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd124_spank_driver.sh
+run_dir=/tmp/slurm-smd124-20260911T194204 task_count=2
+spank_config_active slurmd_pid=310 old_start=2026-09-11T19:36:57 new_start=2026-09-11T19:42:05 client_node_addr=192.168.10.128
+srun_rc=0
+job_gone job_id=374 wait_seconds=1
+spank_lifecycle=PASS job_id=374 tasks=2 callbacks=19 slurmd_context=PASS local_context=PASS remote_context=PASS job_script_context=PASS identity=PASS task_ids=0,1
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:42:11
+submitted smoke_job=375
+job_gone job_id=375 wait_seconds=2
+SMD124_PHASE_A_COMPLETE test_job=374 smoke_job=375 tasks=2 callbacks=19 slurmd_pid=310 run_dir=/tmp/slurm-smd124-20260911T194204
+
+[spank-events-evidence.txt]
+callback=slurm_spank_init context=slurmd job_id=0 task_id=-1 euid=0 egid=0 pid=310
+callback=slurm_spank_init context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71736
+callback=slurm_spank_init_post_opt context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71736
+callback=slurm_spank_local_user_init context=local job_id=374 task_id=-1 euid=3001 egid=3001 pid=71736
+callback=slurm_spank_job_prolog context=job_script job_id=374 task_id=-1 euid=0 egid=0 pid=71738
+callback=slurm_spank_init context=remote job_id=374 task_id=-1 euid=0 egid=0 pid=71740
+callback=slurm_spank_init_post_opt context=remote job_id=374 task_id=-1 euid=0 egid=0 pid=71740
+callback=slurm_spank_user_init context=remote job_id=374 task_id=-1 euid=3001 egid=3001 pid=71740
+callback=slurm_spank_task_init_privileged context=remote job_id=374 task_id=0 euid=0 egid=3001 pid=71741
+callback=slurm_spank_task_post_fork context=remote job_id=374 task_id=0 euid=0 egid=3001 pid=71740
+callback=slurm_spank_task_post_fork context=remote job_id=374 task_id=1 euid=0 egid=3001 pid=71740
+callback=slurm_spank_task_init_privileged context=remote job_id=374 task_id=1 euid=0 egid=3001 pid=71742
+callback=slurm_spank_task_init context=remote job_id=374 task_id=0 euid=3001 egid=3001 pid=71741
+callback=slurm_spank_task_init context=remote job_id=374 task_id=1 euid=3001 egid=3001 pid=71742
+callback=slurm_spank_task_exit context=remote job_id=374 task_id=1 euid=0 egid=3001 pid=71740
+callback=slurm_spank_task_exit context=remote job_id=374 task_id=0 euid=0 egid=3001 pid=71740
+callback=slurm_spank_exit context=remote job_id=374 task_id=-1 euid=0 egid=3001 pid=71740
+callback=slurm_spank_exit context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71736
+callback=slurm_spank_job_epilog context=job_script job_id=374 task_id=-1 euid=0 egid=0 pid=71744
+
+[accounting]
+374|testuser|COMPLETED|0:0|PC-210
+374.0||COMPLETED|0:0|PC-210
+375|testuser|COMPLETED|0:0|PC-210
+375.batch||COMPLETED|0:0|PC-210
+
+[configuration]
+before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+candidate_sha256=71cedc7bf92580430a65501ca05441ca7c04137a01f515dbfe573d44565fd511
+client_sha256=36d19aebd93b26efca758677d8d288d2db36b121bf8b9743a1dbd8e074501874
+restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+plugin_sha256=9b5ba8f19f6a1efd544e5e20dec5ff0182d4b448877e9d8306846a29bd30e9dd
+
+[final node]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+SlurmdStartTime=2026-09-11T19:42:11
+LastBusyTime=2026-09-11T19:42:17
+queue=EMPTY (enforced by successful driver completion)
+
+[remaining scope]
+slurm_spank_slurmd_exit is not exercised by the reconfigure exec path and
+remains for SMD-124 Phase B graceful launchd stop/restart validation.

@@ -1,0 +1,26 @@
+root@ubuntu2504:~# job_id=50
+root@ubuntu2504:~# date --iso-8601=seconds
+systemctl is-active slurmctld
+systemctl show slurmctld -p MainPID -p ActiveEnterTimestamp
+/usr/local/slurm/26.11.0/bin/squeue -j "$job_id"
+2026-09-09T19:49:56+09:00
+active
+MainPID=428169
+ActiveEnterTimestamp=Wed 2026-09-09 10:50:18 JST
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+                50     debug smd011-s testuser  R       0:59      1 PC-210
+root@ubuntu2504:~# systemctl restart slurmctld
+
+date --iso-8601=seconds
+systemctl is-active slurmctld
+systemctl show slurmctld -p MainPID -p ActiveEnterTimestamp
+ss -ltnp | grep ':6817'
+/usr/local/slurm/26.11.0/bin/scontrol ping
+/usr/local/slurm/26.11.0/bin/squeue -j "$job_id"
+2026-09-09T19:50:12+09:00
+active
+MainPID=449767
+ActiveEnterTimestamp=Wed 2026-09-09 19:50:12 JST
+LISTEN 0      4096          0.0.0.0:6817       0.0.0.0:*    users:(("slurmctld",pid=449767,fd=8))
+Slurmctld(primary) at ubuntu2504 is UP
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)

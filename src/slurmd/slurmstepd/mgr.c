@@ -67,9 +67,13 @@
 
 #ifdef HAVE_PTY_H
 #  include <pty.h>
+#  define HAVE_PTY_API 1
 #  ifdef HAVE_UTMP_H
 #    include <utmp.h>
 #  endif
+#elif defined(__APPLE__)
+#  include <util.h>
+#  define HAVE_PTY_API 1
 #endif
 
 #ifdef WITH_SELINUX
@@ -1441,8 +1445,8 @@ static int _spawn_job_container(void)
 			pid_t pid;
 			int to_parent[2] = {-1, -1};
 
-			if (pipe2(to_parent, O_CLOEXEC)) {
-				error("%s: pipe2() failed: %m", __func__);
+			if (fd_pipe_close_on_exec(to_parent)) {
+				error("%s: pipe() failed: %m", __func__);
 				rc = SLURM_ERROR;
 				goto x11_fail;
 			}
@@ -1984,7 +1988,7 @@ static struct exec_wait_info * _exec_wait_info_create (int i)
 	int fdpair[2];
 	struct exec_wait_info * e;
 
-	if (pipe2(fdpair, O_CLOEXEC) < 0) {
+	if (fd_pipe_close_on_exec(fdpair) < 0) {
 		error ("_exec_wait_info_create: pipe: %m");
 		return NULL;
 	}
@@ -2132,7 +2136,7 @@ static int exec_wait_kill_children(list_t *exec_wait_list)
 
 static void _prepare_stdio(stepd_step_task_info_t *task)
 {
-#ifdef HAVE_PTY_H
+#ifdef HAVE_PTY_API
 	if ((step->flags & LAUNCH_PTY) && (task->gtid == 0)) {
 		if (login_tty(task->stdin_fd))
 			error("login_tty: %m");

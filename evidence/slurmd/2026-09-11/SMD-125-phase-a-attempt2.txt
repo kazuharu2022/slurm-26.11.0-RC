@@ -1,0 +1,48 @@
+SMD-125 Phase A Attempt 2
+date=2026-09-11T20:17:54+0900
+classification=PASS_PHASE_SUCCESS
+run_dir=/tmp/slurm-smd125-success-20260911T201754
+
+[driver-output]
+mode=success run_dir=/tmp/slurm-smd125-success-20260911T201754
+start_health_instance old_pid=72770 method=launchctl_bootout_bootstrap
+health_result=PASS mode=success node_state=IDLE identity=0:0 environment=PASS
+health_instance_ready old_pid=72770 active_pid=74049 old_start=2026-09-11T20:10:12 active_start=2026-09-11T20:17:56
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=74049 start=2026-09-11T20:17:59
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=0
+submitted smoke_job=377
+job_gone job_id=377 wait_seconds=3
+SMD125_PHASE_COMPLETE mode=success smoke_job=377 slurmd_pid=74049 run_dir=/tmp/slurm-smd125-success-20260911T201754
+
+[health-events]
+event=health_begin mode=success node=PC-210 node_health=unset epoch=1789125476 euid=0 egid=0 pid=74052 pgid=74052
+event=health_success mode=success node=PC-210 epoch=1789125476 exit_code=0
+
+[accounting]
+377|testuser|COMPLETED|0:0|PC-210
+377.batch||COMPLETED|0:0|PC-210
+
+[config]
+before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+candidate_sha256=35fcd3d61a25354e2b47b4b3dbc472e780f01959668a128575dca9ba3253b23b
+restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+byte_restore_checked_by_driver=yes
+
+[final]
+launchd_target=system/org.schedmd.slurmd
+launchd_state=running
+old_slurmd_pid=72770
+active_slurmd_pid=74049
+active_start=2026-09-11T20:17:56
+restored_start=2026-09-11T20:17:59
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+queue=empty
+candidate_parse_stderr_bytes=0
+bootout_stderr_bytes=0
+restore_reconfigure_stderr_bytes=0
+accounting_stderr_bytes=0
+
+result=PASS_PHASE_SUCCESS

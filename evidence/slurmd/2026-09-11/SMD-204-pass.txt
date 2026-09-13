@@ -1,0 +1,91 @@
+SMD-204 raw evidence summary
+run_dir=/tmp/slurm-smd204-20260911T222154
+executed=2026-09-11T22:21 JST
+driver_sha256=f0681d8b9a07546deff3514bcc2f206996c91e5407d7a11b6ad9eb4952a15649
+local_config_sha256=9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-result]
+run_dir=/tmp/slurm-smd204-20260911T222154 mlx_job=/opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch repeat_count=3
+submitted baseline_job=402 gres_requested=NO
+job_gone job_id=402 wait_seconds=1
+baseline_complete job_id=402 mean_elapsed_seconds=0.014268
+submitted gres_job=403 gres_requested=YES
+submitted unmanaged_job=404 gres_requested=NO
+barrier_ready gres_job=403 unmanaged_job=404 both_state=RUNNING
+barrier_released epoch=1789132917
+job_gone job_id=403 wait_seconds=2
+job_gone job_id=404 wait_seconds=0
+performance baseline_mean_seconds=0.014268 gres_concurrent_mean_seconds=0.015498 unmanaged_concurrent_mean_seconds=0.013540 unmanaged_to_baseline_ratio=0.949 samples_each=3
+SMD204_GPU_COMPETITION_COMPLETE baseline_job=402 gres_job=403 unmanaged_job=404 classification=UNMANAGED_GPU_ACCESS_CONFIRMED slurmd_pid=75048 run_dir=/tmp/slurm-smd204-20260911T222154
+
+[queue-at-barrier]
+403|RUNNING|PC-210|PC-210
+404|RUNNING|PC-210|PC-210
+
+[node-at-barrier]
+CPUAlloc=4 CPUEfctv=18 CPUTot=18
+RealMemory=131072 AllocMem=8192
+State=MIXED
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=cpu=4,mem=8G,gres/gpu=1,gres/gpu:apple=1
+
+[job-at-barrier]
+job_id=403 state=RUNNING uid=3001 gid=3001 ReqTRES=cpu=2,mem=4G,node=1,billing=2,gres/gpu=1,gres/gpu:apple=1 AllocTRES=cpu=2,mem=4G,node=1,billing=2,gres/gpu=1,gres/gpu:apple=1 TresPerNode=gres/gpu:apple:1
+job_id=404 state=RUNNING uid=3001 gid=3001 ReqTRES=cpu=2,mem=4G,node=1,billing=2 AllocTRES=cpu=2,mem=4G,node=1,billing=2 TresPerNode=none
+
+[mlx-baseline-job-402]
+slurm_job_gpus=not-configured
+device_name=Apple M5 Max
+default_device=Device(gpu, 0)
+elapsed_seconds=0.014467,0.012046,0.016292
+mean_elapsed_seconds=0.014268
+mean_value=1.023572e+03
+gpu_smoke_test=PASS,PASS,PASS
+
+[mlx-gres-job-403]
+slurm_job_gpus=0
+device_name=Apple M5 Max
+default_device=Device(gpu, 0)
+elapsed_seconds=0.012329,0.017003,0.017161
+mean_elapsed_seconds=0.015498
+mean_value=1.023572e+03
+gpu_smoke_test=PASS,PASS,PASS
+
+[mlx-unmanaged-job-404]
+slurm_job_gpus=not-configured
+device_name=Apple M5 Max
+default_device=Device(gpu, 0)
+elapsed_seconds=0.014760,0.012341,0.013519
+mean_elapsed_seconds=0.013540
+mean_value=1.023572e+03
+gpu_smoke_test=PASS,PASS,PASS
+
+[accounting]
+402|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,mem=4G,node=1|billing=2,cpu=2,mem=4G,node=1
+402.batch||COMPLETED|0:0|PC-210||cpu=2,mem=4G,node=1
+403|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1
+403.batch||COMPLETED|0:0|PC-210||cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1
+404|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,mem=4G,node=1|billing=2,cpu=2,mem=4G,node=1
+404.batch||COMPLETED|0:0|PC-210||cpu=2,mem=4G,node=1
+
+[worker-log]
+[2026-09-11T22:21:55.051] Launching batch JobId=402 SLUID=sCT1M28A3G9F00 for UID 3001
+[2026-09-11T22:21:55.763] [402.batch] done with step
+[2026-09-11T22:21:57.052] Launching batch JobId=403 SLUID=sCT1M28A3HFQ00 for UID 3001
+[2026-09-11T22:21:57.056] Launching batch JobId=404 SLUID=sCT1M28A3HGV00 for UID 3001
+[2026-09-11T22:21:58.719] [404.batch] done with step
+[2026-09-11T22:21:58.891] [403.batch] done with step
+
+[final-state]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T20:30:02
+job_stderr_total_bytes=0
+sacct_stderr_total_bytes=0
+slurmstepd_before_count=0
+slurmstepd_after_count=0
+residual_target_process_count=0
+classification=UNMANAGED_GPU_ACCESS_CONFIRMED

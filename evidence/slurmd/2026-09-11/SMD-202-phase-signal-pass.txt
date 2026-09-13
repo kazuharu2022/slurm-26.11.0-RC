@@ -1,0 +1,118 @@
+SMD-202 Phase D signal raw evidence
+date=2026-09-11 21:45 JST
+classification=PASS_PHASE_SIGNAL
+run_dir=/tmp/slurm-smd202-signal-20260911T214548
+driver_sha256=7b49c93837be09e6b1444397b16be7dadb458dfdd7d138145e9e48e38fbba627
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-result]
+mode=signal run_dir=/tmp/slurm-smd202-signal-20260911T214548 mlx_job=/opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch
+submitted mode=signal target_job=395
+target_ready mode=signal job_id=395
+terminate mode=signal job_id=395 signal=USR1 scope=full
+job_gone job_id=395 wait_seconds=0
+submitted mode=signal probe_job=396
+job_gone job_id=396 wait_seconds=0
+SMD202_GRES_RELEASE_PHASE_COMPLETE mode=signal target_job=395 probe_job=396 probe_state=COMPLETED slurmd_pid=75048 run_dir=/tmp/slurm-smd202-signal-20260911T214548
+
+[controller-before]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-11T20:30:02
+
+[target-395-stdout]
+mode=signal
+payload_pid=86411
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=395
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.015514
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=signal job_id=395
+child_pid=86417
+signal_received=USR1
+
+[target-395-stderr]
+bytes=0
+
+[target-accounting]
+395|testuser|FAILED|91:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+395.batch||FAILED|91:0|PC-210||cpu=1,mem=256M,node=1
+accounting_stderr_bytes=0
+
+[node-after-target-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+
+[probe-396-stdout]
+mode=probe
+payload_pid=86475
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=396
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.021161
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=probe job_id=396
+case_complete mode=probe job_id=396
+
+[probe-accounting]
+396|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+396.batch||COMPLETED|0:0|PC-210||cpu=1,mem=256M,node=1
+probe_stderr_bytes=0
+accounting_stderr_bytes=0
+
+[slurmd-log-delta]
+[2026-09-11T21:45:48.730] Launching batch JobId=395 SLUID=sCT1M2881CN400 for UID 3001
+[2026-09-11T21:45:48.794] [395.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:45:49.744] [395.batch] stepd_cleanup: done with step (step_rc: 23296, slurm_rc: 0 - No error)
+[2026-09-11T21:45:52.013] Launching batch JobId=396 SLUID=sCT1M2881DY500 for UID 3001
+[2026-09-11T21:45:52.076] [396.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:45:52.377] [396.batch] done with step
+
+[final-state]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+slurmd_pid=75048
+slurmstepd_before_bytes=0
+slurmstepd_after_bytes=0
+residual_processes_bytes=0
+target_payload_pid_86411_alive=NO
+target_child_pid_86417_alive=NO
+probe_payload_pid_86475_alive=NO
+
+[boundary]
+This phase proves scheduler-visible GRES release after an explicit USR1 signal handled by
+the job payload and successful reuse by the immediately following MLX/Metal GPU job. It
+does not prove kernel-level Metal device isolation. ReqTRES/AllocTRES still omit gres/gpu
+and remain assigned to SMD-203.

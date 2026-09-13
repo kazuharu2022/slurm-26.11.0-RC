@@ -1,0 +1,9 @@
+[target]
+JobID|JobName|User|State|ReqTRES|AllocTRES|Submit|Start|End|Elapsed|ExitCode|NodeList
+46|smd009-survivor|testuser|CANCELLED by 0|billing=1,cpu=1,mem=1G,node=1|billing=18,cpu=18,mem=1G,node=1|2026-09-09T19:02:45|2026-09-09T19:02:46|2026-09-09T19:02:52|00:00:06|0:0|PC-210
+46.batch|batch||FAILED||cpu=18,mem=1G,node=1|2026-09-09T19:02:46|2026-09-09T19:02:46|2026-09-09T19:02:53|00:00:07|143:0|PC-210
+
+[post-restart-smoke]
+JobID|JobName|User|State|ReqTRES|AllocTRES|Submit|Start|End|Elapsed|ExitCode|NodeList
+47|smd009-post-smoke|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T19:02:54|2026-09-09T19:02:54|2026-09-09T19:02:55|00:00:01|0:0|PC-210
+47.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|2026-09-09T19:02:54|2026-09-09T19:02:54|2026-09-09T19:02:55|00:00:01|0:0|PC-210

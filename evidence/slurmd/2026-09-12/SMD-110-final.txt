@@ -1,0 +1,52 @@
+SMD-110 ulimit propagation final evidence
+date=2026-09-12T01:38:10+09:00
+result=PASS
+run_dir=/tmp/slurm-smd110-20260912T013810
+jobs=464,465
+slurmd_pid=94504
+slurmd_start_time=2026-09-11T23:11:50
+production_changed=NO
+
+[default-soft]
+CPU submit=infinity job=infinity
+CORE submit=0 job=0
+STACK submit=8372224 job=8372224
+NOFILE submit=2560 job=2560
+
+[explicit-soft]
+CPU submit=60 job=60
+CORE submit=0 job=0
+STACK submit=4194304 job=4194304
+NOFILE submit=256 job=256
+
+[job-hard-both-cases]
+CPU=infinity
+CORE=infinity
+STACK=67092480
+NOFILE=infinity
+
+[accounting]
+464|testuser|COMPLETED|0:0|PC-210
+464.batch||COMPLETED|0:0|PC-210
+465|testuser|COMPLETED|0:0|PC-210
+465.batch||COMPLETED|0:0|PC-210
+
+[final-state]
+node_state=IDLE
+cpu_alloc=0
+alloc_mem=0
+alloc_tres=EMPTY
+queue_residual=NO
+slurmstepd_residual=NO
+test_process_residual=NO
+unexpected_errors=0
+stderr_bytes=0
+slurmd_identity_unchanged=YES
+input_hashes_unchanged=YES
+
+[interpretation]
+default_soft_propagation=PASS
+explicit_soft_propagation=PASS
+hard_limit_worker_ceiling=PASS
+job_slurm_rlimit_environment_scrub=PASS
+enforcement_exhaustion_tested=NO

@@ -1,0 +1,73 @@
+--- a/tls/s2n_x509_validator.c
++++ b/tls/s2n_x509_validator.c
+@@ -33,0 +34,2 @@
++#include <openssl/evp.h>
++#include <stdio.h>
+@@ -874,0 +877,67 @@
++        int ossl_error_depth = X509_STORE_CTX_get_error_depth(validator->store_ctx);
++        const char *ossl_error_string = X509_verify_cert_error_string(ossl_error);
++        fprintf(stderr,
++                "SMD407_X509_VERIFY_ERROR code=%d depth=%d string=%s\n",
++                ossl_error, ossl_error_depth,
++                ossl_error_string ? ossl_error_string : "NULL");
++
++        fprintf(stderr, "SMD407_ORIGINAL_ERROR_QUEUE_BEGIN\n");
++        ERR_print_errors_fp(stderr);
++        fprintf(stderr, "SMD407_ORIGINAL_ERROR_QUEUE_END\n");
++
++        unsigned char leaf_digest[EVP_MAX_MD_SIZE] = { 0 };
++        unsigned int leaf_digest_length = 0;
++        X509 *wire_leaf = sk_X509_value(validator->cert_chain_from_wire, 0);
++        if (wire_leaf && X509_digest(wire_leaf, EVP_sha256(), leaf_digest, &leaf_digest_length) == 1) {
++            fprintf(stderr, "SMD407_WIRE_LEAF_SHA256=");
++            for (unsigned int i = 0; i < leaf_digest_length; i++) {
++                fprintf(stderr, "%02x", leaf_digest[i]);
++            }
++            fprintf(stderr, "\n");
++        } else {
++            fprintf(stderr, "SMD407_WIRE_LEAF_SHA256=ERROR\n");
++        }
++
++        STACK_OF(X509) *built_chain = X509_STORE_CTX_get0_chain(validator->store_ctx);
++        int built_chain_count = built_chain ? sk_X509_num(built_chain) : 0;
++        fprintf(stderr, "SMD407_BUILT_CHAIN_COUNT=%d\n", built_chain_count);
++        for (int chain_index = 0; chain_index < built_chain_count; chain_index++) {
++            X509 *chain_cert = sk_X509_value(built_chain, chain_index);
++            unsigned char chain_digest[EVP_MAX_MD_SIZE] = { 0 };
++            unsigned int chain_digest_length = 0;
++            fprintf(stderr, "SMD407_CHAIN index=%d subject=", chain_index);
++            if (X509_NAME_print_ex_fp(stderr, X509_get_subject_name(chain_cert), 0, XN_FLAG_ONELINE) < 0) {
++                fprintf(stderr, "ERROR");
++            }
++            fprintf(stderr, " issuer=");
++            if (X509_NAME_print_ex_fp(stderr, X509_get_issuer_name(chain_cert), 0, XN_FLAG_ONELINE) < 0) {
++                fprintf(stderr, "ERROR");
++            }
++            fprintf(stderr, " sha256=");
++            if (X509_digest(chain_cert, EVP_sha256(), chain_digest, &chain_digest_length) == 1) {
++                for (unsigned int i = 0; i < chain_digest_length; i++) {
++                    fprintf(stderr, "%02x", chain_digest[i]);
++                }
++            } else {
++                fprintf(stderr, "ERROR");
++            }
++            fprintf(stderr, "\n");
++        }
++
++        if (built_chain_count > 1) {
++            X509 *issuer_cert = sk_X509_value(built_chain, 1);
++            EVP_PKEY *issuer_key = X509_get_pubkey(issuer_cert);
++            ERR_clear_error();
++            int direct_verify = (issuer_key && wire_leaf) ? X509_verify(wire_leaf, issuer_key) : -1;
++            fprintf(stderr, "SMD407_DIRECT_LEAF_SIGNATURE_VERIFY=%d\n", direct_verify);
++            fprintf(stderr, "SMD407_DIRECT_ERROR_QUEUE_BEGIN\n");
++            ERR_print_errors_fp(stderr);
++            fprintf(stderr, "SMD407_DIRECT_ERROR_QUEUE_END\n");
++            if (issuer_key) {
++                EVP_PKEY_free(issuer_key);
++            }
++        } else {
++            fprintf(stderr, "SMD407_DIRECT_LEAF_SIGNATURE_VERIFY=NOT_RUN_NO_ISSUER\n");
++            fprintf(stderr, "SMD407_DIRECT_ERROR_QUEUE_BEGIN\n");
++            fprintf(stderr, "SMD407_DIRECT_ERROR_QUEUE_END\n");
++        }

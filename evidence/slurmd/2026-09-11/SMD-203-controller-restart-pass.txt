@@ -1,0 +1,52 @@
+SMD-203 controller configuration and restart raw evidence
+executed_on=ubuntu2504
+observed_at=2026-09-11T22:07:08+09:00
+
+[service]
+active
+MainPID=41123
+ActiveEnterTimestamp=Fri 2026-09-11 22:05:34 JST
+Slurmctld(primary) at ubuntu2504 is UP
+
+[effective-config]
+AccountingStorageTRES   = cpu,mem,energy,node,billing,fs/disk,vmem,pages,gres/gpu,gres/gpu:apple,gres/gpumem,gres/gpuutil
+GresTypes               = gpu
+SelectType              = select/cons_tres
+SelectTypeParameters    = CR_CORE_MEMORY
+
+[static-config]
+23:GresTypes=gpu
+98:SelectType=select/cons_tres
+125:AccountingStorageTRES=gres/gpu,gres/gpu:apple
+
+[registered-tres]
+cpu||1
+mem||2
+energy||3
+node||4
+billing||5
+fs|disk|6
+vmem||7
+pages||8
+gres|gpu|1001
+gres|gpu:apple|1002
+gres|gpumem|1003
+gres|gpuutil|1004
+
+[node]
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+Gres=gpu:apple:1
+NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+BootTime=2026-09-10T00:08:17 SlurmdStartTime=2026-09-11T20:30:02
+LastBusyTime=2026-09-11T22:05:37
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=
+
+[queue]
+empty
+
+[classification]
+PASS_PHASE_CONFIG
+

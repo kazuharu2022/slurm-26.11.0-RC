@@ -1,0 +1,17 @@
+[target-ready-marker]
+batch_pid=85131
+child_pid=85132
+epoch=1788948166
+
+[target-stdout]
+ready batch_pid=85131 child_pid=85132 job_id=46
+term_received batch_pid=85131 epoch=1788948173
+
+[target-stderr]
+[2026-09-09T19:02:53.016] error: *** JOB 46 ON PC-210 CANCELLED AT 2026-09-09T19:02:53 DUE to SIGNAL Terminated: 15 ***
+
+[post-restart-smoke-stdout]
+PC-210.local
+
+[post-restart-smoke-stderr]
+(empty)

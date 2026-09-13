@@ -1,0 +1,41 @@
+SMD-203 GRES accounting preflight raw evidence
+executed_on=ubuntu2504
+observed_at=2026-09-11T21:58:15+09:00
+mode=READ_ONLY
+
+[effective-config]
+AccountingStorageTRES   = cpu,mem,energy,node,billing,fs/disk,vmem,pages
+GresTypes               = gpu
+SelectType              = select/cons_tres
+SelectTypeParameters    = CR_CORE_MEMORY
+
+[static-config-matches]
+23:GresTypes=gpu
+98:SelectType=select/cons_tres
+
+[registered-tres]
+cpu||1
+mem||2
+energy||3
+node||4
+billing||5
+fs|disk|6
+vmem||7
+pages||8
+
+[jobs-398-399-accounting]
+398|testuser|FAILED|0:11|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+398.batch||CANCELLED|0:11||cpu=1,mem=256M,node=1
+399|testuser|COMPLETED|0:0|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+399.batch||COMPLETED|0:0||cpu=1,mem=256M,node=1
+
+[observation]
+The effective and static controller configurations do not include
+AccountingStorageTRES for any GRES. The accounting database contains only the
+eight default TRES. Jobs 398 and 399 therefore cannot record gres/gpu or the
+typed gres/gpu:apple resource even though scheduling, allocation, MLX/Metal
+execution, release, and reallocation succeeded.
+
+[classification]
+PREFLIGHT_PASS_CONFIG_GAP_CONFIRMED
+

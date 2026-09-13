@@ -1,0 +1,104 @@
+User-visible output:
+
+run_dir=/tmp/slurm-smd012-20260909T204750
+apply alternate_log=/tmp/slurm-smd012-20260909T204750/slurmd-alternate.log
+alternate_applied pid=4170 old_start=2026-09-09T20:41:58 new_start=None wait_seconds=0
+restore production_log=/var/log/slurm/slurmd.log
+
+Read-only artifact inspection while the driver was still blocked:
+
+driver process:
+root 5110 5109 /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd012_local_reconfigure.sh
+
+blocking child:
+root 5189 5110 /opt/slurm/26.11.0/bin/scontrol show node PC-210
+
+slurmd process:
+root 4170 1 /tmp/slurm-smd012-sack-20260909T204155/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+pid file:
+4170
+
+SACK pathname:
+/var/run/slurm/sack.socket exists
+
+configuration hashes:
+a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167  /opt/slurm/26.11.0/etc/slurm.conf
+a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167  slurm.conf.before
+ae628ea184f6669617713c53cd18f61b4bb4bd8f1522aa553d58781ad2aae1c8  alternate configuration
+
+current production setting:
+SlurmdLogFile=/var/log/slurm/slurmd.log
+
+The production configuration was restored byte-for-byte before diagnosis.
+config-restored.sha256 was not yet emitted because the driver had not advanced
+past the restored registration wait.
+
+First reconfigure alternate log:
+
+[2026-09-09T20:47:53.435] slurmd started on Wed, 09 Sep 2026 20:47:53 +0900
+[2026-09-09T20:47:53.435] debug2: _create_msg_socket: inherited socket on fd:9
+[2026-09-09T20:47:53.450] debug: _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T20:47:55.735] debug2: Processing RPC: REQUEST_RECONFIGURE_WITH_CONFIG
+[2026-09-09T20:47:55.735] Caught SIGHUP. Triggering reconfigure.
+[2026-09-09T20:47:55.735] all threads complete
+[2026-09-09T20:47:55.773] debug: poll.c:672: _intr_send_byte: safe_write (1 of 1) failed: Bad file descriptor
+[2026-09-09T20:47:55.773] error: _handle_poll_event->_interrupt: [POLL] write(5) failed: Bad file descriptor
+
+Driver defect confirmed:
+
+The first wait condition accepted any non-empty SlurmdStartTime different from
+the old value. The transient controller value `None` is non-empty and differs
+from `2026-09-09T20:41:58`, so it was incorrectly accepted at wait_seconds=0.
+The driver then issued the restore reconfigure about two seconds later without
+waiting for a stable non-None IDLE registration.
+
+Current verdict:
+
+BLOCKED. This is not a PASS and is not yet sufficient to attribute the stalled
+second reconfigure solely to one source defect. Preserve a root stack sample,
+open-FD list, and production log before stopping the blocked test.
+
+Subsequent driver completion reported by the operator:
+
+scontrol: error: slurm_send_node_msg: [(null)] slurm_bufs_sendto(msg_type=REQUEST_NODE_INFO) failed: Unexpected missing socket error
+slurm_load_node error: Unexpected missing socket error
+production_restored pid=4170 restored_start=2026-09-09T20:51:00 wait_seconds=1
+submitted smoke_job=54
+error: job=54 remained state=COMPLETING
+cleanup job_id=54 state=COMPLETING
+recovery: inspect worker/controller state; evidence=/tmp/slurm-smd012-20260909T204750
+
+Post-run read-only verification from the host:
+
+- PID 4170 is alive and still runs the staged SACK-fixed slurmd candidate.
+- `/var/run/slurm/sack.socket` exists.
+- slurmctld at ubuntu2504 is UP.
+- PC-210 is IDLE with CPUAlloc=0, AllocTRES empty, and
+  SlurmdStartTime=2026-09-09T20:51:00.
+- production slurm.conf is byte-for-byte equal to the backup; both SHA-256
+  values are a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167.
+- Job 54 is not still executing. It is held in
+  PENDING/launch_failed_requeued_held, Priority=0, Restarts=1, BatchFlag=2,
+  with no allocated NodeList or AllocTRES.
+- No Job 54 slurmstepd, batch script, or workload process was found.
+
+The `COMPLETING` timeout was therefore an intermediate observation. The final
+failure mode is a batch-launch failure followed by automatic requeue-and-hold,
+not a residual workload process. Worker and controller logs for 20:47-20:56
+remain required to identify whether the failed launch was caused by the
+second reconfigure's temporary communication outage or by another launch path.
+
+The harness has been corrected but not rerun. It now rejects
+SlurmdStartTime=None, requires the SACK pathname, a non-None changed start time,
+and IDLE node state, and requires those conditions for three consecutive
+samples before issuing the next reconfigure. Corrected driver SHA-256:
+
+20b56c096cc4ea6dc0ff21385d6c34f932b328304e0b8bf14631f648d99081ea
+
+This intermediate corrected hash was superseded after the controller journal
+showed that `different slurm.conf` is an existing local-config warning. The
+driver now records worker-side hash warnings instead of treating them as a
+fatal result. Final pre-retest driver SHA-256:
+
+b575fb30ed11b0f926b028edcf6c29e04f2ca0796bdeafda643ad7909f8f8e66

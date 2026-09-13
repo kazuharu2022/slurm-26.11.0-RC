@@ -50,6 +50,7 @@
 #include "src/common/read_config.h"
 #include "src/common/ref.h"
 #include "src/common/run_in_daemon.h"
+#include "src/common/sack_api.h"
 #include "src/common/slurm_protocol_api.h"
 #include "src/common/threadpool.h"
 #include "src/common/workerpool.h"
@@ -64,7 +65,7 @@
 #include "src/interfaces/conn.h"
 #include "src/interfaces/hash.h"
 
-#define DEFAULT_RUN_DIR "/run/slurm"
+#define DEFAULT_RUN_DIR SLURM_SACK_RUN_DIR "/slurm"
 
 decl_static_data(usage_txt);
 

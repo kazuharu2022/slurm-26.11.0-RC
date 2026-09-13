@@ -1,0 +1,9 @@
+JOBID 26-28: no rows in squeue
+
+NodeName=PC-210
+CPUAlloc=0
+State=IDLE
+AllocTRES=(empty)
+LastBusyTime=2026-09-09T16:59:48
+
+Mac process match for smd004, slurmstepd, or sleep 300: none

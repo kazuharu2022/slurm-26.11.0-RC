@@ -133,7 +133,16 @@ static bool externally_locked = false;
 
 static void _atfork_child(void)
 {
+#if defined(__APPLE__)
+	/*
+	 * Darwin rejects pthread_rwlock_init() with EBUSY when the inherited
+	 * object still has its initialized signature. Only the calling thread
+	 * survives fork(), so reset the child copy to its static initializer.
+	 */
+	context_lock = (pthread_rwlock_t) PTHREAD_RWLOCK_INITIALIZER;
+#else
 	slurm_rwlock_init(&context_lock);
+#endif
 
 	/*
 	 * If we're in _drop_privileges() when we fork we need to hold the lock

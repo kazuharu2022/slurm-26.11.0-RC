@@ -1,0 +1,53 @@
+SMD-125 Phase B nonzero
+date=2026-09-11T20:19:43+0900
+classification=PASS_PHASE_NONZERO
+run_dir=/tmp/slurm-smd125-nonzero-20260911T201943
+
+[driver-output]
+mode=nonzero run_dir=/tmp/slurm-smd125-nonzero-20260911T201943
+start_health_instance old_pid=74049 method=launchctl_bootout_bootstrap
+health_result=PASS mode=nonzero node_state=DRAIN node_reason=SMD125_health_nonzero
+health_instance_ready old_pid=74049 active_pid=74446 old_start=2026-09-11T20:17:59 active_start=2026-09-11T20:19:45
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=74446 start=2026-09-11T20:19:48
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+submitted smoke_job=378
+job_gone job_id=378 wait_seconds=3
+SMD125_PHASE_COMPLETE mode=nonzero smoke_job=378 slurmd_pid=74446 run_dir=/tmp/slurm-smd125-nonzero-20260911T201943
+
+[health-events]
+event=health_begin mode=nonzero node=PC-210 node_health=unset epoch=1789125585 euid=0 egid=0 pid=74449 pgid=74449
+event=health_drain mode=nonzero node=PC-210 epoch=1789125585 scontrol_rc=0 reason=SMD125_health_nonzero
+event=health_nonzero mode=nonzero node=PC-210 epoch=1789125585 exit_code=42
+event_count=3
+
+[slurmd-log]
+[2026-09-11T20:19:45.506] error: health_check failed: rc:42 output:
+
+[node-failure]
+state=IDLE+DRAIN
+reason=SMD125_health_nonzero
+CPUAlloc=0
+AllocMem=0
+
+[accounting]
+378|testuser|COMPLETED|0:0|PC-210
+378.batch||COMPLETED|0:0|PC-210
+
+[config]
+before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+candidate_sha256=2920dbc2bba029a888108504122484f2f1e03deb9afc4373a6853ae8d211b84d
+restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+byte_restore_checked_by_driver=yes
+
+[final]
+slurmd_pid=74446
+slurmd_start=2026-09-11T20:19:48
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+queue=empty
+drain_command_stderr_bytes=0
+resume_stderr_bytes=0
+
+result=PASS_PHASE_NONZERO

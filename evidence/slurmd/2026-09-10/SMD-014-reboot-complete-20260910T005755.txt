@@ -1,0 +1,129 @@
+SMD-014 controlled reboot final verify evidence
+Date: 2026-09-10 00:57-00:58 JST
+
+[driver-output]
+mode=verify run_dir=/tmp/slurm-smd014-reboot-verify-20260910T005755 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+reboot_detected old_boot_epoch=1786117889 new_boot_epoch=1788966497
+runatload_ready old_pid=49421 new_pid=310 old_start=2026-09-09T23:12:55 new_start=2026-09-10T00:08:26 wait_seconds=2
+submitted smoke_job=63
+job_gone job_id=63 wait_seconds=1
+SMD014_REBOOT_COMPLETE old_boot_epoch=1786117889 new_boot_epoch=1788966497 old_pid=49421 new_pid=310 smoke_job=63 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env.completed-20260910T005755 run_dir=/tmp/slurm-smd014-reboot-verify-20260910T005755
+
+[launchd-final]
+service=system/org.schedmd.slurmd
+state=running
+program=/opt/slurm/26.11.0/sbin/slurmd
+arguments=-D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+runs=1
+pid=310
+last_exit_code=never_exited
+properties=runatload,managed
+enabled=true
+
+[post-reboot-startup]
+slurmd_version=26.11.0-0rc1
+slurmd_started=2026-09-10T00:08:26+09:00
+cpu=18
+memory_mib=131072
+uptime_seconds_at_start=11
+
+[sack]
+path=/var/run/slurm/sack.socket
+mode=srwxrwxrwx
+owner=root
+group=daemon
+inode=13058989
+
+[smoke-job-63]
+submission_request=partition=debug nodes=1 ntasks=1 cpus=1 mem=1G gres=gpu:apple:1 time=00:01:00 command=/bin/hostname
+stdout=PC-210.local
+stderr=empty
+job=63 state=COMPLETED exit_code=0:0 node=PC-210
+batch=63.batch state=COMPLETED exit_code=0:0 node=PC-210
+job_req_tres=billing=1,cpu=1,mem=1G,node=1
+job_alloc_tres=billing=1,cpu=1,mem=1G,node=1
+gpu_tres_in_sacct=NOT_RECORDED
+
+[final-node]
+NodeAddr=192.168.10.128
+NodeHostName=PC-210
+State=IDLE
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+CPUAlloc=0
+AllocTRES=(empty)
+queue=empty
+
+[runtime-artifact-hashes]
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  sbin/slurmd
+738fe94b7cb24702de8c5c1b65c0c82a619e072d1e1a12aa4a0d143092d643b0  sbin/slurmstepd
+0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9  bin/srun
+17ab187a85e6c6d04e40d2744ff0a7332c8e091c7932d82d5041c9923b9c9011  lib/libslurm.46.dylib
+32e1f7c92a121a7a01d4970f7836d6610c20e10b185898cd7274bb791d7f5e28  lib/slurm/libslurm_pmi.dylib
+cbe62a38946a3f0a17f2bcf8840638ff31120d626dbbdffdf7f89a36ab852fae  lib/slurm/libslurmfull.dylib
+
+[marker]
+active_marker=absent
+completed_marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env.completed-20260910T005755
+completed_marker_mode=-rw-------
+completed_marker_owner=root
+completed_marker_group=wheel
+
+[decision]
+launchd_boot_start=PASS
+controller_registration_after_runtime_address_fix=PASS
+post_reboot_job=PASS
+job_accounting_state_and_exit=PASS
+resource_release=PASS
+SMD-014=PASS
+persistent_DHCP_or_name_resolution_fix=PASS_AFTER_FOLLOWUP
+GPU_accounting=NOT_CONFIRMED_BY_JOB_63
+
+[ubuntu2504-name-resolution-after-fix]
+etc_hosts_PC-210=192.168.10.128
+resolvectl_PC-210=192.168.10.128 protocol=etc-hosts
+getent_ahostsv4_PC-210=192.168.10.128
+name_resolution_consistency=PASS
+DHCP_reservation=USER_CONFIRMED_LATER_IN_THIS_EVIDENCE
+slurmctld_restart_persistence=PASS
+
+[slurmctld-restart-after-name-resolution-fix]
+old_controller_pid=456247
+new_controller_pid=466808
+controller_active_since=2026-09-10T01:22:12+09:00
+controller_ping=UP
+NodeAddr_after_restart=PC-210
+NodeHostName_after_restart=PC-210
+node_state_after_restart=IDLE
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+CPUAlloc=0
+AllocTRES=(empty)
+queue=empty
+getent_PC-210=192.168.10.128
+nc_PC-210_6818=PASS resolved_address=192.168.10.128
+runtime_literal_NodeAddr_dependency=NO
+post_controller_restart_job=PASS
+
+[post-controller-restart-srun]
+submit_host=ubuntu2504
+submit_user=testuser
+submit_uid=3001
+submit_gid=3001
+command=srun partition=debug nodes=1 ntasks=1 time=00:01:00 chdir=/tmp /bin/hostname
+stdout=PC-210.local
+srun_rc=0
+queue_after=empty
+node_state_after=IDLE
+NodeAddr_after=PC-210
+CPUAlloc_after=0
+AllocTRES_after=(empty)
+task_launch_after_controller_restart=PASS
+resource_release_after_controller_restart=PASS
+
+[address-followup-decision]
+head_name_resolution=PASS
+slurmctld_restart_persistence=PASS
+post_restart_task_launch=PASS
+DHCP_reservation=USER_CONFIRMED
+SMD-014_address_followup=PASS

@@ -114,6 +114,9 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 sbin_PROGRAMS = slurmd$(EXEEXT)
+
+# This is needed to actually link to the libs that it doesn't use.
+@DARWIN_BUILD_FALSE@am__append_1 = -Wl,--no-as-needed
 subdir = src/slurmd/slurmd
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/auxdir/ax_check_compile_flag.m4 \
@@ -532,9 +535,7 @@ depend_libs = \
 
 # These 2 depend_* should look the same in ../slurmstepd/Makefile.am
 depend_ldadd = $(HWLOC_LIBS) $(PAM_LIBS) $(UTIL_LIBS)
-
-# This is needed to actually link to the libs that it doesn't use.
-depend_ldflags = $(HWLOC_LDFLAGS) -Wl,--no-as-needed
+depend_ldflags = $(HWLOC_LDFLAGS) $(am__append_1)
 AM_CPPFLAGS = -I$(top_srcdir) $(HWLOC_CPPFLAGS)
 slurmd_LDADD = $(depend_libs) $(LIB_SLURM) $(NUMA_LIBS) \
 	$(depend_ldadd) $(LIB_REF)
@@ -902,8 +903,20 @@ uninstall-am: uninstall-sbinPROGRAMS
 
 
 %.bino: %.txt
-	$(AM_V_GEN)curr_dir=$(shell pwd); cd $(abs_srcdir); $(LD) -r $(LD_EMULATION) -o "$(abs_builddir)/$*.bino" -z noexecstack --format=binary "$(notdir $<)"; cd $$curr_dir
-	$(AM_V_at)@OBJCOPY@ --rename-section .data=.rodata,alloc,load,readonly,data,contents "$*.bino"
+@DARWIN_BUILD_TRUE@	$(AM_V_GEN)cd "$(abs_srcdir)" && \
+@DARWIN_BUILD_TRUE@	ref_name='$(notdir $<)'; \
+@DARWIN_BUILD_TRUE@	case "$$ref_name" in ''|*[!A-Za-z0-9_.-]*) exit 1 ;; esac; \
+@DARWIN_BUILD_TRUE@	sym_name=$$(printf '%s' "$$ref_name" | sed 's/[^A-Za-z0-9_]/_/g'); \
+@DARWIN_BUILD_TRUE@	printf '%s\n' \
+@DARWIN_BUILD_TRUE@	  '.section __TEXT,__const' \
+@DARWIN_BUILD_TRUE@	  ".globl __binary_$${sym_name}_start" \
+@DARWIN_BUILD_TRUE@	  ".globl __binary_$${sym_name}_end" \
+@DARWIN_BUILD_TRUE@	  "__binary_$${sym_name}_start:" \
+@DARWIN_BUILD_TRUE@	  ".incbin \"$${ref_name}\"" \
+@DARWIN_BUILD_TRUE@	  "__binary_$${sym_name}_end:" | \
+@DARWIN_BUILD_TRUE@	$(CC) -x assembler -c -o "$(abs_builddir)/$*.bino" -
+@DARWIN_BUILD_FALSE@	$(AM_V_GEN)curr_dir=$(shell pwd); cd $(abs_srcdir); $(LD) -r $(LD_EMULATION) -o "$(abs_builddir)/$*.bino" -z noexecstack --format=binary "$(notdir $<)"; cd $$curr_dir
+@DARWIN_BUILD_FALSE@	$(AM_V_at)@OBJCOPY@ --rename-section .data=.rodata,alloc,load,readonly,data,contents "$*.bino"
 
 lib_ref.lo: $(BIN_REF)
 	$(AM_V_at)echo "# $@ - a libtool object file" >"$@"

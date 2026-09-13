@@ -36,6 +36,7 @@
 #define _GNU_SOURCE
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "src/common/slurm_protocol_api.h"
 #include "src/common/xmalloc.h"
@@ -50,9 +51,6 @@ extern xcpuset_t *xcpuset_alloc(void)
 
 extern char *task_cpuset_to_str(const xcpuset_t *mask)
 {
-#if defined(__APPLE__)
-	fatal("%s: not supported on macOS", __func__);
-#else
 	int base;
 	bool leading_zeros = true;
 	char *str = xmalloc((mask->max_cpus / 4) + 1);
@@ -79,14 +77,10 @@ extern char *task_cpuset_to_str(const xcpuset_t *mask)
 	if (leading_zeros)
 		*ptr++ = '0';
 	return str;
-#endif
 }
 
 extern xcpuset_t *task_str_to_cpuset(const char *str)
 {
-#if defined(__APPLE__)
-	fatal("%s: not supported on macOS", __func__);
-#else
 	xcpuset_t *mask = NULL;
 	int len = strlen(str);
 	const char *ptr = str + len - 1;
@@ -127,7 +121,6 @@ extern xcpuset_t *task_str_to_cpuset(const char *str)
 	}
 
 	return mask;
-#endif
 }
 
 extern int xsetaffinity(pid_t pid, xcpuset_t *mask)
@@ -137,6 +130,11 @@ extern int xsetaffinity(pid_t pid, xcpuset_t *mask)
 #ifdef __FreeBSD__
 	rval = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, pid,
 				  mask->size, &mask->mask);
+#elif defined(__APPLE__)
+	(void) pid;
+	(void) mask;
+	errno = ENOTSUP;
+	rval = -1;
 #else
 	rval = sched_setaffinity(pid, mask->size, &mask->mask);
 #endif
@@ -163,6 +161,25 @@ static int _getaffinity(pid_t pid, xcpuset_t *mask)
 #ifdef __FreeBSD__
 	return cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, pid,
 				  mask->size, &mask->mask);
+#elif defined(__APPLE__)
+	long ncpu;
+
+	(void) pid;
+	ncpu = sysconf(_SC_NPROCESSORS_ONLN);
+	if (ncpu < 1) {
+		errno = EINVAL;
+		return -1;
+	}
+	if ((size_t) ncpu > mask->max_cpus) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	XCPU_ZERO(mask);
+	for (size_t i = 0; i < (size_t) ncpu; i++)
+		XCPU_SET(i, mask);
+
+	return 0;
 #else
 	return sched_getaffinity(pid, mask->size, &mask->mask);
 #endif

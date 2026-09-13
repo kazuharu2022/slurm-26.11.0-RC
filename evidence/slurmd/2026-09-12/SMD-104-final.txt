@@ -1,0 +1,99 @@
+SMD-104 Attempt 2 final evidence
+run_dir=/tmp/slurm-smd104-20260912T002308
+batch_job=452
+srun_job=453
+slurmd_pid=94504
+result=PASS
+
+[batch-output]
+mode=batch
+job_id=452
+step_id=-5
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+home=/Users/testuser
+path=/opt/slurm/26.11.0/bin:/usr/bin:/bin
+lang=ja_JP.UTF-8
+lc_all=ja_JP.UTF-8
+short=smd104-short-value
+unicode=環境伝播-確認
+empty_state=SET_EMPTY
+long_length=8192
+long_sha256=51f7ed92a6a6d6480a3d4b7334f4aea3944b63c87a4ddfa69a613b3193eebbab
+unset_state=ABSENT
+parent_only_state=ABSENT
+cwd=/private/tmp
+SMD104_PAYLOAD_PASS mode=batch
+
+[batch-accounting]
+452|testuser|COMPLETED|0:0|PC-210
+452.batch||COMPLETED|0:0|PC-210
+
+[srun-output]
+mode=interactive
+job_id=453
+step_id=0
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+home=/Users/testuser
+path=/opt/slurm/26.11.0/bin:/usr/bin:/bin
+lang=ja_JP.UTF-8
+lc_all=ja_JP.UTF-8
+short=smd104-short-value
+unicode=環境伝播-確認
+empty_state=SET_EMPTY
+long_length=8192
+long_sha256=51f7ed92a6a6d6480a3d4b7334f4aea3944b63c87a4ddfa69a613b3193eebbab
+unset_state=ABSENT
+parent_only_state=ABSENT
+cwd=/private/tmp
+SMD104_PAYLOAD_PASS mode=interactive
+
+[srun-accounting]
+453|testuser|COMPLETED|0:0|PC-210
+453.0||COMPLETED|0:0|PC-210
+
+[environment-comparison]
+batch-environment.txt vs srun-environment.txt: byte-identical
+diff_size=0
+
+[output-metadata]
+batch-452.out owner=3001:3001 mode=644 size=446
+batch-452.err owner=3001:3001 mode=644 size=0
+srun.out owner=0:0 mode=644 size=457
+srun.err owner=0:0 mode=644 size=0
+
+[input-hashes-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+0284ffb9011ef080a2f1ad0887131d0be3a38a857ba0b3abbb5f1298031b51bf  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd104_environment_payload.sh
+
+[input-hashes-after]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+0284ffb9011ef080a2f1ad0887131d0be3a38a857ba0b3abbb5f1298031b51bf  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd104_environment_payload.sh
+inputs.diff_size=0
+
+[node-before]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T23:11:50
+
+[node-final]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T23:11:50
+
+[cleanup]
+queue=empty
+slurmstepd_before=none
+slurmstepd_final=none
+residual_processes=none
+slurmd_pid_unchanged=94504
+
+[terminal]
+SMD104_ENVIRONMENT_COMPLETE batch_job=452 srun_job=453 long_bytes=8192 slurmd_pid=94504 production_unchanged=PASS run_dir=/tmp/slurm-smd104-20260912T002308

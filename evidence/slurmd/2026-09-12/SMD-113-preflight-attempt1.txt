@@ -1,0 +1,16 @@
+SMD-113 Phase A Attempt 1
+date=2026-09-12
+status=HARNESS_PRECONDITION_FAILURE_BEFORE_RUN_DIRECTORY
+run_dir=NOT_CREATED
+error=missing /Library/LaunchDaemons/org.schedmd.slurm.slurmd.plist
+cause=wrong launchd label/path org.schedmd.slurm.slurmd was used instead of org.schedmd.slurmd
+disk_image_created=no
+volume_mounted=no
+enospc_tested=no
+slurm_job_submitted=no
+daemon_restarted=no
+production_changed=no
+old_driver_sha256=8ab36cbd7ac7f8095362a6c6e08f2afa7cd0026bd2427cbdcaf07df56a108165
+fixed_driver_sha256=b7b797c30e947e8c0848e29e49896cb72e591464f412ead2af31db0c83418b81
+fix=use org.schedmd.slurmd and validate loaded service state/PID plus correct plist hash
+next=full Phase A retest required

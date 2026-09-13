@@ -1,0 +1,9 @@
+run_dir=/tmp/slurm-smd011-20260909T194857
+controller_data_since_before=1788918618
+submitted target_job=50
+target_ready job_id=50 batch_pid=91822 child_pid=91823 heartbeat=0
+SMD011_WAITING_FOR_CONTROLLER_RESTART job_id=50 old_data_since=1788918618
+On ubuntu2504 root shell, now run: systemctl restart slurmctld
+error: controller restart not detected within observation window
+cleanup job_id=50 state=RUNNING
+recovery: inspect controller and worker state; evidence=/tmp/slurm-smd011-20260909T194857

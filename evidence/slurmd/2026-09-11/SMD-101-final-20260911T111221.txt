@@ -1,0 +1,46 @@
+[attempt-2]
+run_dir=/tmp/slurm-smd101-20260911T111131
+error: node state is DOWN+NOT_RESPONDING, expected IDLE
+job_submitted=NO
+
+[attempt-3]
+run_dir=/tmp/slurm-smd101-20260911T111221
+submitted user=testuser uid=3001 gid=3001 job_id=355
+submitted user=testuser2 uid=3002 gid=3002 job_id=356
+directory_isolation=PASS
+job_gone job_id=355 wait_seconds=1
+verified user=testuser job_id=355 owner=3001:3001 marker_mode=600 accounting=COMPLETED:0:0
+job_gone job_id=356 wait_seconds=0
+verified user=testuser2 job_id=356 owner=3002:3002 marker_mode=600 accounting=COMPLETED:0:0
+marker_isolation=PASS
+[user=testuser job_id=355 stdout]
+job_id=355
+job_user=testuser
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+actual_groups=3001 3100 12 61 100 701
+home=/Users/testuser
+cwd=/private/tmp
+marker_path=/tmp/slurm-smd101-20260911T111221/testuser/created-by-job.txt
+marker_identity_mode=3001:3001:600
+SMD101_PAYLOAD_PASS user=testuser uid=3001 gid=3001 shared_gid=3100
+[user=testuser job_id=355 accounting]
+355|testuser|COMPLETED|0:0|PC-210
+355.batch||COMPLETED|0:0|PC-210
+[user=testuser2 job_id=356 stdout]
+job_id=356
+job_user=testuser2
+actual_user=testuser2
+actual_uid=3002
+actual_gid=3002
+actual_groups=3002 3100 12 61 100 701
+home=/Users/testuser2
+cwd=/private/tmp
+marker_path=/tmp/slurm-smd101-20260911T111221/testuser2/created-by-job.txt
+marker_identity_mode=3002:3002:600
+SMD101_PAYLOAD_PASS user=testuser2 uid=3002 gid=3002 shared_gid=3100
+[user=testuser2 job_id=356 accounting]
+356|testuser2|COMPLETED|0:0|PC-210
+356.batch||COMPLETED|0:0|PC-210
+SMD101_MULTI_USER_COMPLETE jobs=2 final_state=IDLE CPUAlloc=0 AllocMem=0 run_dir=/tmp/slurm-smd101-20260911T111221

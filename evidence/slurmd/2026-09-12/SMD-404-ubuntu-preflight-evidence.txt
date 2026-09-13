@@ -1,0 +1,52 @@
+SMD-404 Ubuntu preflight evidence readback
+source_run_dir=/tmp/slurm-smd404-ubuntu-preflight-20260912T120224
+
+[production-hash-diff]
+no output
+
+[controller]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[controller-profile]
+JobAcctGatherType       = jobacct_gather/cgroup
+ProctrackType           = proctrack/cgroup
+SlurmctldParameters     = enable_configless
+TaskPlugin              = task/affinity
+TaskPluginParam         = (null type)
+
+[portable-candidate]
+NodeName=ubuntu2504 CPUs=8 Boards=1 SocketsPerBoard=1 CoresPerSocket=4 ThreadsPerCore=2 RealMemory=64024 Gres=gpu:nvidia_geforce_rtx_3060_laptop_gpu:1
+Found gpu:nvidia_geforce_rtx_3060_laptop_gpu:1 with Autodetect=nvml (Substring of gpu name may be used instead)
+UpTime=1-01:20:20
+candidate-slurmd-C.stderr-bytes=0
+
+[plugin-architecture]
+/usr/local/slurm/26.11.0/lib/slurm/cgroup_v2.so: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=75caed9fae3d8b29ac60b2de178a53ac2f6dba97, with debug_info, not stripped
+/usr/local/slurm/26.11.0/lib/slurm/proctrack_cgroup.so: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=0f3b8c8ced36a1c88f895b2acf325d55b0480d5e, with debug_info, not stripped
+
+[ubuntu-node]
+NodeName=ubuntu Arch=x86_64 CoresPerSocket=4
+CPUAlloc=0 CPUEfctv=8 CPUTot=8 CPULoad=0.04
+Gres=(null)
+RealMemory=64024 AllocMem=0 FreeMem=56022 Sockets=1 Boards=1
+State=IDLE ThreadsPerCore=2
+
+[mac-node]
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+Gres=gpu:apple:1
+RealMemory=131072 AllocMem=0 FreeMem=0 Sockets=1 Boards=1
+State=IDLE ThreadsPerCore=1
+
+[services]
+slurmctld.service active MainPID=81572 ActiveEnterTimestamp=Fri 2026-09-11 22:05:34 JST
+slurmdbd.service active MainPID=4235 ActiveEnterTimestamp=Fri 2026-09-11 10:43:23 JST
+slurmd.service active MainPID=81830 ActiveEnterTimestamp=Sat 2026-09-12 11:34:45 JST
+
+[queue]
+empty for ubuntu,PC-210
+
+[current-production-hashes]
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+08d31ac718b61395b0a452bb6700c1143352357cf505b3791c0285f55f43f1d0  /usr/local/slurm/26.11.0/etc/gres.conf
+2c445fdf614b0554aa76f7b0df272ec6c0ea8af456736b3fa66a28a41847ed14  /usr/local/slurm/26.11.0/sbin/slurmd

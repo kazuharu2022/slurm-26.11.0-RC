@@ -1,0 +1,48 @@
+SMD-206 Phase B Attempt 2 approved retest preflight
+observed=2026-09-11T23:10:19+09:00
+result=READY_TO_RUN_PHASE_RUNNING_RETEST_USER_ROOT_SHELL
+
+[launchd]
+service_target=system/org.schedmd.slurmd
+state=running
+runs=1
+pid=91811
+pidfile=91811
+ppid=1
+user=root
+command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+last_exit_code=(never exited)
+
+[controller]
+ubuntu2504:6817=CONNECTED
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+
+[artifacts]
+driver_sha256=da52623abd9a754d6fc52290fa6842b74731cd7270381be0cc693f807bbd39bf
+payload_sha256=fb96050dfda25f98cde8718ee396284ccac5d535ac801d4231a57b882d1a8301
+driver_sh_n=PASS
+payload_bash_n=PASS
+
+[observer-correction]
+An initial read-only observer command queried the obsolete/nonexistent label
+system/org.schedmd.slurm.slurmd and returned "Could not find service". The
+installed plist, driver, launchd system domain and running process all use
+system/org.schedmd.slurmd. Repeating the query with the actual label returned
+state=running and pid=91811. This was an observer-label error and did not change
+the daemon or production configuration.
+
+[approval]
+The user explicitly approved the SMD-206 Phase B Attempt 2 rerun after the
+Attempt 1 harness false negative was diagnosed and the driver was corrected.
+The state-changing driver must run from the PC-210 root shell because the Codex
+command runner does not hold sudo credentials.

@@ -1,0 +1,85 @@
+SMD-013 second run evidence
+date=2026-09-09 22:22-22:23 JST
+run_dir=/tmp/slurm-smd013-20260909T222246
+result=PASS_STAGING
+
+[console]
+nofile_soft_limit=unlimited
+candidate_version=slurm 26.11.0-0rc1
+clean_stop old_pid=23395
+start phase=corrupt_state pid=24985
+submitted phase=corrupt-state job_id=57
+job_gone job_id=57 wait_seconds=1
+phase_a=PASS pid=24985 job_id=57
+stop phase=corrupt-state pid=24985 signal=TERM
+stopped phase=corrupt-state pid=24985
+start phase=cleanstart pid=25054
+submitted phase=cleanstart job_id=58
+job_gone job_id=58 wait_seconds=2
+phase_b=PASS pid=25054 job_id=58
+stop phase=cleanstart pid=25054 signal=TERM
+stopped phase=cleanstart pid=25054
+start phase=production_restore pid=25124
+submitted phase=production-restore job_id=59
+job_gone job_id=59 wait_seconds=1
+production_restore=PASS pid=25124 job_id=59
+SMD013_ROOT_RUN_COMPLETE current_pid=25124 phase_a_job=57 phase_b_job=58 final_job=59 run_dir=/tmp/slurm-smd013-20260909T222246
+
+[candidate]
+slurmd_sha256=a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+libslurmfull_dylib_sha256=cbe62a38946a3f0a17f2bcf8840638ff31120d626dbbdffdf7f89a36ab852fae
+driver_sha256=bb9ca555561286c5a461ab6ff3ae2438cec6acc9e7f427ca10c624e4771ecef2
+
+[phase-a]
+stale_sack_before=regular-file device=16777233 inode=13047728
+log=[2026-09-09T22:22:48.086] warning: _cred_context_unpack: failed to restore job state from file
+slurmd_start=2026-09-09T22:22:48
+node_state=IDLE
+gres=gpu:apple:1
+saved_cred_state=mode=-rw------- owner=root group=wheel size=62
+job_57=COMPLETED ExitCode=0:0
+job_57_batch=COMPLETED ExitCode=0:0
+hostname=PC-210.local
+
+[phase-b]
+stale_sack_before=regular-file device=16777233 inode=13047817
+log=[2026-09-09T22:22:53.682] _stepd_cleanup_batch_dirs: Purging vestigial job script /tmp/slurm-smd013-20260909T222246/spool/job99999/slurm_script
+job99999_after=absent
+slurmd_start=2026-09-09T22:22:53
+node_state=IDLE
+gres=gpu:apple:1
+job_58=COMPLETED ExitCode=0:0
+job_58_batch=COMPLETED ExitCode=0:0
+hostname=PC-210.local
+
+[production-restore]
+slurmd_pid=25124
+slurmd_command=/tmp/slurm-smd013-20260909T222246/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+slurmd_start=2026-09-09T22:23:00
+production_spool=/var/spool/slurmd
+production_cred_state=mode=-rw------- size=62
+sack_socket=socket device=16777233 inode=13047845
+controller=UP
+node_state=IDLE
+CPUAlloc=0
+AllocTRES=empty
+gres=gpu:apple:1
+queue=empty
+job_59=COMPLETED ExitCode=0:0
+job_59_batch=COMPLETED ExitCode=0:0
+hostname=PC-210.local
+
+[independent-postcheck]
+controller=UP
+node_state=IDLE
+CPUAlloc=0
+AllocTRES=empty
+queue_for_PC-210=empty
+matching_slurmstepd_or_job_57_58_59_processes=none
+accounting_jobs_57_58_59_and_batch_steps=all_COMPLETED_0:0
+
+[scope]
+Each smoke submission used --gres=gpu:apple:1.
+ReqTRES/AllocTRES accounting output did not include gpu, while each phase node record exposed Gres=gpu:apple:1 and the scheduler accepted all three explicit GRES requests.
+The production prefix binary was not installed or replaced by this test.
+The current daemon remains the validated /tmp candidate using production config and spool.

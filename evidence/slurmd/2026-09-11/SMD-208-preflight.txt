@@ -1,0 +1,58 @@
+SMD-208 static preflight
+date=2026-09-11
+state=HISTORICAL_PRE_ATTEMPT1
+superseded_runtime_preflight=SMD-208-attempt2-preflight.txt
+production_change=NO
+package_install=NO
+
+environment:
+  slurm=26.11.0-0rc1
+  mlx=0.32.2
+  python=3.14.6
+  target=Apple M5 Max arm64 macOS
+  test_user=3001:3001
+
+predeclared cases:
+  rect_k31=7x31@31x11 elements=77
+  rect_k64=13x64@64x9 elements=117
+  rect_k127=5x127@127x7 elements=35
+  overall_elements=229
+
+predeclared thresholds:
+  element_atol=0.00005000
+  element_rtol=0.00005000
+  max_abs_error_limit=0.00100000
+  mean_abs_error_limit=0.00002000
+  element_rule=abs(gpu-cpu)<=atol+rtol*abs(cpu)
+
+serial float32 accumulation design probe (NOT Metal evidence):
+  7x31x11 max_abs=8.279255077e-07 mean_abs=1.763812486e-07 max_scaled=9.879294636e-03
+  13x64x9 max_abs=1.754873262e-06 mean_abs=2.901925769e-07 max_scaled=9.851161091e-03
+  5x127x7 max_abs=2.565600305e-06 mean_abs=5.819769596e-07 max_scaled=2.486029033e-02
+
+static checks:
+  python_source_compile=PASS
+  sh_driver_syntax=PASS
+  bash_batch_syntax=PASS
+  approval_gate_rc=64
+  numeric_validator_valid_fixture_rc=0
+  numeric_validator_missing_field_fixture_rc=1
+  whitespace_check=PASS
+  numpy_spec=None
+  pip_spec=None
+  shellcheck=NOT_RUN_NOT_INSTALLED
+  gpu_runtime=NOT_RUN_APPROVAL_REQUIRED
+
+hashes:
+  21187ade43c7e1b4a7625bfa7ffc64641f937ad1ec88ecb3e28ffe55b4b295ca  smd208_mlx_correctness.py
+  df4cef0b58a37f8614f82d1854df0e9e727228871d805cad0b8f891e25ee376c  smd208_mlx_correctness.sbatch
+  f16a669aee5559c0a66bdac6f7ebe1b3cde72b44b30f2bd802155e6d613d8f1f  smd208_numerical_correctness_driver.sh
+
+sandbox capability observation:
+  direct MLX import rc=1
+  ImportError=[metal::load_device] No Metal device available
+  classification=OBSERVER_CAPABILITY_LIMIT_NOT_SMD208_RUNTIME_RESULT
+
+approval command:
+  sudo env SMD208_NUMERICAL_CORRECTNESS_CONFIRMED=YES /bin/sh \
+    /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd208_numerical_correctness_driver.sh

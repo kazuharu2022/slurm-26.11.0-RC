@@ -1,0 +1,35 @@
+SMD-126 Phase A static preflight
+date=2026-09-11T20:38:28+0900
+classification=READY_TO_RUN_PHASE_A
+
+[environment]
+kernel=Darwin 25.5.0 arm64
+macos=26.5.1 build=25F80
+slurm=26.11.0-0rc1
+prefix=/opt/slurm/26.11.0
+
+[driver]
+path=contribs/macos-tests/smd126_plugin_inventory.sh
+sh_n=PASS
+approval_gate_without_confirmation_rc=64
+sha256=b66725f31de6c7135e021428d0ffd0e06c9483702b10b0de4a0d0f49db1a099b
+
+[installed-plugin-static-scan]
+plugins=77
+architecture_failures=0
+metadata_failures=0
+absolute_opt_dependency_failures=0
+
+[known-weak-dynamic-symbols]
+accounting_storage_slurmdbd.so assoc_cache_cond=weak_dynamic_lookup
+accounting_storage_slurmdbd.so assoc_cache_mutex=weak_dynamic_lookup
+accounting_storage_slurmdbd.so running_cache=weak_dynamic_lookup
+topology_flat.so idle_node_bitmap=weak_dynamic_lookup
+
+[evidence-boundary]
+runtime_phase_a=NOT_RUN
+codex_controller_probe=NOT_ACCEPTED_SANDBOX_NETWORK
+nonroot_slurmd_g_probe=NOT_ACCEPTED_KEY_AND_LOG_PERMISSIONS
+all_plugin_runtime_contexts=NOT_RUN
+
+result=READY_TO_RUN_PHASE_A

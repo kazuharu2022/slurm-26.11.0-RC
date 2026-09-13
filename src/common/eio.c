@@ -118,7 +118,7 @@ eio_handle_t *eio_handle_create(uint16_t shutdown_wait)
 
 	eio->magic = EIO_MAGIC;
 
-	if (pipe2(eio->fds, O_CLOEXEC) < 0) {
+	if (fd_pipe_close_on_exec(eio->fds) < 0) {
 		error("%s: pipe: %m", __func__);
 		eio_handle_destroy(eio);
 		return (NULL);

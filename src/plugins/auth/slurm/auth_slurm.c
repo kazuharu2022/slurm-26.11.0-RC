@@ -134,7 +134,7 @@ extern void fini(void)
 
 	if (internal) {
 		/*
-		 * Do not attempt to remove /run/slurm/sack.socket.
+		 * Do not attempt to remove the SACK UNIX socket.
 		 * If multiple daemons are co-located on this node, we may no
 		 * longer be the one that owns that socket, and removing it
 		 * would prevent the current owner from responding.

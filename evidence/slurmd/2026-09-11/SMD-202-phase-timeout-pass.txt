@@ -1,0 +1,118 @@
+SMD-202 Phase C timeout raw evidence
+date=2026-09-11 21:42-21:43 JST
+classification=PASS_PHASE_TIMEOUT
+run_dir=/tmp/slurm-smd202-timeout-20260911T214228
+driver_sha256=7b49c93837be09e6b1444397b16be7dadb458dfdd7d138145e9e48e38fbba627
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-result]
+mode=timeout run_dir=/tmp/slurm-smd202-timeout-20260911T214228 mlx_job=/opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch
+submitted mode=timeout target_job=393
+target_ready mode=timeout job_id=393
+terminate mode=timeout job_id=393 action=time_limit
+job_gone job_id=393 wait_seconds=62
+submitted mode=timeout probe_job=394
+job_gone job_id=394 wait_seconds=0
+SMD202_GRES_RELEASE_PHASE_COMPLETE mode=timeout target_job=393 probe_job=394 probe_state=COMPLETED slurmd_pid=75048 run_dir=/tmp/slurm-smd202-timeout-20260911T214228
+
+[controller-before]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-11T20:30:02
+
+[target-393-stdout]
+mode=timeout
+payload_pid=85707
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=393
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.024585
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=timeout job_id=393
+child_pid=85718
+
+[target-393-stderr]
+[2026-09-11T21:43:36.016] error: *** JOB 393 ON PC-210 CANCELLED AT 2026-09-11T21:43:36 DUE TO TIME LIMIT ***
+
+[target-accounting]
+393|testuser|TIMEOUT|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+393.batch||CANCELLED|0:15|PC-210||cpu=1,mem=256M,node=1
+accounting_stderr_bytes=0
+
+[node-after-target-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+
+[probe-394-stdout]
+mode=probe
+payload_pid=86068
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=394
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.019413
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=probe job_id=394
+case_complete mode=probe job_id=394
+
+[probe-accounting]
+394|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+394.batch||COMPLETED|0:0|PC-210||cpu=1,mem=256M,node=1
+probe_stderr_bytes=0
+accounting_stderr_bytes=0
+
+[slurmd-log-delta]
+[2026-09-11T21:42:29.008] Launching batch JobId=393 SLUID=sCT1M287V90700 for UID 3001
+[2026-09-11T21:42:29.073] [393.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:43:36.016] [393.batch] error: *** JOB 393 ON PC-210 CANCELLED AT 2026-09-11T21:43:36 DUE TO TIME LIMIT ***
+[2026-09-11T21:43:36.035] [393.batch] stepd_cleanup: done with step (step_rc: 15, slurm_rc: 0 - No error)
+[2026-09-11T21:43:37.009] Launching batch JobId=394 SLUID=sCT1M287XC2V00 for UID 3001
+[2026-09-11T21:43:37.071] [394.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:43:37.417] [394.batch] done with step
+
+[final-state]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+slurmd_pid=75048
+slurmstepd_before_bytes=0
+slurmstepd_after_bytes=0
+residual_processes_bytes=0
+target_payload_pid_85707_alive=NO
+target_child_pid_85718_alive=NO
+probe_payload_pid_86068_alive=NO
+
+[boundary]
+This phase proves scheduler-visible GRES release after a Slurm time-limit termination and
+successful reuse by the immediately following MLX/Metal GPU job. It does not prove
+kernel-level Metal device isolation. ReqTRES/AllocTRES still omit gres/gpu and remain
+assigned to SMD-203.

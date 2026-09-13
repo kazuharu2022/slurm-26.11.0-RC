@@ -1,0 +1,60 @@
+SMD-016 third start attempt blocked at first sbatch
+captured_at=2026-09-10T10:15:04+09:00
+run_dir=/tmp/slurm-smd016-20260910T101504
+failed_marker=/opt/slurm/26.11.0/.smd016-soak.env.failed-20260910T101504
+
+[user terminal]
+sudo env SMD016_24H_CONFIRMED=YES /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh start
+error: soak runner failed to start; inspect /tmp/slurm-smd016-20260910T101504
+
+[preflight]
+launchd_state=running
+launchd_pid=310
+pidfile_pid=310
+identity=PASS
+slurmd_command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+slurmd_rss_kb=14016
+slurmd_fd_count=13
+slurmd_thread_count=11
+controller=UP
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+queue=(empty)
+
+[runner]
+runner_pid=26405
+sequence=1
+sample=1789002904 before 1 pid=310 rss_kb=14016 fd=13 threads=11 state=IDLE cpu=0 mem=0 queue=0
+result=FAILED
+reason=sbatch_failed
+elapsed_seconds=0
+successful_jobs=0
+failed_jobs=1
+
+[submit stderr]
+sbatch: error: getcwd failed: Permission denied
+
+[cause]
+invoking_root_cwd=/var/root
+invoking_root_cwd_mode=drwxr-x---
+test_user=testuser
+classification=TEST_HARNESS_INACCESSIBLE_INHERITED_CWD
+
+The runner inherited root's inaccessible working directory. sudo changed the
+effective user to testuser, and sbatch called getcwd before applying its remote
+job --chdir=/tmp setting. Submission therefore failed locally before a Slurm
+job ID was created.
+
+[effect]
+job_id_created=NO
+slurm_job_submitted=NO
+active_marker=NO
+failed_marker_preserved=YES
+node_resource_residual=NO
+cluster_state_change=NONE
+
+[fix]
+Change to /tmp before starting caffeinate/background runner and again at the
+start of the runner. Record inherited and effective runner directories. On an
+early runner exit, print result/reason and failed marker path directly.

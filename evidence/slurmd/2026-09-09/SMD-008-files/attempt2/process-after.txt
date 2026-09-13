@@ -1,0 +1,5 @@
+root 82165 82145 Wed Sep  9 18:41:50 2026     /opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+Independent postcheck after the driver exited:
+root 82165 1 Wed Sep  9 18:41:50 2026     /opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+/var/run/slurmd.pid=82165

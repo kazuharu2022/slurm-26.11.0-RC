@@ -1,0 +1,22 @@
+before:
+  sdiag_output_epoch=1788951621
+  data_since_epoch=1788951013
+
+poll:
+  attempts_0_through_13=1788951013
+  attempt_14="REQUEST_STATS_INFO failed: Connection refused"
+  attempt_15=0
+
+transient_snapshot:
+  sdiag_output_epoch=1788951638
+  data_since_epoch=0
+  data_since_text="Thu Jan 01 09:00:00 1970"
+  rpc_count=0
+
+post_run_stable_epoch:
+  captured=no
+
+interpretation:
+  - Connection refusal and the epoch-zero snapshot occurred during controller restart.
+  - A stable non-zero post-run Data since value was not captured in this attempt.
+  - The observer accepted zero too early; its detector was subsequently changed to reject zero.

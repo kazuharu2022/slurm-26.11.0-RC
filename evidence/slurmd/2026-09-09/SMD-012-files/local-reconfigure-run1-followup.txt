@@ -1,0 +1,130 @@
+SMD-012 local reconfigure run 1: post-failure read-only follow-up
+Date: 2026-09-09 JST
+
+Operator-reported final driver output:
+
+scontrol: error: slurm_send_node_msg: [(null)] slurm_bufs_sendto(msg_type=REQUEST_NODE_INFO) failed: Unexpected missing socket error
+slurm_load_node error: Unexpected missing socket error
+production_restored pid=4170 restored_start=2026-09-09T20:51:00 wait_seconds=1
+submitted smoke_job=54
+error: job=54 remained state=COMPLETING
+cleanup job_id=54 state=COMPLETING
+recovery: inspect worker/controller state; evidence=/tmp/slurm-smd012-20260909T204750
+
+Host read-only verification after the driver exited:
+
+$ ps -p 4170 -o user=,pid=,ppid=,state=,lstart=,command=
+root  4170     1 S    Wed Sep  9 20:41:58 2026     /tmp/slurm-smd012-sack-20260909T204155/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+$ ls -l /var/run/slurm/sack.socket
+srwxrwxrwx@ 1 root  daemon  0 Sep  9 20:41 /var/run/slurm/sack.socket
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/scontrol ping
+Slurmctld(primary) at ubuntu2504 is UP
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/scontrol show node PC-210
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+   CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+   Gres=gpu:apple:1
+   NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+   State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+   Partitions=debug
+   BootTime=2026-08-08T00:51:29 SlurmdStartTime=2026-09-09T20:51:00
+   LastBusyTime=2026-09-09T20:54:11 ResumeAfterTime=None SuspendTime=INFINITE
+   CfgTRES=cpu=18,mem=128G,billing=18
+   AllocTRES=
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/scontrol show job 54
+JobId=54 JobName=smd012-post-smoke
+   UserId=testuser(3001) GroupId=3001(3001)
+   Priority=0 Nice=0 Account=(null) QOS=normal
+   JobState=PENDING Reason=launch_failed_requeued_held Dependency=(null)
+   Requeue=1 Restarts=1 BatchFlag=2 Reboot=0 ExitCode=0:0
+   RunTime=00:00:00 TimeLimit=00:01:00 TimeMin=N/A
+   SubmitTime=2026-09-09T20:54:11 EligibleTime=2026-09-09T20:56:12
+   StartTime=Unknown EndTime=Unknown
+   Partition=debug AllocNode:Sid=PC-210:5704
+   NodeList=
+   ReqTRES=cpu=1,mem=1G,node=1,billing=1
+   AllocTRES=(null)
+   TresPerNode=gres/gpu:apple:1
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/sacct -j 54 -X --format=JobID,JobName,User,State,Reason,Restarts,ExitCode,NodeList -P
+JobID|JobName|User|State|Reason|Restarts|ExitCode|NodeList
+54|smd012-post-smoke|testuser|PENDING|None|1|0:0|None assigned
+
+No process matching job00054, slurmstepd for job 54, or
+smd012-post-smoke was present. The diagnostic shell and rg process were the
+only matches to the search expression and are intentionally omitted here.
+
+Configuration restoration:
+
+a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167  /tmp/slurm-smd012-20260909T204750/slurm.conf.before
+a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167  /opt/slurm/26.11.0/etc/slurm.conf
+
+Interpretation boundary:
+
+- The current daemon, SACK socket, controller connection, and node resources
+  recovered.
+- Job 54 did not complete and is not counted as a smoke-test PASS.
+- The final job state is launch-failed, automatically requeued, and held.
+- The exact launch-failure trigger remains unconfirmed until the worker and
+  controller logs for 20:47-20:56 are correlated.
+
+Controller journal supplied by the operator:
+
+2026-09-09T20:47:53+09:00 ubuntu2504 slurmctld[452716]: [2026-09-09T20:47:53.404] warning: BatchStartTimeout (10) is less than the prolog timeout (120); a batch job whose prolog runs longer than BatchStartTimeout may be considered missing and requeued
+2026-09-09T20:47:53+09:00 ubuntu2504 slurmctld[452716]: [2026-09-09T20:47:53.454] error: Node PC-21 appears to have a different slurm.conf than the slurmctld.  This could cause issues with communication and functionality.  Please review both files and make sure they are the same.  If this is expected ignore, and set DebugFlags=NO_CONF_HASH in your slurm.conf.
+2026-09-09T20:47:55+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:47:55.730] warning: BatchStartTimeout (10) is less than the prolog timeout (120); a batch job whose prolog runs longer than BatchStartTimeout may be considered missing and requeued
+2026-09-09T20:48:19+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:48:19.063] error: slurm_receive_msgs: [pc210:6818] failed: Socket timed out on send/recv operation
+2026-09-09T20:48:55+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:48:55.000] SchedulerParameters=requeue_on_resume_failure
+2026-09-09T20:49:59+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:49:59.026] error: slurm_receive_msgs: [pc210:6818] failed: Socket timed out on send/recv operation
+2026-09-09T20:51:00+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:51:00.110] error: Node PC-21 appears to have a different slurm.conf than the slurmctld.  This could cause issues with communication and functionality.  Please review both files and make sure they are the same.  If this is expected ignore, and set DebugFlags=NO_CONF_HASH in your slurm.conf.
+2026-09-09T20:51:00+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:51:00.110] Node PC-210 now responding
+2026-09-09T20:51:01+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:51:01.267] _slurm_rpc_submit_batch_job: JobId=54 SLUID=sCT1M2303MCJ00 InitPrio=1 usec=935
+2026-09-09T20:51:04+09:00 ubuntu2504 slurmctld[452797]: [2026-09-09T20:51:04.000] sched: Allocate JobId=54 NodeList=PC-210 #CPUs=1 Partition=debug
+
+The controller could not exchange messages with pc210:6818 at 20:48:19 and
+20:49:59, then recorded the node responding again at 20:51:00. The second
+reconfigure began at 20:47:55, so the observed worker unavailability lasted
+approximately 185 seconds. Job 54 was submitted one second after recovery and
+allocated four seconds after recovery. The filtered controller extract does not
+contain the subsequent launch-failure transition; an unfiltered Job 54 window
+and the worker startup/launch lines are still required.
+
+The worker `sed` command produced no output. This does not prove that the log
+window is empty: range-mode sed does not print if its exact start pattern
+(`20:47:40`) is absent, even when later `20:51` records exist. The next capture
+must search each timestamp independently rather than use a start/end range.
+
+Job 54 cleanup verification:
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/squeue -j 54
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/scontrol show job 54
+JobState=CANCELLED Reason=launch_failed_requeued_held
+Priority=0 Restarts=1 BatchFlag=2 ExitCode=0:0
+StartTime=2026-09-09T21:16:06 EndTime=2026-09-09T21:16:06
+NodeList=
+AllocTRES=(null)
+
+$ SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf /opt/slurm/26.11.0/bin/sacct -j 54 --format=JobID,JobName,User,State,Reason,Restarts,Start,End,ExitCode,NodeList -P
+JobID|JobName|User|State|Reason|Restarts|Start|End|ExitCode|NodeList
+54|smd012-post-smoke|testuser|CANCELLED by 0|None|1|None|2026-09-09T21:16:06|0:0|None assigned
+
+PC-210 remained IDLE with CPUAlloc=0 and empty AllocTRES after cancellation.
+
+Harness correction after reviewing the controller journal:
+
+The controller emitted `different slurm.conf` both for the alternate worker
+configuration and after the production worker configuration was restored.
+Because the worker is intentionally using a local configuration that already
+differs from the controller configuration, this warning alone cannot prove a
+failed restoration. The driver now stores matching worker log lines in
+`worker-config-hash-warnings.txt` instead of failing the test on their presence.
+The byte-for-byte local backup comparison remains mandatory.
+
+Final pre-retest driver SHA-256:
+
+b575fb30ed11b0f926b028edcf6c29e04f2ca0796bdeafda643ad7909f8f8e66

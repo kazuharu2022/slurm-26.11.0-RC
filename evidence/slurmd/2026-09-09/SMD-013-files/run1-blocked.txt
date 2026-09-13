@@ -1,0 +1,73 @@
+SMD-013 run 1 - BLOCKED before stale-state test
+Date: 2026-09-09 22:10-22:11 JST
+Run directory: /tmp/slurm-smd013-20260909T221055
+
+Controller precondition supplied by operator:
+
+  PC-210 queue: empty
+  State=IDLE CPUAlloc=0 CPUEfctv=18 CPUTot=18 AllocTRES=
+  SlurmdStartTime=2026-09-09T21:52:53
+
+Operator output:
+
+  nofile_soft_limit=unlimited
+  run_dir=/tmp/slurm-smd013-20260909T221055
+  candidate_version=slurm 26.11.0-0rc1
+  clean_stop old_pid=19107 old_command=/tmp/slurm-smd012-sack-20260909T214557/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+  stop phase=initial pid=19107 signal=TERM
+  stopped phase=initial pid=19107
+  start phase=corrupt_state pid=23141
+  error: corrupt-state phase did not become ready
+  recovery: production config candidate started pid=23395
+  recovery: inspect evidence=/tmp/slurm-smd013-20260909T221055
+
+Phase A log:
+
+  [2026-09-09T22:10:57.723] _read_slurm_cgroup_conf: No cgroup.conf file (/tmp/slurm-smd013-20260909T221055/cgroup.conf), using defaults
+  [2026-09-09T22:10:57.727] debug: auth/slurm: init: running as daemon
+  [2026-09-09T22:10:57.727] fatal: auth/slurm: cannot stat '/tmp/slurm-smd013-20260909T221055/slurm.key': No such file or directory
+
+Stale SACK fixture before Phase A startup:
+
+  path=/var/run/slurm/sack.socket
+  type=regular file mode=-rw------- owner=root group=daemon
+  device=16777233 inode=13046548
+
+Isolated spool after failed Phase A:
+
+  cred_state: regular file, root:wheel, mode 0600, size 30
+  job99999/slurm_script: regular file, root:wheel, mode 0755, size 17
+
+Neither fixture was consumed because daemon initialization stopped at auth/slurm.
+The corrupt credential-state recovery and vestigial-directory cleanup remain
+NOT_MEASURED by this run.
+
+Independent recovery verification:
+
+  pid_file=23395
+  command=/tmp/slurm-smd013-20260909T221055/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+  SACK=device 16777233 inode 13046739 type=socket owner=root group=daemon
+  controller=UP
+  PC-210=IDLE CPUAlloc=0 AllocTRES= queue=empty
+  SlurmdStartTime=2026-09-09T22:11:58
+
+Recovery registration and SACK recreation passed. A post-recovery workload was
+not submitted in this failed run, so workload execution after recovery is not
+claimed here.
+
+Cause:
+
+  Slurm resolves extra configuration files through get_extra_conf_path(). With
+  the main configuration at /tmp/slurm-smd013-*/slurm.conf.isolated-spool,
+  auth/slurm searched the same /tmp directory for slurm.key. The driver had
+  changed the main config location but had not supplied the production key path
+  or the production gres.conf sidecar.
+
+Correction prepared:
+
+  - pass SLURM_SACK_KEY=/opt/slurm/26.11.0/etc/slurm.key to candidate slurmd;
+  - symlink only gres.conf into the run directory;
+  - require both production sidecar files before any daemon stop;
+  - detect an exited candidate after two seconds instead of waiting 60 seconds.
+
+No production config or production spool fixture was corrupted.

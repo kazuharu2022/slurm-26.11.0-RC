@@ -1,0 +1,30 @@
+/tmp/slurm-smd001-fixed/smd004_signal_delivery.sh
+run_dir=/tmp/slurm-smd004-20260909T165910
+submitted case=term job_id=26
+running job_id=26
+signal case=term job_id=26 signal=TERM scope=full
+finished job_id=26 wait_seconds=0
+submitted case=normal_cancel job_id=27
+running job_id=27
+signal case=normal_cancel job_id=27 action=scancel
+finished job_id=27 wait_seconds=1
+submitted case=force_kill job_id=28
+running job_id=28
+signal case=force_kill job_id=28 action=scancel term_ignored=true
+finished job_id=28 wait_seconds=28
+force_kill_elapsed_seconds=30
+[file=/tmp/slurm-smd004-20260909T165910/force_kill.out]
+ready case=force_kill pid=66436 job_id=28
+[file=/tmp/slurm-smd004-20260909T165910/normal_cancel.out]
+ready case=normal_cancel pid=66418 job_id=27
+[file=/tmp/slurm-smd004-20260909T165910/term.out]
+ready case=term pid=66400 job_id=26
+term_received pid=66400
+[file=/tmp/slurm-smd004-20260909T165910/force_kill.err]
+[2026-09-09T16:59:18.516] error: *** JOB 28 ON PC-210 CANCELLED AT 2026-09-09T16:59:18 DUE to SIGNAL Terminated: 15 ***
+[file=/tmp/slurm-smd004-20260909T165910/normal_cancel.err]
+[2026-09-09T16:59:15.199] error: *** JOB 27 ON PC-210 CANCELLED AT 2026-09-09T16:59:15 DUE to SIGNAL Terminated: 15 ***
+[file=/tmp/slurm-smd004-20260909T165910/term.err]
+[2026-09-09T16:59:12.935] error: *** JOB 26 ON PC-210 CANCELLED AT 2026-09-09T16:59:12 DUE to SIGNAL Terminated: 15 ***
+Terminated: 15
+SMD004_CLIENT_RUN_COMPLETE run_dir=/tmp/slurm-smd004-20260909T165910

@@ -91,6 +91,7 @@
 #include "src/common/read_config.h"
 #include "src/common/ref.h"
 #include "src/common/run_command.h"
+#include "src/common/sack_api.h"
 #include "src/common/slurm_protocol_api.h"
 #include "src/common/slurm_protocol_pack.h"
 #include "src/common/slurm_rlimits_info.h"
@@ -2399,8 +2400,8 @@ static bool _slurm_conf_file_exists(void)
 }
 
 /*
- * Create /run/slurm/ if it does not exist, and add a symlink from
- * /run/slurm/conf to the conf-cache directory.
+ * Create the platform runtime directory if it does not exist, and add a
+ * symlink from its conf path to the conf-cache directory.
  *
  * User commands will test this if they've been unsuccessful locating
  * an alternate config.
@@ -2417,15 +2418,16 @@ static bool _slurm_conf_file_exists(void)
  */
 static void _handle_slash_run(void)
 {
-	if (_set_slurmd_spooldir("/run/slurm") < 0) {
-		error("Unable to create /run/slurm dir");
+	if (_set_slurmd_spooldir(SLURM_CONFIGLESS_RUN_DIR) < 0) {
+		error("Unable to create %s dir", SLURM_CONFIGLESS_RUN_DIR);
 		return;
 	}
 
-	(void) unlink("/run/slurm/conf");
+	(void) unlink(SLURM_CONFIGLESS_CONF_DIR);
 
-	if (symlink(conf->conf_cache, "/run/slurm/conf"))
-		error("Unable to create /run/slurm/conf symlink: %m");
+	if (symlink(conf->conf_cache, SLURM_CONFIGLESS_CONF_DIR))
+		error("Unable to create %s symlink: %m",
+		      SLURM_CONFIGLESS_CONF_DIR);
 }
 
 /*

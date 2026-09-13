@@ -1,0 +1,70 @@
+SMD-015 Phase B job-running sleep/wake prepare evidence
+captured_at=2026-09-10T09:32:06+09:00
+run_dir=/tmp/slurm-smd015-job-prepare-20260910T093206
+marker=/opt/slurm/26.11.0/.smd015-job-sleep.env
+
+[precondition recovery]
+before_state=DOWN+NOT_RESPONDING
+action=scontrol update NodeName=PC-210 State=RESUME
+after_state=IDLE
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+LastBusyTime=2026-09-10T09:31:34
+
+[prepare result]
+prepare=PASS
+sleep_requested=NO
+phase_b_state=WAITING_FOR_PHYSICAL_SLEEP
+job_id=66
+batch_pid=23059
+child_pid=23060
+heartbeat_at_prepare=2@1789000332
+slurmd_pid=310
+old_sleep_count=28
+SlurmdTimeout=300
+minimum_pause_seconds=30
+expected_ip=192.168.10.128
+
+[launchd]
+label=system/org.schedmd.slurmd
+state=running
+runs=1
+pid=310
+last_exit_code=(never exited)
+program=/opt/slurm/26.11.0/sbin/slurmd
+
+[controller and node before submission]
+controller=UP
+queue=(empty)
+State=IDLE
+CPUAlloc=0
+AllocTRES=(empty)
+
+[node after submission]
+State=MIXED
+CPUAlloc=1
+AllocMem=1024
+AllocTRES=cpu=1,mem=1G
+
+[job readiness]
+ready_batch_pid=23059
+ready_child_pid=23060
+ready_start_epoch=1789000330
+job_stdout=ready batch_pid=23059 child_pid=23060 job_id=66
+job_stderr=(empty)
+
+[power assertions at prepare]
+PreventSystemSleep=0
+PreventUserIdleSystemSleep=1
+NetworkClientActive=0
+
+[terminal output]
+mode=prepare run_dir=/tmp/slurm-smd015-job-prepare-20260910T093206 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env
+submitted target_job=66
+SMD015_JOB_SLEEP_PREPARED job_id=66 batch_pid=23059 child_pid=23060 heartbeat=2@1789000332 slurmd_pid=310 sleep_count=28 SlurmdTimeout=300 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env run_dir=/tmp/slurm-smd015-job-prepare-20260910T093206
+NEXT_USER_ACTION_FROM_PHYSICAL_CONSOLE: disconnect Screen Sharing, run sudo /usr/bin/pmset sleepnow, wait 60 to 120 seconds, then wake the Mac physically
+AFTER_WAKE: sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd015_job_sleep_wake.sh verify
+
+[scope]
+This evidence proves only that Phase B preparation and job readiness passed.
+The physical sleep/wake cycle and post-wake verification are not yet measured.

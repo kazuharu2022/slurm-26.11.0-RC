@@ -1,0 +1,57 @@
+SMD-121 Phase A Attempt 1
+date=2026-09-11T18:40:24+0900
+mode=nonzero
+run_dir=/tmp/slurm-smd121-nonzero-20260911T184024
+
+[driver-output]
+mode=nonzero run_dir=/tmp/slurm-smd121-nonzero-20260911T184024
+error: node is not IDLE
+recovery: node may remain DRAINED intentionally; inspect run_dir=/tmp/slurm-smd121-nonzero-20260911T184024 before manual RESUME
+
+[controller-before.txt]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before.txt-summary]
+State=DOWN+NOT_RESPONDING
+CPUAlloc=0
+AllocMem=0
+SlurmdStartTime=2026-09-11T12:41:35
+LastBusyTime=2026-09-11T17:06:50
+Reason=Not responding [slurm@2026-09-11T17:18:31]
+
+[mutation-audit]
+config_backup=ABSENT
+config_candidate=ABSENT
+failure_job=NOT_SUBMITTED
+hook_events_size_bytes=0
+production_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+
+[runtime-readback-at-2026-09-11T18:44]
+launchd_label=system/org.schedmd.slurmd
+launchd_state=running
+slurmd_pid=310
+launchd_runs=1
+launchd_last_exit_code=never_exited
+slurmd_listener=tcp4_*.6818_LISTEN
+controller_connectivity=ubuntu2504:6817_succeeded
+worker_ip=192.168.10.128
+
+[power-timeline]
+2026-09-11T17:05:03+0900 Maintenance Sleep began
+2026-09-11T17:18:31+0900 controller recorded Not responding
+2026-09-11T18:38:50+0900 DarkWake transitioned to FullWake due to HID Activity
+2026-09-11T18:40:24+0900 SMD-121 Attempt 1 stopped at IDLE preflight
+
+[classification]
+result=BLOCKED_SAFE_PRECONDITION
+cause=SMD-121 started about 94 seconds after FullWake while controller state was still DOWN+NOT_RESPONDING
+smd121_failure_injection=NOT_STARTED
+manual_resume_performed=NO
+
+[automatic-recovery]
+2026-09-11T18:46:43+0900 state=DOWN+NOT_RESPONDING CPUAlloc=0 AllocMem=0
+2026-09-11T18:47:13+0900 state=IDLE CPUAlloc=0 AllocMem=0
+queue_on_PC-210=EMPTY
+slurmd_listener=tcp4_*.6818_LISTEN
+manual_resume_performed=NO
+next_state=READY_TO_RETRY_PHASE_A

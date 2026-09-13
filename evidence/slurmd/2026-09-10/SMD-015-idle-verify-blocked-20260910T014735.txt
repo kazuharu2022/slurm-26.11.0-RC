@@ -1,0 +1,25 @@
+SMD-015 idle sleep/wake first verify evidence
+captured_at=2026-09-10T01:47:35+09:00
+mode=verify
+run_dir=/tmp/slurm-smd015-idle-verify-20260910T014735
+marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[driver-output]
+mode=verify run_dir=/tmp/slurm-smd015-idle-verify-20260910T014735 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+error: no completed sleep/wake cycle detected old=0 new=0
+recovery: no power, daemon, launchd, or controller setting was changed; inspect run_dir=/tmp/slurm-smd015-idle-verify-20260910T014735 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[independent-readback]
+pmset_summary=Total Sleep/Wakes since boot at 2026-09-10 00:08:23 +0900 :0
+new_sleep_or_wake_record_after_prepare=NO
+PreventSystemSleep=1
+preventing_process=screensharingd
+assertion_name=Remote user is connected
+production_marker=RETAINED
+daemon_or_config_change=NONE
+
+[diagnosis]
+sleep_wake_cycle=NOT_COMPLETED
+slurmd_recovery_path=NOT_REACHED
+likely_causes=pmset sleepnow was not run after disconnect, or Screen Sharing prevented full system sleep
+state=BLOCKED

@@ -1,0 +1,78 @@
+SMD-202 Phase E crash Attempt 1 raw evidence
+date=2026-09-11 21:48 JST
+classification=HARNESS_FALSE_NEGATIVE_CRASH_BATCH_STATE
+state=FIX_BUILT_AWAITING_RETEST
+run_dir=/tmp/slurm-smd202-crash-20260911T214801
+driver_sha256_at_execution=7b49c93837be09e6b1444397b16be7dadb458dfdd7d138145e9e48e38fbba627
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-result]
+mode=crash run_dir=/tmp/slurm-smd202-crash-20260911T214801 mlx_job=/opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch
+submitted mode=crash target_job=397
+target_ready mode=crash job_id=397
+job_gone job_id=397 wait_seconds=0
+error: target accounting mismatch mode=crash
+recovery: no production configuration was changed; inspect run_dir=/tmp/slurm-smd202-crash-20260911T214801
+
+[controller-before]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-11T20:30:02
+
+[target-397-stdout]
+mode=crash
+payload_pid=86822
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=397
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.013392
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=crash job_id=397
+crash_signal=SEGV
+
+[target-397-stderr]
+bytes=0
+
+[target-accounting]
+397|testuser|FAILED|0:11|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+397.batch||CANCELLED|0:11|PC-210||cpu=1,mem=256M,node=1
+accounting_stderr_bytes=0
+
+[harness-stop-boundary]
+target_payload_pid_86822_alive=NO
+slurmstepd_current=none
+pid_file_value=75048
+probe_job=NOT_SUBMITTED
+node_after_target=NOT_CAPTURED
+node_after=NOT_CAPTURED
+slurmd_log_delta=NOT_CAPTURED
+residual_process_snapshot=NOT_CAPTURED
+
+[cause]
+The executed driver required both the job and batch records to be FAILED for crash mode.
+The actual SIGSEGV semantics were job=FAILED 0:11 and batch=CANCELLED 0:11. The explicit
+signal number 11, crash marker, and dead payload show that the intended crash occurred.
+The driver stopped before the post-release GPU probe, so Attempt 1 is not a Phase E PASS.
+
+[fix]
+Crash accounting now requires job=FAILED with signal 11 and accepts batch=FAILED or
+CANCELLED only when its ExitCode also records signal 11. Signal mode remains unchanged
+and still requires job/batch=FAILED with a nonzero exit.
+fixed_driver_sha256=5ed246af1b864bab3aa5c424f509f40f0ac765aeddf1d783965e1e74d387cb27
+saved_attempt1_fixture_match=PASS

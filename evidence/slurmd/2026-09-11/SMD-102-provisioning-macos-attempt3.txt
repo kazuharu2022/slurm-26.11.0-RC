@@ -1,0 +1,27 @@
+sudo env SMD102_ACCOUNT_CREATE_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd102_provision_macos.sh
+step=set_loginwindow_hidden name=smdmismatch method=HiddenUsersList
+step=disable_authentication name=smdmismatch
+authentication_already_disabled=YES
+[macos-user]
+name: smdmismatch
+password: ********
+uid: 3202
+gid: 3202
+dir: /Users/smdmismatch
+shell: /bin/bash
+gecos: SMD-102 Intentional ID Mismatch User
+
+[macos-group]
+name: smdmismatch
+password: *
+gid: 3202
+
+[macos-identity]
+uid=3202(smdmismatch) gid=3202(smdmismatch) groups=3202(smdmismatch),12(everyone),61(localaccounts),396(com.apple.access_disabled),100(_lpoperator),701(com.apple.sharepoint.group.1)
+home=/Users/smdmismatch identity_mode=3202:3202:700
+authentication_check=User <smdmismatch> is not allowed to authenticate: Credential verification failed because account is disabled.
+password_login=DISABLED
+controller_identity_on_macos=3201:3201:UNUSED
+loginwindow_hidden=YES method=HiddenUsersList
+SMD102_MACOS_PROVISION_COMPLETE user=smdmismatch uid=3202 gid=3202

@@ -1386,8 +1386,14 @@ static void _trigger_run_program(trig_mgr_info_t *trig_in)
 			error("trigger: setgid: %m");
 			exit(1);
 		}
+		/* This child execs immediately, so a permanent uid drop is safe. */
+#ifdef HAVE_SETRESUID
 		if ((setresuid(uid, uid, -1) == -1) && !run_as_self) {
 			error("trigger: setresuid: %m");
+#else
+		if ((setuid(uid) == -1) && !run_as_self) {
+			error("trigger: setuid: %m");
+#endif
 			exit(1);
 		}
 		execv(program, args);

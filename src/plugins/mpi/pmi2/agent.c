@@ -46,6 +46,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+
+#include "src/common/fd.h"
 #include <poll.h>
 
 #include "src/common/slurm_xlator.h"
@@ -175,8 +177,9 @@ static int _tree_listen_read(eio_obj_t *obj, list_t *objs)
 		if (!_is_fd_ready(obj->fd))
 			return 0;
 
-		while ((sd = accept4(obj->fd, (struct sockaddr *)&addr,
-				     &size, SOCK_CLOEXEC)) < 0) {
+		while ((sd = fd_accept_close_on_exec(
+				obj->fd, (struct sockaddr *) &addr, &size,
+				false)) < 0) {
 			if (errno == EINTR)
 				continue;
 			if (errno == EAGAIN)    /* No more connections */

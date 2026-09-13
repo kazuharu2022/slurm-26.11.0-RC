@@ -1,0 +1,55 @@
+SMD-404 macOS configless read-only preflight
+date=2026-09-12T11:58:45+09:00
+run_dir=/tmp/slurm-smd404-preflight-20260912T115845
+result=PASS_PREFLIGHT_MAC
+production_changed=NO
+daemon_restarted=NO
+job_submitted=NO
+
+[terminal-marker]
+mode=READ_ONLY_PRODUCTION run_dir=/tmp/slurm-smd404-preflight-20260912T115845
+configless_precedence=CONFIRMED conf_server_over_local_file
+controller_profile=INCOMPATIBLE proctrack/cgroup task/affinity jobacct_gather/cgroup
+mac_profile=CONFIRMED proctrack/pgid task/unset jobacct_gather/none
+runtime_path_defect=FIX_BUILT root=/run-unavailable cache_link=/var/run/slurm/conf
+portable_profile_requirement=REMOVE_GLOBAL_PROCTRACK_TASK_JOBACCT_LINES
+SMD404_MAC_PREFLIGHT_COMPLETE slurmd_pid=29439 production_unchanged=PASS run_dir=/tmp/slurm-smd404-preflight-20260912T115845
+
+[controller]
+Slurmctld(primary) at ubuntu2504 is UP
+JobAcctGatherType=jobacct_gather/cgroup
+ProctrackType=proctrack/cgroup
+SlurmctldParameters=enable_configless
+TaskPlugin=task/affinity
+
+[nodes]
+PC-210 state=IDLE CPUAlloc=0 AllocMem=0 Gres=gpu:apple:1 Arch=arm64
+ubuntu state=IDLE CPUAlloc=0 AllocMem=0 Gres=(null) Arch=x86_64
+queue=EMPTY_FOR_PC-210_AND_ubuntu
+
+[launchd]
+service=system/org.schedmd.slurmd
+state=running
+runs=1
+pid=29439
+last_exit_code=never_exited
+mode=local_config_-f
+
+[runtime-path-build]
+root_mount=sealed_read_only_apfs
+run_path=ABSENT
+var_run_path=AVAILABLE
+proctrack_pgid=/opt/slurm/26.11.0/lib/slurm/proctrack_pgid.so Mach-O 64-bit bundle arm64
+candidate_slurmd_path=/var/run/slurm/conf
+candidate_client_path=/var/run/slurm/conf/slurm.conf
+
+[production-hash-before-and-after-identical]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+08d31ac718b61395b0a452bb6700c1143352357cf505b3791c0285f55f43f1d0  /opt/slurm/26.11.0/etc/gres.conf
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  /opt/slurm/26.11.0/sbin/slurmd
+
+[boundary]
+This proves only the macOS read-only preconditions and the built candidate runtime path.
+It does not prove Ubuntu portable-profile parsing, production installation, configless daemon startup,
+cache refresh, GRES/hook distribution, job/accounting behavior, or production restoration.

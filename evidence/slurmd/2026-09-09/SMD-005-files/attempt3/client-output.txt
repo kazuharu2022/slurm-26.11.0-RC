@@ -1,0 +1,31 @@
+/tmp/slurm-smd001-fixed/smd005_process_tree_driver.sh
+run_dir=/tmp/slurm-smd005-20260909T172536
+submitted case=control job_id=33
+running job_id=33
+submitted case=target job_id=34
+running job_id=34
+[target_processes_before_cancel]
+role=batch expected_pid=70772 70772 70771 70772 S    /bin/sh /var/spool/slurmd/job00034/slurm_script /tmp/slurm-smd005-20260909T1
+role=child expected_pid=70774 70774 70772 70772 S    /bin/sh /tmp/slurm-smd001-fixed/smd005_child_tree.sh /tmp/slurm-smd005-20260
+role=background expected_pid=70775 70775 70772 70772 S    /bin/sleep 180
+role=grandchild expected_pid=70778 70778 70774 70772 S    /bin/sleep 180
+cancel target_job=34
+finished job_id=34 wait_seconds=1
+[target_processes_after_cancel]
+role=batch pid=70772 residual=NO
+role=child pid=70774 residual=NO
+role=background pid=70775 residual=NO
+role=grandchild pid=70778 residual=NO
+control_after_target_cancel job_id=33 state=RUNNING
+cancel control_job=33
+finished job_id=33 wait_seconds=1
+[file=/tmp/slurm-smd005-20260909T172536/control.out]
+control_ready pid=70758 job_id=33
+[file=/tmp/slurm-smd005-20260909T172536/target.out]
+child_ready child_pid=70774 grandchild_pid=70778
+tree_ready batch_pid=70772 child_pid=70774 background_pid=70775
+[file=/tmp/slurm-smd005-20260909T172536/control.err]
+[2026-09-09T17:25:40.913] error: *** JOB 33 ON PC-210 CANCELLED AT 2026-09-09T17:25:40 DUE to SIGNAL Terminated: 15 ***
+[file=/tmp/slurm-smd005-20260909T172536/target.err]
+[2026-09-09T17:25:39.676] error: *** JOB 34 ON PC-210 CANCELLED AT 2026-09-09T17:25:39 DUE to SIGNAL Terminated: 15 ***
+SMD005_CLIENT_RUN_COMPLETE run_dir=/tmp/slurm-smd005-20260909T172536

@@ -1,0 +1,22 @@
+sdiag-before:
+  output_at_epoch=1788950937
+  data_since_epoch=1788918618
+  jobs_running=0
+
+sdiag-final-poll:
+  output_at_epoch=1788951001
+  data_since_epoch=1788918618
+  jobs_running=1
+  successful_polls=60
+  poll_attempts=0..59
+
+job:
+  job_id=50
+  batch_pid=91822
+  child_pid=91823
+  start_epoch=1788950938
+  last_heartbeat_count=62
+  last_heartbeat_epoch=1788951001
+  cleanup_epoch=1788951002
+  survivor_stdout="term_received batch_pid=91822 epoch=1788951002"
+  survivor_stderr="JOB 50 ON PC-210 CANCELLED AT 2026-09-09T19:50:02 DUE to SIGNAL Terminated: 15"

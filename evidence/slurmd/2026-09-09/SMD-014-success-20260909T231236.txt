@@ -1,0 +1,77 @@
+SMD-014 launchd takeover second run and independent readback
+Date: 2026-09-09 JST
+
+[driver-output]
+run_dir=/tmp/slurm-smd014-20260909T231236
+package_root=/tmp/slurm-smd014-stage.lWYKyQ
+backup_dir=/opt/slurm/26.11.0/.smd014-backup-20260909T231236
+preflight=PASS old_pid=25124 old_start=2026-09-09T22:23:00
+production_install=PASS backup=/opt/slurm/26.11.0/.smd014-backup-20260909T231236
+stop unmanaged_slurmd pid=25124 signal=TERM
+unmanaged_slurmd_stopped pid=25124
+submitted phase=bootstrap job_id=60
+job_gone job_id=60 wait_seconds=1
+bootstrap=PASS pid=49217 job_id=60
+submitted phase=clean-restart job_id=61
+job_gone job_id=61 wait_seconds=1
+clean_restart=PASS old_pid=49217 new_pid=49297 job_id=61
+kill launchd_slurmd pid=49297 signal=KILL
+submitted phase=keepalive job_id=62
+job_gone job_id=62 wait_seconds=2
+keepalive_restart=PASS old_pid=49297 new_pid=49421 job_id=62
+SMD014_TAKEOVER_COMPLETE current_pid=49421 bootstrap_job=60 clean_restart_job=61 keepalive_job=62 backup=/opt/slurm/26.11.0/.smd014-backup-20260909T231236 run_dir=/tmp/slurm-smd014-20260909T231236
+NOTICE launchd takeover and restart checks passed; Mac boot-time start remains untested until a controlled reboot.
+
+[independent-launchd-readback]
+path=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+state=running
+program=/opt/slurm/26.11.0/sbin/slurmd
+SLURM_CONF=/opt/slurm/26.11.0/etc/slurm.conf
+SLURM_SACK_KEY=/opt/slurm/26.11.0/etc/slurm.key
+runs=2
+pid=49421
+last terminating signal=Killed: 9
+plist_lint=OK
+source_plist_sha256=5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9
+installed_plist_sha256=5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9
+
+[independent-daemon-readback]
+pid_file=49421
+service_pid=49421
+process=root 49421 1 Wed Sep 9 23:12:55 2026 /opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+sack=/var/run/slurm/sack.socket mode=srwxrwxrwx owner=root group=daemon device=16777233 inode=13053583
+controller=UP
+node_state=IDLE
+CPUAlloc=0
+AllocTRES=(empty)
+active_queue=(empty)
+
+[production-stage-hash-readback]
+MATCH a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72 sbin/slurmd
+MATCH 738fe94b7cb24702de8c5c1b65c0c82a619e072d1e1a12aa4a0d143092d643b0 sbin/slurmstepd
+MATCH 0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9 bin/srun
+MATCH 17ab187a85e6c6d04e40d2744ff0a7332c8e091c7932d82d5041c9923b9c9011 lib/libslurm.46.dylib
+MATCH 32e1f7c92a121a7a01d4970f7836d6610c20e10b185898cd7274bb791d7f5e28 lib/slurm/libslurm_pmi.dylib
+MATCH cbe62a38946a3f0a17f2bcf8840638ff31120d626dbbdffdf7f89a36ab852fae lib/slurm/libslurmfull.dylib
+
+[accounting]
+JobID|JobName|User|State|ReqTRES|AllocTRES|ExitCode|NodeList
+60|smd014-bootstrap|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+60.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+61|smd014-clean-restart|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+61.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+62|smd014-keepalive|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+62.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+
+[stdout]
+job_60=PC-210.local
+job_61=PC-210.local
+job_62=PC-210.local
+
+[startup-log-classification]
+NON_BLOCKING: _core_spec_init is not supported on macOS.
+NON_BLOCKING: HTTP parser plugins are absent and HTTP request listening is disabled.
+OBSERVED: each startup reached "slurmd started", launched its smoke job, and the final daemon stayed registered.
+
+[remaining-unverified]
+RunAtLoad after an actual controlled macOS reboot has not been tested.

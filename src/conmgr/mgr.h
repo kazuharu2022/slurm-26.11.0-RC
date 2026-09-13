@@ -202,6 +202,13 @@ struct conmgr_fd_s {
 	char *name;
 	/* address for connection */
 	slurm_addr_t address;
+	/*
+	 * Filesystem identity of a named UNIX listener at registration time.
+	 * Used to avoid unlinking a replacement listener that reused the path.
+	 */
+	dev_t unix_socket_dev;
+	ino_t unix_socket_ino;
+	bool unix_socket_identity_valid;
 	/* call backs for events */
 	const conmgr_events_t *events;
 	/* Opaque pointer to TLS state */

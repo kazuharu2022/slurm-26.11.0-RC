@@ -1,0 +1,70 @@
+SMD-126 Phase A installed plugin inventory and load probes
+date=2026-09-11T20:41:12+0900
+classification=PASS_PHASE_A
+run_dir=/tmp/slurm-smd126-inventory-20260911T204112
+
+[driver-output]
+run_dir=/tmp/slurm-smd126-inventory-20260911T204112
+plugins=77 architecture_failures=0 metadata_failures=0 dependency_failures=0 undefined_scan_failures=0
+probe=sinfo rc=0 stdout_bytes=196 stderr_bytes=0
+probe=squeue rc=0 stdout_bytes=85 stderr_bytes=0
+probe=scontrol-config rc=0 stdout_bytes=8381 stderr_bytes=0
+probe=scontrol-node rc=0 stdout_bytes=736 stderr_bytes=0
+probe=sacct-job379 rc=0 stdout_bytes=312 stderr_bytes=0
+probe=sacctmgr-ping rc=0 stdout_bytes=38 stderr_bytes=0
+probe=srun-mpi-list rc=0 stdout_bytes=49 stderr_bytes=0
+probe=slurmd-config rc=0 stdout_bytes=122 stderr_bytes=0
+probe=slurmd-gres rc=0 stdout_bytes=0 stderr_bytes=433
+SMD126_PHASE_A_COMPLETE plugins=77 probes=9 loader_errors=0 run_dir=/tmp/slurm-smd126-inventory-20260911T204112
+
+[cross-check-counts]
+plugins.txt=77
+plugin-inventory.txt=77
+plugin-dependencies.txt=83
+plugin-undefined-summary.txt=77
+known-weak-symbols.txt=4
+loader-errors.txt=0
+per-plugin-nm-otool-nonempty-stderr-files=0
+
+[undefined-symbol-summary]
+undefined_total=4169
+dynamic_lookup_total=3346
+weak_dynamic_total=44
+minimum_per_plugin=0
+maximum_per_plugin=212
+maximum_plugin=data_parser_v0_0_45.so
+maximum_dynamic_lookup_per_plugin=200
+maximum_dynamic_lookup_plugin=data_parser_v0_0_45.so
+
+[known-weak-symbols]
+plugin=accounting_storage_slurmdbd.so symbol=assoc_cache_cond binding=weak_dynamic_lookup
+plugin=accounting_storage_slurmdbd.so symbol=assoc_cache_mutex binding=weak_dynamic_lookup
+plugin=accounting_storage_slurmdbd.so symbol=running_cache binding=weak_dynamic_lookup
+plugin=topology_flat.so symbol=idle_node_bitmap binding=weak_dynamic_lookup
+
+[runtime-probe-evidence]
+sinfo=PC-210 idle
+squeue=empty
+scontrol_node=PC-210 IDLE CPUAlloc=0 AllocMem=0 Gres=gpu:apple:1
+sacct_379_job=COMPLETED:0:0
+sacct_379_batch=COMPLETED:0:0
+slurmdbd=UP
+mpi_types=none,cray_shasta,pmi2
+slurmd_C=CPUs:18 Boards:1 SocketsPerBoard:1 CoresPerSocket:18 ThreadsPerCore:1 RealMemory:131072 UpTime:1-20:32:58
+slurmd_G=gpu:apple:1 Count:1 File:/dev/null
+
+[slurmd-gres-stderr-classification]
+cgroup_conf_missing=KNOWN_NONBLOCKING_DEFAULTS
+local_config_with_configless_controller=KNOWN_WARNING
+gpu_apple_inventory=EXPECTED_OUTPUT
+fatal=NO
+
+[configuration-boundary]
+scontrol_show_config_source=controller_effective_config
+controller_PluginDir=/usr/local/slurm/26.11.0/lib/slurm
+worker_installed_PluginDir=/opt/slurm/26.11.0/lib/slurm
+worker_local_config_hash_diff=EXPECTED_EXISTING_LOCAL_CONFIG_MODE
+all_installed_plugin_runtime_contexts=NOT_RUN
+
+driver_sha256=b66725f31de6c7135e021428d0ffd0e06c9483702b10b0de4a0d0f49db1a099b
+result=PASS_PHASE_A

@@ -36,7 +36,10 @@
 #ifndef _INTERFACES_CGROUP_H
 #define _INTERFACES_CGROUP_H
 
+#include "config.h"
+
 /* Check filesystem type */
+#ifdef WITH_CGROUP
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <magic.h>
 #include <sys/mount.h>
@@ -44,6 +47,7 @@
 #else
 #include <linux/magic.h>
 #include <sys/vfs.h>
+#endif
 #endif
 
 #include <pwd.h>
@@ -54,8 +58,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <inttypes.h>
-
-#include "config.h"
 
 #include "slurm/slurm.h"
 #include "src/slurmd/slurmd/slurmd.h"

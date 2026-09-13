@@ -1,0 +1,32 @@
+SMD-015 post-wake registration analysis
+captured_from_user_evidence=2026-09-10T08:29:38+09:00
+
+[network-and-process]
+mac_slurmd_pid=310
+mac_slurmd_listen=TCP *:6818
+ubuntu_name_resolution=PC-210 -> 192.168.10.128
+ubuntu_to_worker_6818=SUCCEEDED
+firewall_or_dns_failure=EXCLUDED
+
+[controller-timeline]
+2026-09-10T02:27:12+09:00 Nodes PC-210,ubuntu not responding
+2026-09-10T02:27:15+09:00 Nodes PC-210 not responding, setting DOWN
+2026-09-10T08:29:38+09:00 PC-210 State=DOWN+NOT_RESPONDING
+
+[source-analysis]
+src/slurmd/slurmd/slurmd.c:_registration_engine sends until the first successful registration, then exits because sent_reg_time is nonzero.
+src/slurmctld/ping_nodes.c:DOWN+NO_RESPOND nodes are excluded from normal pings.
+src/slurmctld/ping_nodes.c:registration status is requested periodically at most every MAX_REG_FREQUENCY=20 pings.
+src/slurmctld/controller.c:ping interval is SlurmdTimeout/3.
+configured_SlurmdTimeout=300
+calculated_ping_interval_seconds=100
+calculated_periodic_registration_upper_interval_seconds=2000
+driver_stable_wait_seconds=180
+
+[judgement]
+network_listener=PASS
+controller_to_worker_tcp=PASS
+automatic_recovery_within_180_seconds=FAIL
+automatic_recovery_within_periodic_registration_window=NOT_MEASURED
+manual_resume_recovery=NOT_RUN
+root_cause_status=CONTROL_PLANE_TIMING_IDENTIFIED

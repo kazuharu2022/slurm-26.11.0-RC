@@ -1,0 +1,11 @@
+[2026-09-09T19:02:46.794] slurmd version 26.11.0-0rc1 started
+[2026-09-09T19:02:46.796] slurmd started on Wed, 09 Sep 2026 19:02:46 +0900
+[2026-09-09T19:02:46.797] debug:  _fill_registration_msg: found apparently running JobId=46 SLUID=sCT1M22SXCZR00
+[2026-09-09T19:02:46.812] debug:  _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T19:02:53.016] [46.batch] Sent signal 15 to StepId=46.batch
+[2026-09-09T19:02:53.024] [46.batch] task 0 (85131) exited with exit code 143.
+[2026-09-09T19:02:53.034] [46.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+[2026-09-09T19:02:53.039] [46.batch] stepd_cleanup: done with step (step_rc: 36608, slurm_rc: 0 - No error)
+[2026-09-09T19:02:53.054] debug:  JobId=46 SLUID=sCT1M22SXCZR00: sent epilog complete msg: rc = 0
+[2026-09-09T19:02:55.437] [47.batch] JobId=47 SLUID=sCT1M22SXNJB00 completed with slurm_rc = 0, job_rc = 0
+[2026-09-09T19:02:55.470] [47.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket

@@ -35,6 +35,7 @@
 
 #define _GNU_SOURCE
 
+#include "src/common/fd.h"
 #include "src/common/threadpool.h"
 
 #include "cgroup_v1.h"
@@ -1381,7 +1382,7 @@ extern int cgroup_p_step_start_oom_mgr(stepd_step_rec_t *step)
 
 	safe_write(efd, line, strlen(line) + 1);
 
-	if (pipe2(oom_pipe, O_CLOEXEC) == -1) {
+	if (fd_pipe_close_on_exec(oom_pipe) == -1) {
 		error("pipe(): %m");
 		rc = SLURM_ERROR;
 		goto fini;

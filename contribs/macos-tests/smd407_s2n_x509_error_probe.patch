@@ -1,0 +1,11 @@
+--- a/tls/s2n_x509_validator.c
++++ b/tls/s2n_x509_validator.c
+@@ -33,0 +34 @@
++#include <stdio.h>
+@@ -874,0 +876,6 @@
++        int ossl_error_depth = X509_STORE_CTX_get_error_depth(validator->store_ctx);
++        const char *ossl_error_string = X509_verify_cert_error_string(ossl_error);
++        fprintf(stderr,
++                "SMD407_X509_VERIFY_ERROR code=%d depth=%d string=%s\n",
++                ossl_error, ossl_error_depth,
++                ossl_error_string ? ossl_error_string : "NULL");

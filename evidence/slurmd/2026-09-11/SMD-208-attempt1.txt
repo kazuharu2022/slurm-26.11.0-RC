@@ -1,0 +1,58 @@
+SMD-208 Attempt 1
+date=2026-09-11T23:47:53+09:00
+run_dir=/tmp/slurm-smd208-20260911T234753
+job_id=445
+classification=DEFAULT_REDUCED_PRECISION_FAIL_AND_HARNESS_ERROR_MASKING
+production_change=NO
+
+driver terminal result:
+  submitted correctness_job=445
+  job_gone job_id=445 wait_seconds=1
+  error: accounting mismatch
+  recovery: no production configuration was changed
+
+actual stdout:
+  job_id=445
+  job_user=testuser
+  node=PC-210.local
+  python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+  slurm_job_gpus=0
+  smd208_schema=1
+  machine=arm64
+  mlx_version=0.32.2
+  default_device=Device(gpu, 0)
+  metal_device_name=Apple M5 Max
+  dtype=float32
+  reference=python_math_fsum_float64
+  input_quantization=ieee754_binary32_struct
+  element_atol=0.00005000
+  element_rtol=0.00005000
+  max_abs_error_limit=0.00100000
+  mean_abs_error_limit=0.00002000
+  case=rect_k31 shape=7x31x11 elements=77 max_abs_error=5.224135749e-03 mean_abs_error=1.523033671e-03 max_relative_error=1.031219035e-01 max_scaled_error=3.707499290e+01 non_finite=0 status=FAIL
+  case=rect_k64 shape=13x64x9 elements=117 max_abs_error=6.592436855e-03 mean_abs_error=2.416775126e-03 max_relative_error=2.385954813e-01 max_scaled_error=6.320940650e+01 non_finite=0 status=FAIL
+  case=rect_k127 shape=5x127x7 elements=35 max_abs_error=1.198998928e-02 mean_abs_error=4.601022946e-03 max_relative_error=1.524471942e-02 max_scaled_error=5.595746950e+01 non_finite=0 status=FAIL
+  overall_elements=229 overall_max_abs_error=1.198998928e-02 overall_mean_abs_error=2.450096443e-03 overall_max_relative_error=2.385954813e-01 overall_max_scaled_error=6.320940650e+01 status=FAIL
+
+actual stderr:
+  SMD208_NUMERICAL_CORRECTNESS_FAIL
+
+actual accounting:
+  445|testuser|FAILED|1:0|PC-210|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1
+  445.batch||FAILED|1:0|PC-210||cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1
+
+cause evidence:
+  installed mlx/include/mlx/utils.h:214-216
+  enable_tf32() defaults MLX_ENABLE_TF32 to 1
+  official precision documentation says reduced precision may be used for float32 matrix-multiplication family operations
+  official full-float32 launch setting is MLX_ENABLE_TF32=0
+
+input hashes:
+  21187ade43c7e1b4a7625bfa7ffc64641f937ad1ec88ecb3e28ffe55b4b295ca  smd208_mlx_correctness.py
+  df4cef0b58a37f8614f82d1854df0e9e727228871d805cad0b8f891e25ee376c  smd208_mlx_correctness.sbatch
+  f16a669aee5559c0a66bdac6f7ebe1b3cde72b44b30f2bd802155e6d613d8f1f  smd208_numerical_correctness_driver.sh
+
+observer boundary:
+  final node/queue/process checks were not reached by Attempt 1 driver
+  later live reads from Codex sandbox were blocked and are not runtime evidence
+  do not mark SMD-208 PASS before corrected full-float32 retest and final cleanup checks

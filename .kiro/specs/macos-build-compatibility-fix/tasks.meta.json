@@ -1,0 +1,202 @@
+{
+  "pbtResults": {
+    "1. Complete and freeze the standalone driver, then capture the Darwin bug baseline": {
+      "status": "passed",
+      "failingExample": "Unfixed Darwin expectedBehavior counterexamples recorded for all seven bug fixtures: rpath-absolute/rpath-nested returned nonzero with absent artifact and forbidden -rpath=<path>; reference-text/reference-binary/reference-multidot-certgen returned nonzero with absent artifact and forbidden -z noexecstack plus --format=binary; retention-one-dylib/retention-two-dylib returned nonzero with absent artifact and forbidden --no-as-needed plus omitted expected direct dylib IDs.",
+      "lastRunTimestamp": 1788789512678
+    },
+    "2. Capture the GNU/Linux preservation baseline on a preflighted runner": {
+      "status": "passed",
+      "lastRunTimestamp": 1788790020431
+    },
+    "3.6 Re-run the frozen Darwin property against the patched operations": {
+      "status": "passed",
+      "lastRunTimestamp": 1788794811764
+    },
+    "3.8 Verify GNU/Linux preservation with pristine matched snapshots": {
+      "status": "passed",
+      "lastRunTimestamp": 1788798960374
+    }
+  },
+  "executionHistory": {
+    "1. Complete and freeze the standalone driver, then capture the Darwin bug baseline": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788769906
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788781440
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788789626021
+      }
+    ],
+    "2. Capture the GNU/Linux preservation baseline on a preflighted runner": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788769951
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788789650156
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790390411
+      }
+    ],
+    "3.1 Add the shared Darwin build conditional to canonical configuration": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788769981
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790417595
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790659854
+      }
+    ],
+    "3.2 Replace only the runtime-rpath equals form": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770005
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790674632
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790828164
+      }
+    ],
+    "3.3 Add only the Darwin `.incbin` reference-object branch": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770033
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788790844665
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788791651762
+      }
+    ],
+    "3.4 Make `--no-as-needed` non-Darwin-only": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770065
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788791662400
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788792459862
+      }
+    ],
+    "3.5 Generate and retain only the intended `configure` output": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770089
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788792476626
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788794252663
+      }
+    ],
+    "3.6 Re-run the frozen Darwin property against the patched operations": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770113
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788794265124
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788794878830
+      }
+    ],
+    "3.7 Verify aggregate diagnostics and actual rules or equivalent reproductions": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770134
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788794889561
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788798451025
+      }
+    ],
+    "3.8 Verify GNU/Linux preservation with pristine matched snapshots": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770162
+      },
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788798462749
+      }
+    ],
+    "3.9 Audit generation evidence, candidate patch scope, and untracked files": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770183
+      }
+    ],
+    "4. Checkpoint - Require Darwin, Linux, and generation/scope evidence": [
+      {
+        "executionId": "318a8500-282d-45bc-9b94-ea5f99a37f2f",
+        "chatSessionId": "sess_9d1a9d6d-268b-40be-83a5-7bba0026aed5",
+        "timestamp": 1788788770204
+      }
+    ]
+  }
+}

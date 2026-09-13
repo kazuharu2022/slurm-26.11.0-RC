@@ -1,0 +1,54 @@
+SMD-123 Attempt 1
+date=2026-09-11T19:16:05+0900
+run_dir=/tmp/slurm-smd123-20260911T191605
+
+[driver-output]
+run_dir=/tmp/slurm-smd123-20260911T191605 task_count=2
+task_hook_config_active slurmd_pid=310 old_start=2026-09-11T19:08:07 new_start=2026-09-11T19:16:05
+srun_rc=244
+error: task-hook srun failed rc=244
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:16:12
+recovery: inspect run_dir=/tmp/slurm-smd123-20260911T191605; production config restore was attempted
+
+[srun-stderr]
+srun: error: _fwd_tree_get_addr: can't find address for host PC-210, check slurm.conf
+srun: error: Task launch for StepId=369.0 failed on node PC-210: Can't find an address, check slurm.conf
+srun: error: Application launch failed: Can't find an address, check slurm.conf
+srun: Job step aborted
+
+[accounting]
+369|testuser|FAILED|0:116|PC-210
+369.0||CANCELLED|0:116|PC-210
+
+[hook-payload-observation]
+task_prolog_files=0
+payload_files=0
+task_epilog_files=0
+classification=FAILURE_BEFORE_TASK_LAUNCH
+
+[address-observation]
+hostname=PC-210.local
+short_hostname=PC-210
+en0_ipv4=192.168.10.128
+PC-210.local_ipv4=127.0.0.1,192.168.10.128
+production_NodeName_line_has_explicit_NodeAddr=NO
+controller_node_readback_NodeAddr=PC-210
+
+[restoration]
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+slurmd_pid_before=310
+slurmd_pid_after=310
+final_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_queue=EMPTY
+
+[classification]
+result=HARNESS_FAILURE
+cause=macOS_local_srun_short_name_did_not_resolve_to_usable_NodeAddr
+slurm_task_hook_result=NOT_MEASURED
+fix=use_a_driver-only_client_config_with_observed_numeric_NodeAddr
+production_config_change=NO
+next_state=FIX_BUILT_AWAITING_RETEST

@@ -1,0 +1,8 @@
+/tmp/slurm-smd001-fixed/smd005_process_tree_driver.sh
+run_dir=/tmp/slurm-smd005-20260909T171129
+submitted case=control job_id=29
+running job_id=29
+submitted case=target job_id=30
+error job_id=30 did_not_reach_running state=PENDING
+cleanup job_id=29 state=RUNNING
+cleanup job_id=30 state=PENDING

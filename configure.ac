@@ -42,6 +42,13 @@ case "$host" in
 			[Define slurm_ prefix function aliases for plugins]) ;;
 esac
 
+dnl Select Darwin-specific build rules.
+case "$host" in
+	*darwin*) darwin_build=yes ;;
+	*)        darwin_build=no  ;;
+esac
+AM_CONDITIONAL(DARWIN_BUILD, test "x$darwin_build" = "xyes")
+
 dnl Select ld emulation when invoking ld --format=binary directly.
 dnl FreeBSD's lld requires an explicit -m <emulation>; leave empty elsewhere.
 dnl Ensure configure substitutes into make_ref.include
@@ -112,7 +119,9 @@ AC_SEARCH_LIBS([kstat_open],    [kstat])
 AC_SEARCH_LIBS([ns_initparse],  [resolv])
 AC_SEARCH_LIBS([log],		[m])
 AC_SEARCH_LIBS([lrint],		[m])
-AC_SEARCH_LIBS([timer_create],	[rt])
+AC_SEARCH_LIBS([timer_create],	[rt],
+	[AC_DEFINE([HAVE_TIMER_CREATE], [1],
+		   [Define to 1 if timer_create is available.])])
 AC_SEARCH_LIBS([dlopen],	[dl svdl])
 CFLAGS=$old_CFLAGS
 

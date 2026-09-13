@@ -1,0 +1,20 @@
+command:
+sudo env SMD120_HOOK_TEST_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd120_prolog_epilog_driver.sh
+
+stdout/stderr:
+run_dir=/tmp/slurm-smd120-20260911T123115
+error: production config already has Prolog/Epilog settings; refusing to replace them
+recovery: inspect run_dir=/tmp/slurm-smd120-20260911T123115; do not RESUME a DRAIN node before reviewing hook errors
+
+read-only configuration finding:
+/opt/slurm/26.11.0/etc/slurm.conf:18:PrologEpilogTimeout=120
+Prolog=ABSENT
+Epilog=ABSENT
+
+run directory finding:
+backup_conf=ABSENT
+candidate_conf=ABSENT
+submitted_job=NONE
+hook_event_log_size=0
+

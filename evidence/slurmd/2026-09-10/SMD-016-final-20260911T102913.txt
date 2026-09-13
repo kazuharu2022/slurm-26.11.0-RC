@@ -1,0 +1,98 @@
+SMD-016 final evidence
+verdict=PASS
+worker=PC-210
+worker_os=macOS 26.5.1
+worker_arch=arm64
+slurmd_version=26.11.0-0rc1
+controller=ubuntu2504
+controller_os=Ubuntu 24.04
+controller_arch=x86-64
+run_dir=/tmp/slurm-smd016-20260910T102345
+
+[operator-status-output]
+sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh status
+marker=/opt/slurm/26.11.0/.smd016-soak.env run_dir=/tmp/slurm-smd016-20260910T102345
+state=COMPLETE sequence=288 successful_jobs=288 epoch=1789089826
+result=COMPLETE
+reason=none
+start_epoch=1789003426
+end_epoch=1789089826
+elapsed_seconds=86400
+successful_jobs=288
+failed_jobs=0
+last_sequence=288
+runner_alive=NO pid=26922
+
+[operator-verify-output]
+sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh verify
+SMD016_COMPLETE duration_seconds=86400 successful_jobs=288 slurmd_pid=310 rss_growth_kb=553 fd_final_growth=0 fd_peak_growth=0 slurmd_error_count=0 marker=/opt/slurm/26.11.0/.smd016-soak.env.completed-20260911T102913 run_dir=/tmp/slurm-smd016-20260910T102345
+samples=577
+rss_first_kb=14016
+rss_final_kb=14624
+rss_min_kb=14016
+rss_max_kb=14624
+rss_first_window_mean_kb=14071
+rss_last_window_mean_kb=14624
+rss_window_growth_kb=553
+fd_first=13
+fd_final=13
+fd_min=13
+fd_max=13
+fd_final_growth=0
+fd_peak_growth=0
+threads_first=11
+threads_final=11
+threads_min=11
+threads_max=11
+
+[independent-readback]
+job_sequence_count=288
+job_id_first=67
+job_id_last=354
+accounting_record_count=576
+accounting_completed_0_0_count=576
+nonempty_job_or_submit_stderr_files=0
+job_node_PC-210.local_count=288
+job_identity_uid_3001_gid_3001_count=288
+sample_data_rows=577
+slurmd_fatal_count=0
+slurmd_error_count_all_severities=0
+slurmd_warning_count=0
+final_node_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_AllocTRES=EMPTY
+final_queue=EMPTY
+active_job_file=EMPTY
+launchd_initial_state=running
+launchd_initial_pid=310
+pidfile_initial_pid=310
+slurmd_final_pid=310
+slurmd_start_time_initial=2026-09-10T00:08:26
+slurmd_start_time_final=2026-09-10T00:08:26
+runner_exit_after_complete=EXPECTED
+
+[raw-artifact-hashes]
+marker.env=ecd0ea1550b1f34bb8640790b498dc3700d69605fc3dc6d6371b9fc175564326
+progress.txt=b8c42804babb38374419c29b2ca618a437ae4a8e0fabe564401568cf2de32eb7
+result.env=c572ce1cfd3f103478b9a56f9757d509078b51a33647ac5f8afe40a6b7662df1
+sample-analysis.env=f3d2345efeca0b15250a15657149e3ebf250761c98fae63f2065f8504f66bc6f
+samples.tsv=101fb8a70c3384fc48a005945af4f48f543df3d2164a1741d1563dbbf07026fe
+jobs.tsv=2329f21713d52e1e701235b40c1ddaaf032e49ddf2186f01bb7be63dda36cfc6
+slurmd-new.log=f1bd58f466eefc21d88ecc90dce995f87d0c1d21a8f6b38b8b90bc91ed167a88
+node-final.txt=a4cc235cb63ab55082ece54f58cefecce07465eb88a04550da75c32a6c12e219
+queue-final.txt=c3f0c02e7c798a935f8cafe04df417538c213d0cbd75cf2bc6d0094c2aedf4ee
+smd016_soak.sh=96bfc8c46f7bc6ad66c5e885fc6de1519f59ef9d77c33fd2241bb5336befeeba
+smd016_soak_payload.sh=a0f6028adead57a96cc683dfcfeb242ded19f8bfa838cdd840da96513de86863
+complete_run_archive=SMD-016-run-20260910T102345.tar.gz
+complete_run_archive_sha256=dad8f26d36708670cac327d90cf20e1f78f9843975b0379e74457b5ddf69c999
+complete_run_archive_size_bytes=74892
+complete_run_archive_entries=1467
+
+[interpretation]
+The 24-hour runner completed normally. runner_alive=NO after COMPLETE is the
+expected terminal state, not a daemon failure. The production slurmd retained
+PID 310 and its SlurmdStartTime. All 288 jobs and 288 batch steps completed
+with ExitCode 0:0. RSS window growth was 553 KiB, below the 16 MiB rejection
+threshold. FD and thread counts were unchanged. No configured error signature
+or general fatal/error/warning line was found in the captured slurmd log.

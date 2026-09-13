@@ -1,0 +1,74 @@
+SMD-108 final evidence
+timestamp=2026-09-12T01:10:34+09:00
+run_dir=/tmp/slurm-smd108-20260912T011034
+result=PASS
+
+[environment]
+node=PC-210
+cpu_total=18
+partition=debug
+partition_total_cpu=18
+partition_oversubscribe=NO
+slurmd_pid=94504
+slurmd_start=2026-09-11T23:11:50
+
+[below-capacity]
+job_id=460
+requested_cpu=4
+tasks=4
+live_unique_pids=4
+stdout_records=4
+stdout_rank_set=0,1,2,3
+stderr_bytes=0
+460|testuser|COMPLETED|0:0|PC-210|billing=4,cpu=4,mem=256M,node=1
+460.0||COMPLETED|0:0|PC-210|cpu=4,mem=256M,node=1
+
+[equal-capacity]
+job_id=461
+requested_cpu=18
+tasks=18
+live_unique_pids=18
+stdout_records=18
+stdout_rank_set=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
+stderr_bytes=0
+461|testuser|COMPLETED|0:0|PC-210|billing=18,cpu=18,mem=256M,node=1
+461.0||COMPLETED|0:0|PC-210|cpu=18,mem=256M,node=1
+
+[over-capacity]
+job_id=462
+requested_cpu=19
+pending_sample_0=PENDING|(PartitionConfig)
+pending_sample_1=PENDING|(PartitionConfig)
+pending_sample_2=PENDING|(PartitionConfig)
+pending_sample_3=PENDING|(PartitionConfig)
+pending_sample_4=PENDING|(PartitionConfig)
+stdout_bytes=0
+payload_executed=NO
+step_created=NO
+client_rc_after_cancel=1
+462|testuser|CANCELLED by 0|0:0|None assigned|billing=19,cpu=19,mem=256M,node=1|
+
+[final]
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+queue_entries=0
+slurmstepd_before=0
+slurmstepd_final=0
+residual_processes=0
+slurmd_pid_unchanged=94504
+slurmd_start_unchanged=2026-09-11T23:11:50
+
+[inputs-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+9abf5f5f25d2809241162b45d738bc0a1a4b221c900913aa401d6c2b931dcf96  smd108_cpu_task_payload.sh
+6243b610878ba5d7bd2ec376247c479fa7a0e87392500b285f95bcc19b66e5f7  smd108_cpu_overcommit_driver.sh
+
+[inputs-after]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+9abf5f5f25d2809241162b45d738bc0a1a4b221c900913aa401d6c2b931dcf96  smd108_cpu_task_payload.sh
+6243b610878ba5d7bd2ec376247c479fa7a0e87392500b285f95bcc19b66e5f7  smd108_cpu_overcommit_driver.sh
+
+[terminal]
+SMD108_CPU_OVERCOMMIT_COMPLETE below_job=460 below_cpu=4 equal_job=461 equal_cpu=18 over_job=462 over_cpu=19 over_state=CANCELLED_NOT_EXECUTED slurmd_pid=94504 production_unchanged=PASS run_dir=/tmp/slurm-smd108-20260912T011034

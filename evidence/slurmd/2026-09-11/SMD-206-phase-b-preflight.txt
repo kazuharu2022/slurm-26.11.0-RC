@@ -1,0 +1,35 @@
+SMD-206 Phase B approved preflight
+observed=2026-09-11T23:01:02+09:00
+result=READY_TO_RUN_PHASE_RUNNING_USER_ROOT_SHELL
+
+[launchd]
+state=running
+program=/opt/slurm/26.11.0/sbin/slurmd
+pid=91811
+pidfile=91811
+last_exit_code=(never exited)
+
+[controller]
+ubuntu2504:6817=CONNECTED
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+
+[artifacts]
+driver_sha256=6323a40d039aa98cbc9b6178aa6fcdd3700f64ea7da63c643cd5e2e3c8efdec6
+payload_sha256=fb96050dfda25f98cde8718ee396284ccac5d535ac801d4231a57b882d1a8301
+driver_sh_n=PASS
+payload_bash_n=PASS
+
+[approval]
+The user explicitly approved SMD-206 Phase B before this preflight.
+The state-changing driver must run from the PC-210 root shell because the
+Codex command runner does not hold sudo credentials.

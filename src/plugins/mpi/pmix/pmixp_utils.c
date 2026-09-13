@@ -49,6 +49,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/un.h>
+
+#include "src/common/fd.h"
 #include <time.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -94,7 +96,7 @@ int pmixp_usock_create_srv(char *path)
 		return SLURM_ERROR;
 	}
 
-	int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	int fd = fd_socket_close_on_exec(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
 		PMIXP_ERROR_STD("Cannot create UNIX socket");
 		return SLURM_ERROR;

@@ -1,0 +1,67 @@
+SMD-208 Attempt 2 static preflight
+date=2026-09-11
+state=HISTORICAL_PRE_ATTEMPT2
+superseded_runtime_result=SMD-208-attempt2.txt
+production_change=NO
+package_install=NO
+gpu_runtime=NOT_RUN
+
+Attempt 1 retained result:
+  job_id=445
+  mode=MLX default reduced precision
+  result=FAILED 1:0
+  overall_max_abs_error=1.198998928e-02
+  overall_mean_abs_error=2.450096443e-03
+  overall_max_scaled_error=6.320940650e+01
+
+Cause evidence:
+  installed MLX 0.32.2 enable_tf32() default=1
+  official documentation: float32 matrix-multiplication operations may use reduced precision
+  official full-float32 launch setting: MLX_ENABLE_TF32=0
+  related M5 report: https://github.com/ml-explore/mlx/issues/3534
+
+Correction:
+  batch exports MLX_ENABLE_TF32=0 before Python starts
+  payload rejects any value other than 0 before importing mlx.core
+  payload and batch record mlx_enable_tf32=0 in stdout
+  driver prints numerical stdout, stderr, and FAILED accounting before returning a numerical failure
+  successful accounting and final resource cleanup remain mandatory for PASS
+
+Invariant test conditions:
+  input_generation=UNCHANGED
+  shapes=UNCHANGED 7x31x11,13x64x9,5x127x7
+  overall_elements=UNCHANGED 229
+  element_atol=UNCHANGED 0.00005000
+  element_rtol=UNCHANGED 0.00005000
+  max_abs_error_limit=UNCHANGED 0.00100000
+  mean_abs_error_limit=UNCHANGED 0.00002000
+
+Static checks:
+  sh_driver_syntax_rc=0
+  bash_batch_syntax_rc=0
+  python_compile_rc=0
+  missing_MLX_ENABLE_TF32_guard_rc=2
+  missing_MLX_ENABLE_TF32_guard_stderr=error=MLX_ENABLE_TF32_must_be_0
+  approval_gate_rc=64
+  whitespace_check=PASS
+  numeric_validator_attempt1_failure_rc=1
+  numeric_validator_passing_fixture_rc=0
+  sandbox_full_float32_gpu_run=NOT_RUN_NO_METAL_DEVICE_IN_OBSERVER_CONTEXT
+
+Corrected hashes:
+  3f4f7bba565e9a62e76adac981a12867bcce345d67e4e982737dd26d5cd0b036  smd208_mlx_correctness.py
+  570989fe5aa2e7118dc5ee03995f428051a8c650d89ae28cc705595f6de8dc65  smd208_mlx_correctness.sbatch
+  332ea17bd5c7be00245fb8704e9b0effc3f5b3f0aee64e477a5ef75cf15b31d2  smd208_numerical_correctness_driver.sh
+
+Retest command:
+  sudo env SMD208_NUMERICAL_CORRECTNESS_CONFIRMED=YES /bin/sh \
+    /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd208_numerical_correctness_driver.sh
+
+PASS remains prohibited until the corrected job records:
+  all three numerical cases PASS
+  overall numerical result PASS
+  empty stderr
+  job and batch COMPLETED 0:0 with generic and typed GPU TRES
+  final node IDLE with zero allocations
+  empty queue and no slurmstepd or payload residual process
+  unchanged slurmd PID and production/input hashes

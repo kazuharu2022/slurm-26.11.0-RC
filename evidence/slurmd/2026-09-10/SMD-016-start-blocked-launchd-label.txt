@@ -1,0 +1,23 @@
+SMD-016 second start attempt blocked before marker/job creation
+captured_at=2026-09-10
+
+[user terminal]
+sudo env SMD016_24H_CONFIRMED=YES /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh start
+error: launchd service is not loaded: system/org.schedmd.slurm.slurmd
+
+[cause]
+configured_target=system/org.schedmd.slurm.slurmd
+actual_target=system/org.schedmd.slurmd
+reference_smd014=system/org.schedmd.slurmd
+reference_smd015=system/org.schedmd.slurmd
+classification=TEST_HARNESS_LABEL_TYPO
+
+[effect]
+job_submitted=NO
+marker_created=NO
+soak_started=NO
+cluster_state_change=NONE
+
+[fix]
+service_target=system/org.schedmd.slurmd
+

@@ -1,0 +1,64 @@
+SMD-125 Phase C timeout
+date=2026-09-11T20:29:49+0900
+classification=PASS_PHASE_TIMEOUT
+run_dir=/tmp/slurm-smd125-timeout-20260911T202949
+
+[driver-output]
+mode=timeout run_dir=/tmp/slurm-smd125-timeout-20260911T202949
+start_health_instance old_pid=74446 method=launchctl_bootout_bootstrap
+timeout_process_group_cleanup=PASS pid=75051 pgid=75051
+health_result=PASS mode=timeout node_state=DRAIN node_reason=SMD125_health_timeout
+health_instance_ready old_pid=74446 active_pid=75048 old_start=2026-09-11T20:19:48 active_start=2026-09-11T20:29:54
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=75048 start=2026-09-11T20:30:02
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+submitted smoke_job=379
+job_gone job_id=379 wait_seconds=3
+SMD125_PHASE_COMPLETE mode=timeout smoke_job=379 slurmd_pid=75048 run_dir=/tmp/slurm-smd125-timeout-20260911T202949
+
+[health-events]
+event=health_begin mode=timeout node=PC-210 node_health=unset epoch=1789126191 euid=0 egid=0 pid=75051 pgid=75051
+event=health_drain mode=timeout node=PC-210 epoch=1789126191 scontrol_rc=0 reason=SMD125_health_timeout
+event=health_timeout_begin mode=timeout node=PC-210 epoch=1789126191 pid=75051 pgid=75051
+event_count=3
+
+[slurmd-log]
+[2026-09-11T20:29:54.270] error: run_command_poll_child: health_check poll timeout @ 3000 msec
+[2026-09-11T20:29:54.290] error: health_check killed by signal 15 output:
+
+[process-cleanup]
+pid=75051
+pgid=75051
+matching_processes_after_timeout=0
+result=PASS
+
+[node-failure]
+state=IDLE+DRAIN
+reason=SMD125_health_timeout
+CPUAlloc=0
+AllocMem=0
+
+[accounting]
+379|testuser|COMPLETED|0:0|PC-210
+379.batch||COMPLETED|0:0|PC-210
+
+[config]
+before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+candidate_sha256=a56a541eea08f79bca427677e12b8938ddb75f9d25a897516b228e59554a54ff
+restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+byte_restore_checked_by_driver=yes
+
+[final]
+slurmd_pid=75048
+slurmd_start=2026-09-11T20:30:02
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+queue=empty
+drain_command_stderr_bytes=0
+resume_stderr_bytes=0
+restore_reconfigure_stderr_bytes=0
+accounting_stderr_bytes=0
+
+driver_sha256=3afcf0f6b0e8d4006dfd79ef3d0334272f6d056f740cebbb246f47644b2cb451
+result=PASS_PHASE_TIMEOUT

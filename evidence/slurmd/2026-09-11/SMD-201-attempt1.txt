@@ -1,0 +1,98 @@
+SMD-201 GPU exclusivity Attempt 1
+date=2026-09-11T21:21:16+0900
+classification=HARNESS_FALSE_NEGATIVE_CANCEL_LOG_PATTERN
+state=FIX_BUILT_AWAITING_RETEST
+run_dir=/tmp/slurm-smd201-20260911T212116
+
+[driver-output]
+submitted first_job=383
+first_ready job_id=383
+submitted second_job=384
+exclusive_pending first_job=383 state=RUNNING second_job=384 state=PENDING reason=Resources wait_seconds=1
+cancel first_job=383
+job_gone job_id=383 wait_seconds=1
+job_gone job_id=384 wait_seconds=0
+error: slurmd log lacks completion job=383
+
+[exclusive-queue]
+384|PENDING|(Resources)|
+383|RUNNING|PC-210|PC-210
+
+[job-readback]
+first_job=383 JobState=RUNNING Reason=None NodeList=PC-210 TresPerNode=gres/gpu:apple:1
+second_job=384 JobState=PENDING Reason=Resources NodeList=empty TresPerNode=gres/gpu:apple:1
+second_StartTime=Unknown
+second_AllocTRES=(null)
+
+[node-during-exclusive-observation]
+State=MIXED
+CPUAlloc=1
+AllocMem=256
+Gres=gpu:apple:1
+AllocTRES=cpu=1,mem=256M
+
+[accounting]
+383|testuser|CANCELLED by 0|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+383.batch||CANCELLED|0:15|PC-210||cpu=1,mem=256M,node=1
+384|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+384.batch||COMPLETED|0:0|PC-210||cpu=1,mem=256M,node=1
+sacct_stderr_bytes=0
+
+[worker-log]
+[2026-09-11T21:21:16.926] Launching batch JobId=383 SLUID=sCT1M286MF4F00 for UID 3001
+[2026-09-11T21:21:20.026] [383.batch] error: *** JOB 383 ON PC-210 CANCELLED AT 2026-09-11T21:21:20 DUE to SIGNAL Terminated: 15 ***
+[2026-09-11T21:21:20.027] [383.batch] stepd_cleanup: done with step (step_rc: 15, slurm_rc: 0 - No error)
+[2026-09-11T21:21:20.028] Launching batch JobId=384 SLUID=sCT1M286MY9300 for UID 3001
+[2026-09-11T21:21:20.438] [384.batch] done with step
+
+[driver-assertions-reached-before-log-failure]
+first_and_second_job_gpus=0
+first_and_second_slurm_job_gpus=0
+first_and_second_default_device=Device(gpu, 0)
+first_and_second_gpu_smoke_test=PASS
+first_and_second_identity=3001:3001
+first_payload_and_hold_pids_absent=YES
+second_payload_and_hold_pids_absent=YES
+second_stderr_bytes=0
+installed_mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[post-failure-readback]
+queue=EMPTY
+slurmstepd=ABSENT
+run_dir_processes=ABSENT
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+slurmd_pid=75048
+SlurmdStartTime=2026-09-11T20:30:02
+
+[cause]
+driverは正常終了とcancel終了の両方へ`[job.batch] done with step`を要求していた。
+正常終了したJob 384はこの形式だが、cancelされたJob 383は
+`[383.batch] stepd_cleanup: done with step`を出すため、実際のcleanup成功をfailureと誤判定した。
+
+[secondary-harness-gap]
+failure cleanupがtestuser所有mode 0700のoutput directoryをreadableへ戻さず、非rootからraw MLX
+stdout/stderrを再読込できなかった。driver内部のcontent gateはlog検査より前にすべて通過している。
+
+[repair]
+cancel jobにはCANCELLED行と`stepd_cleanup: done with step`を要求し、正常jobには従来の
+`done with step`を要求する。failure cleanupでも既存output directoryを0755、job outputを0644へ
+変更し、失敗Evidenceを再読込可能にする。
+
+[static-verification]
+driver_attempt1_sha256=4f88fed4ebc3ce52727d9b7d27ad7969aa166eb774e3f1adb306a292c5b3b6dd
+driver_repaired_sha256=37580fec643bc495a9f019c9869601fd65f17152ef27e35769f999ac490eebd4
+sh_n=PASS
+approval_gate_without_confirmation=64
+saved_cancel_line_match=PASS
+saved_cancel_cleanup_line_match=PASS
+saved_normal_completion_line_match=PASS
+whitespace_check=PASS
+
+[evidence-boundary]
+scheduler_exclusivity_observed=YES
+release_and_second_execution_observed=YES
+SMD201_final_result=NOT_YET_PASS
+reason=final harness sequence did not complete; repaired driver requires one retest

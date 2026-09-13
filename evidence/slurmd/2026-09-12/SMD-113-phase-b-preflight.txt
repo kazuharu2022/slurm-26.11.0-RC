@@ -1,0 +1,24 @@
+SMD-113 Phase B Preflight
+date=2026-09-12
+status=READY_TO_RUN_PHASE_B_APPROVAL_REQUIRED
+phase_a_status=PASS_PHASE_A
+production_config_mutation=no
+production_daemon_clean_stop=yes
+temporary_isolated_daemon=yes
+intentional_node_drain=yes
+failure_jobs=1
+recovery_smoke_jobs=1
+disposable_volume_size_mib=64
+syntax=PASS
+approval_gate_exit=64
+nonroot_guard_exit=1
+isolated_config_rewrite_fixture=PASS
+drain_reason_fixture=PASS
+cancelled_accounting_fixture=PASS
+long_lines_over_100=0
+trailing_whitespace=0
+diff_check=PASS
+shellcheck=NOT_RUN_NOT_INSTALLED
+runtime=NOT_RUN
+driver_sha256=4f22c691ba941563713db0a218414bdaeae99994a80f0350e7c75b6abc6aff08
+next=explicit approval required before Phase B execution

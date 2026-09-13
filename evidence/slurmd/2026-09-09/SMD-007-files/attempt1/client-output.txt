@@ -1,0 +1,32 @@
+/tmp/slurm-smd001-fixed/smd007_launch_failure_driver.sh
+run_dir=/tmp/slurm-smd007-20260909T174702
+submitted case=nonexistent_command job_id=36
+finished job_id=36 wait_seconds=1
+case=nonexistent_command srun_rc=2
+submitted case=not_executable job_id=37
+finished job_id=37 wait_seconds=2
+case=not_executable srun_rc=13
+submitted case=missing_chdir job_id=38
+finished job_id=38 wait_seconds=2
+case=missing_chdir srun_rc=2
+[file=/tmp/slurm-smd007-20260909T174702/missing_chdir.out]
+case_begin=missing_chdir job_id=38 job_gpus=0
+case_end=missing_chdir srun_rc=2
+[file=/tmp/slurm-smd007-20260909T174702/nonexistent_command.out]
+case_begin=nonexistent_command job_id=36 job_gpus=0
+case_end=nonexistent_command srun_rc=2
+[file=/tmp/slurm-smd007-20260909T174702/not_executable.out]
+case_begin=not_executable job_id=37 job_gpus=0
+case_end=not_executable srun_rc=13
+[file=/tmp/slurm-smd007-20260909T174702/missing_chdir.err]
+[2026-09-09T17:47:08.259] error: couldn't chdir to `/tmp/slurm-smd007-20260909T174702/directory-that-does-not-exist': No such file or directory: going to /tmp instead
+[2026-09-09T17:47:08.259] error: couldn't chdir to `/tmp/slurm-smd007-20260909T174702/directory-that-does-not-exist': No such file or directory: going to /tmp instead
+[2026-09-09T17:47:08.261] error: execve(): /bin/true: No such file or directory
+srun: error: PC-210: task 0: Exited with exit code 2
+[file=/tmp/slurm-smd007-20260909T174702/nonexistent_command.err]
+[2026-09-09T17:47:03.389] error: execve(): /tmp/slurm-smd007-20260909T174702/command-that-does-not-exist: No such file or directory
+srun: error: PC-210: task 0: Exited with exit code 2
+[file=/tmp/slurm-smd007-20260909T174702/not_executable.err]
+[2026-09-09T17:47:05.204] error: execve(): /tmp/slurm-smd007-20260909T174702/not-executable.sh: Permission denied
+srun: error: PC-210: task 0: Exited with exit code 13
+SMD007_CLIENT_RUN_COMPLETE run_dir=/tmp/slurm-smd007-20260909T174702

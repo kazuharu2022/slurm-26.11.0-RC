@@ -60,7 +60,7 @@ void _xsystemd_notify_barrier(int fd)
 
 	/* Need to create the pipe here */
 	int pipe_fd[2] = { -1, -1 };
-	if (pipe2(pipe_fd, O_CLOEXEC))
+	if (fd_pipe_close_on_exec(pipe_fd))
 		goto fail;
 
 	/* send the pipe over the socket */

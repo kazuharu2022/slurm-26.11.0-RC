@@ -1,0 +1,46 @@
+captured_at=2026-09-10T09:24:56+09:00
+run_dir=/tmp/slurm-smd015-job-prepare-20260910T092456
+marker=/opt/slurm/26.11.0/.smd015-job-sleep.env
+
+driver_output:
+mode=prepare run_dir=/tmp/slurm-smd015-job-prepare-20260910T092456 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env
+error: node is not idle and unallocated
+recovery: inspect run_dir=/tmp/slurm-smd015-job-prepare-20260910T092456 marker=/opt/slurm/26.11.0/.smd015-job-sleep.env preserve_job=0
+
+launchd_readback:
+target=system/org.schedmd.slurmd
+state=running
+runs=1
+pid=310
+last_exit_code=never_exited
+
+controller_readback:
+Slurmctld(primary) at ubuntu2504 is UP
+
+node_readback:
+State=DOWN+NOT_RESPONDING
+CPUAlloc=0
+AllocTRES=
+BootTime=2026-09-10T00:08:17
+SlurmdStartTime=2026-09-10T00:08:26
+LastBusyTime=2026-09-10T08:48:48
+Reason=Not responding [slurm@2026-09-10T09:03:56]
+
+queue_readback:
+(empty)
+
+power_log_after_phase_a:
+2026-09-10T08:59:35+09:00 Entering Sleep due to Idle Sleep
+2026-09-10T09:00:23+09:00 Entering Sleep due to Maintenance Sleep
+2026-09-10T09:10:39+09:00 Wake from Deep Idle
+2026-09-10T09:21:30+09:00 Entering Sleep due to Idle Sleep
+2026-09-10T09:22:12+09:00 Wake from Deep Idle
+sleep_count=25 -> 28
+
+result:
+prepare=BLOCKED
+test_job_submitted=NO
+phase_b_marker_created=NO
+slurmd_process_stopped=NO
+cause=automatic macOS idle sleep caused controller DOWN and prepare correctly rejected non-IDLE node
+next=confirm current controller state; issue RESUME only if still DOWN; then rerun prepare promptly

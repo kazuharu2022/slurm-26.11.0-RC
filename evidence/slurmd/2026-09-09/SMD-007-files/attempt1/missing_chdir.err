@@ -1,0 +1,4 @@
+[2026-09-09T17:47:08.259] error: couldn't chdir to `/tmp/slurm-smd007-20260909T174702/directory-that-does-not-exist': No such file or directory: going to /tmp instead
+[2026-09-09T17:47:08.259] error: couldn't chdir to `/tmp/slurm-smd007-20260909T174702/directory-that-does-not-exist': No such file or directory: going to /tmp instead
+[2026-09-09T17:47:08.261] error: execve(): /bin/true: No such file or directory
+srun: error: PC-210: task 0: Exited with exit code 2

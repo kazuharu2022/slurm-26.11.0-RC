@@ -1,0 +1,54 @@
+captured_at=2026-09-10T08:42:22+09:00
+source=user-provided controller terminal output
+
+$ type -a scontrol
+scontrol is /usr/local/slurm/26.11.0//bin/scontrol
+scontrol is /usr/local/bin/scontrol
+
+$ scontrol -V
+slurm 26.11.0-0rc1
+
+$ /usr/local/slurm/26.11.0/bin/scontrol -V
+slurm 26.11.0-0rc1
+
+$ /usr/local/slurm/26.11.0/bin/scontrol show node PC-210
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+   CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+   Gres=gpu:apple:1
+   NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+   OS=Darwin 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:12 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6050
+   RealMemory=131072 AllocMem=0 FreeMem=0 Sockets=1 Boards=1
+   State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+   Partitions=debug
+   BootTime=2026-09-10T00:08:17 SlurmdStartTime=2026-09-10T00:08:26
+   LastBusyTime=2026-09-10T08:33:57 ResumeAfterTime=None SuspendTime=INFINITE
+   CfgTRES=cpu=18,mem=128G,billing=18
+   AllocTRES=
+
+$ /usr/local/slurm/26.11.0/bin/sinfo -N -n PC-210 -o '%N %T %E'
+NODELIST STATE REASON
+PC-210 idle none
+
+2026-09-10T08:33:57+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:33:57.021] error: Node PC-21 appears to have a different slurm.conf than the slurmctld. This could cause issues with communication and functionality. Please review both files and make sure they are the same. If this is expected ignore, and set DebugFlags=NO_CONF_HASH in your slurm.conf.
+2026-09-10T08:33:57+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:33:57.021] Node PC-210 now responding
+2026-09-10T08:33:57+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:33:57.021] node PC-210 returned to service
+2026-09-10T08:36:18+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:36:18.792] Invalid node state transition requested for node PC-210 from=IDLE to=RESUME
+2026-09-10T08:36:18+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:36:18.792] _slurm_rpc_update_node for PC-210: Invalid node state transition
+2026-09-10T08:36:57+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:36:57.727] Invalid node state transition requested for node PC-210 from=IDLE to=RESUME
+2026-09-10T08:36:57+09:00 ubuntu2504 slurmctld[466808]: [2026-09-10T08:36:57.727] _slurm_rpc_update_node for PC-210: Invalid node state transition
+
+analysis:
+- controller_state_at_readback=IDLE
+- controller_reason=none
+- auto_reregistration_at=2026-09-10T08:33:57+09:00
+- wake_at=2026-09-10T08:14:10+09:00
+- approximate_recovery_seconds=1187
+- explicit_resume_result=EXPECTED_REJECTION_FROM_IDLE
+- client_version_mismatch=EXCLUDED
+- post_wake_smoke_job=NOT_RUN
+
+mac_launchd_diagnostic_note:
+- attempted target: system/org.schedmd.slurm.slurmd
+- result: service not found
+- cause: diagnostic command contained an extra '.slurm' component
+- correct target: system/org.schedmd.slurmd

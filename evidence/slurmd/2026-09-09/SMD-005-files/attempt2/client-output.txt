@@ -1,0 +1,9 @@
+/tmp/slurm-smd001-fixed/smd005_process_tree_driver.sh
+run_dir=/tmp/slurm-smd005-20260909T171901
+submitted case=control job_id=31
+running job_id=31
+submitted case=target job_id=32
+running job_id=32
+error target tree did not become ready
+cleanup job_id=31 state=RUNNING
+cleanup job_id=32 state=RUNNING

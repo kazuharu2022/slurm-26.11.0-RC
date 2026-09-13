@@ -1,0 +1,38 @@
+SMD-015 idle sleep/wake third verify evidence
+captured_at=2026-09-10T01:58:39+09:00
+mode=verify
+run_dir=/tmp/slurm-smd015-idle-verify-20260910T015839
+marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[driver-output]
+mode=verify run_dir=/tmp/slurm-smd015-idle-verify-20260910T015839 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+error: no completed sleep/wake cycle detected old=0 new=0
+hint: Screen Sharing still holds PreventSystemSleep; disconnect it before running pmset sleepnow from the physical console
+recovery: no power, daemon, launchd, or controller setting was changed; inspect run_dir=/tmp/slurm-smd015-idle-verify-20260910T015839 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[pmset-new-records]
+2026-09-10 01:58:09 +0900 Sleep Entering DarkWake state due to 'Software Sleep pid=17709' duration=30_secs
+2026-09-10 01:58:09 +0900 Notification Display is turned off
+2026-09-10 01:58:09 +0900 screensharingd Summary PreventSystemSleep "Remote user is connected"
+2026-09-10 01:58:09 +0900 screensharingd TurnedOn UserIsActive "Remote user active"
+2026-09-10 01:58:09 +0900 Notification Display is turned on
+2026-09-10 01:58:39 +0900 Wake DarkWake to FullWake due to HID Activity
+2026-09-10 01:58:39 +0900 Kernel Client Acks Delays to Sleep notifications: LINE timed out (30000 ms)
+Total Sleep/Wakes since boot at 2026-09-10 00:08:23 +0900 :0
+
+[assertions-after]
+PreventSystemSleep=1
+pid=451
+process=screensharingd
+name=Remote user is connected
+
+[diagnosis]
+software_sleep_request=ACCEPTED
+darkwake_transition=OBSERVED
+full_sleep=NO
+completed_sleep_wake_cycle=NO
+sleep_count=0_to_0
+slurmd_recovery_path=NOT_REACHED
+production_marker=RETAINED
+daemon_or_config_change=NONE
+state=BLOCKED

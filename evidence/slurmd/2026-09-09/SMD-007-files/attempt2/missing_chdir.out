@@ -1,0 +1,3 @@
+case_begin=missing_chdir job_id=41 job_gpus=0
+/private/tmp
+case_end=missing_chdir srun_rc=0

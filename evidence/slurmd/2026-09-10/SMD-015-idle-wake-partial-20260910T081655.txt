@@ -1,0 +1,52 @@
+SMD-015 idle sleep/wake completed-cycle partial result
+captured_at=2026-09-10T08:16:55+09:00
+mode=verify
+run_dir=/tmp/slurm-smd015-idle-verify-20260910T081655
+marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[driver-output]
+mode=verify run_dir=/tmp/slurm-smd015-idle-verify-20260910T081655 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+error: controller/node did not return to stable IDLE after wake
+recovery: no power, daemon, launchd, or controller setting was changed; inspect run_dir=/tmp/slurm-smd015-idle-verify-20260910T081655 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+
+[sleep-readback]
+old_sleep_count=0
+new_sleep_count=25
+completed_sleep_wake_cycle=YES
+screen_sharing_assertion_before_software_sleep=ABSENT
+full_sleep_observed=YES
+2026-09-10 02:23:06 +0900 Entering Sleep state due to Idle Sleep
+2026-09-10 08:14:10 +0900 Wake from Deep Idle due to HID Activity
+
+[daemon-readback]
+launchd_state=running
+old_pid=310
+new_pid=310
+pid_unchanged=YES
+SlurmdStartTime=2026-09-10T00:08:26
+slurmd_restart_observed=NO
+
+[controller-readback]
+controller=UP
+node_state=DOWN+NOT_RESPONDING
+node_reason=Not responding [slurm@2026-09-10T02:27:15]
+CPUAlloc=0
+AllocTRES=(empty)
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+stable_idle_wait_seconds=180
+stable_idle=NO
+
+[scope]
+smoke_job=NOT_SUBMITTED
+accounting_check=NOT_REACHED
+production_marker=RETAINED
+daemon_or_config_change=NONE
+
+[judgement]
+sleep_wake=PASS
+slurmd_process_survival=PASS
+controller_query=PASS
+automatic_node_return_to_idle=FAIL
+post_wake_smoke_job=NOT_RUN
+state=PARTIAL_RETEST_REQUIRED

@@ -1,0 +1,73 @@
+SMD-107 Attempt 1 evidence
+run_dir=/tmp/slurm-smd107-20260912T004704
+job_id=458
+slurmd_pid_before=94504
+result=HARNESS_FALSE_NEGATIVE
+
+[step-ids]
+seq_a 0
+seq_fail 1
+seq_c 2
+hold_cancel 4
+hold_survivor 3
+post_cancel 5
+
+[return-codes]
+seq_a=0
+seq_fail=7
+seq_c=0
+hold_cancel=137
+hold_survivor=0
+post_cancel=0
+hold_cancel_scancel=0
+
+[concurrent]
+cancel_step=4
+survivor_step=3
+cancel_task_pid=5529
+survivor_task_pid=5523
+concurrent_alive=YES
+
+[accounting]
+458|smd107-multi-step|testuser|COMPLETED|0:0|PC-210|billing=4,cpu=4,mem=512M,node=1
+458.batch|batch||COMPLETED|0:0|PC-210|cpu=4,mem=512M,node=1
+458.0|smd107-seq_a||COMPLETED|0:0|PC-210|cpu=1,mem=64M,node=1
+458.1|smd107-seq_fail||FAILED|7:0|PC-210|cpu=1,mem=64M,node=1
+458.2|smd107-seq_c||COMPLETED|0:0|PC-210|cpu=1,mem=64M,node=1
+458.3|smd107-hold-survivor||COMPLETED|0:0|PC-210|cpu=1,mem=64M,node=1
+458.4|smd107-hold-cancel||CANCELLED by 3001|0:9|PC-210|cpu=1,mem=64M,node=1
+458.5|smd107-post_cancel||COMPLETED|0:0|PC-210|cpu=1,mem=64M,node=1
+
+[batch-output]
+SMD107_ORCHESTRATOR_COMPLETE job_id=458 cancel_step=4 survivor_step=3 sequential=PASS concurrent=PASS cancel_isolation=PASS post_cancel=PASS
+
+[batch-stderr]
+srun: error: PC-210: task 0: Exited with exit code 7
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: PC-210: task 0: Killed: 9
+
+[output-metadata]
+3001:3001:644 batch-458.out
+3001:3001:644 batch-458.err
+
+[input-hashes-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+ddf49b2f565b91e14b5ce9c3d0ee9e9c78b8d1162198fd42957ebfdb0468c418  step-payload.sh
+0447c1ad77eb53b1f82b1c81c170f0d7beff21853e423aaa68b49c04e607493e  step-orchestrator.sh
+
+[harness-failure]
+/usr/bin/awk: non-terminated string :644 { exi... at source line 2
+error: batch output owner/mode mismatch
+
+[not-reached]
+node-final=NOT_CHECKED
+queue-final=NOT_CHECKED
+slurmstepd-final=NOT_CHECKED
+residual-processes=NOT_CHECKED
+inputs-after=NOT_CHECKED
+terminal-completion-marker=NOT_REACHED
+
+[classification]
+The measured metadata was 3001:3001:644 for both files. The driver AWK program
+omitted the closing quote after the literal :644, so AWK could not parse the
+validator. This is a harness false negative, not a Slurm owner/mode failure.

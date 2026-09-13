@@ -1,0 +1,48 @@
+SMD-124 SPANK Phase A Attempt 1
+Date: 2026-09-11 19:32 JST
+Classification: HARNESS_FALSE_NEGATIVE
+
+[user execution]
+PC-210:~ root# sudo env SMD124_SPANK_CONFIRMED=YES /bin/sh \
+>   /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd124_spank_driver.sh
+run_dir=/tmp/slurm-smd124-20260911T193230 task_count=2
+spank_config_active slurmd_pid=310 old_start=2026-09-11T19:21:02 new_start=2026-09-11T19:32:31 client_node_addr=192.168.10.128
+srun_rc=0
+error: callback count mismatch callback=slurm_spank_job_epilog context=job_script expected=1 actual=0
+cleanup job_id=372 state=COMPLETING
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:32:38
+recovery: inspect run_dir=/tmp/slurm-smd124-20260911T193230; production config restore was attempted
+
+[post-run read-only evidence]
+JobIDRaw|User|State|ExitCode|NodeList|Elapsed
+372|testuser|COMPLETED|0:0|PC-210|00:00:02
+372.0||COMPLETED|0:0|PC-210|00:00:02
+
+NodeName=PC-210
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+SlurmdStartTime=2026-09-11T19:32:38
+
+production_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+backup_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_cmp_rc=0
+
+[run-directory facts]
+spank-events.log owner=testuser group=3001 mode=0600 bytes=1820
+srun.out bytes=0
+srun.err bytes=0
+test-sacct.txt=NOT_CREATED (driver stopped before accounting check)
+smoke_job=NOT_SUBMITTED
+
+[analysis]
+srun returned rc=0 while Job 372 was still COMPLETING. The driver checked
+slurm_spank_job_epilog before waiting for the allocation epilog to finish.
+It then restored PlugStackConfig during cleanup. Therefore the missing epilog
+event at the observation instant does not establish a SPANK failure.
+
+[fix]
+Wait until the job leaves squeue before callback validation, poll sacct until
+both job and .0 step are COMPLETED 0:0, and snapshot the metadata-only event
+log to a root-owned read-only evidence file on both success and failure paths.

@@ -1,0 +1,29 @@
+diff --git a/src/plugins/tls/s2n/tls_s2n.c b/src/plugins/tls/s2n/tls_s2n.c
+index 0f6bb98b69..3fde8308a0 100644
+--- a/src/plugins/tls/s2n/tls_s2n.c
++++ b/src/plugins/tls/s2n/tls_s2n.c
+@@ -1296,15 +1296,18 @@ extern int tls_p_shutdown_conn(tls_conn_t *conn)
+ 	saved_errno = errno;
+ 
+ 	if (!sigpipe_was_pending) {
+-		struct timespec zero = { 0, 0 };
+-
+ 		/*
+ 		 * Consume the SIGPIPE our write may have raised, if any.
+-		 * sigtimedwait() returns -1 with EAGAIN when none is pending.
++		 * Check first so sigwait() cannot block when none is pending.
++		 * This is equivalent to a zero-timeout sigtimedwait(), while
++		 * remaining portable to macOS where sigtimedwait() is absent.
+ 		 */
+-		while ((sigtimedwait(&sigpipe_set, NULL, &zero) == -1) &&
+-		       (errno == EINTR))
+-			;
++		int signal_number = 0;
++
++		sigemptyset(&pending);
++		if ((sigpending(&pending) == 0) &&
++		    (sigismember(&pending, SIGPIPE) == 1))
++			(void) sigwait(&sigpipe_set, &signal_number);
+ 	}
+ 	pthread_sigmask(SIG_SETMASK, &oldset, NULL);
+ 	errno = saved_errno;

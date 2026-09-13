@@ -1,0 +1,34 @@
+# Minimal single-node macOS PoC configuration for PC-210.
+ClusterName=macos-poc
+SlurmctldHost=PC-210
+
+AuthType=auth/slurm
+CredType=cred/slurm
+PluginDir=/opt/slurm/26.05/lib/slurm
+
+SlurmUser=REDACTED_USER
+SlurmdUser=root
+SlurmctldPort=6817
+SlurmdPort=6818
+SlurmctldPidFile=/opt/slurm/26.05/var/run/slurmctld.pid
+SlurmdPidFile=/opt/slurm/26.05/var/run/slurmd.pid
+StateSaveLocation=/opt/slurm/26.05/var/spool/slurmctld
+SlurmdSpoolDir=/opt/slurm/26.05/var/spool/slurmd
+
+ProctrackType=proctrack/pgid
+TaskPlugin=task/none
+JobAcctGatherType=jobacct_gather/none
+AccountingStorageType=accounting_storage/none
+MpiDefault=none
+ReturnToService=2
+SelectType=select/cons_tres
+SelectTypeParameters=CR_Core_Memory
+SchedulerType=sched/backfill
+
+SlurmdDebug=info
+SlurmdLogFile=/opt/slurm/26.05/var/log/slurmd.log
+SlurmctldDebug=info
+SlurmctldLogFile=/opt/slurm/26.05/var/log/slurmctld.log
+
+NodeName=PC-210 NodeAddr=PC-210.local CPUs=18 Boards=1 SocketsPerBoard=1 CoresPerSocket=18 ThreadsPerCore=1 RealMemory=128000 State=UNKNOWN
+PartitionName=debug Nodes=PC-210 Default=YES MaxTime=INFINITE State=UP

@@ -1,0 +1,72 @@
+SMD-123 Attempt 2
+date=2026-09-11T19:20:55+0900
+run_dir=/tmp/slurm-smd123-20260911T192055
+
+[driver-output]
+run_dir=/tmp/slurm-smd123-20260911T192055 task_count=2
+task_hook_config_active slurmd_pid=310 old_start=2026-09-11T19:16:12 new_start=2026-09-11T19:20:56
+client_node_addr=192.168.10.128 client_config=/tmp/slurm-smd123-20260911T192055/slurm-client.conf
+srun_rc=0
+task_lifecycle=PASS job_id=370 tasks=2 prolog=2 payload=2 epilog=2 user=3001:3001 environment=PASS
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:21:02
+submitted smoke_job=371
+job_gone job_id=371 wait_seconds=3
+SMD123_ROOT_RUN_COMPLETE test_job=370 smoke_job=371 tasks=2 slurmd_pid=310 run_dir=/tmp/slurm-smd123-20260911T192055
+
+[client-address]
+en0_ipv4=192.168.10.128
+PC-210.local_ipv4=127.0.0.1,192.168.10.128
+client_config_NodeAddr=192.168.10.128
+candidate_config_parse=PASS
+client_config_parse=PASS
+
+[srun-stdout]
+SMD123_TASK_PROLOG_PRINT job_id=370 step_id=0 procid=0
+SMD123_TASK_PROLOG_PRINT job_id=370 step_id=0 procid=1
+
+[srun-stderr]
+EMPTY
+
+[task-lifecycle-validation]
+task_count=2
+TaskProlog_count=2
+payload_count=2
+TaskEpilog_count=2
+procid_set=0,1
+localid_set=0,1
+hook_and_payload_identity=3001:3001
+TaskProlog_context=prolog_task
+TaskEpilog_context=epilog_task
+export_per_task=PASS
+unset_per_task=PASS
+print_per_task=PASS
+TaskEpilog_payload_seen=YES
+validation_source=root_driver_exact_file_checks
+direct_read_from_current_tera_session=PERMISSION_DENIED_BY_0700_DESIGN
+
+[test-accounting]
+370|testuser|COMPLETED|0:0|PC-210
+370.0||COMPLETED|0:0|PC-210
+
+[smoke-accounting]
+371|testuser|COMPLETED|0:0|PC-210
+371.batch||COMPLETED|0:0|PC-210
+
+[restoration]
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_candidate_sha256=4be92145ac9c43e48ef21325fd515b4ea860fbd6870263010dddde8ff53a6d02
+config_client_sha256=95c490b87775ad088511f369b28aa5563af0b9ed574cb914132228e7a33d5c0d
+config_restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+slurmd_pid_before=310
+slurmd_pid_after=310
+final_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_queue=EMPTY
+
+[classification]
+attempt1=HARNESS_FAILURE_BEFORE_TASK_LAUNCH
+attempt2=PASS
+smd123_overall=PASS

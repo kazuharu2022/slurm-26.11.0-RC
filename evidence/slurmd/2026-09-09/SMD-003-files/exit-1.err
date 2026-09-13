@@ -1,0 +1,2 @@
+stderr_marker=exit_1
+srun: error: PC-210: task 0: Exited with exit code 1

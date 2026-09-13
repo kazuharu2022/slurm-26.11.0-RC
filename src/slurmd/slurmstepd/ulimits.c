@@ -125,8 +125,10 @@ extern void set_user_limits(pid_t pid)
 #endif
 	slurm_rlimits_info_t *rli;
 	struct rlimit r;
+#if !defined(__APPLE__)
 	rlim_t task_mem_bytes;
 	int rlimit_rc;
+#endif
 
 	if (_prlimit(pid, RLIMIT_CPU, NULL, &r) == 0) {
 		if (r.rlim_max != RLIM_INFINITY) {
@@ -140,16 +142,19 @@ extern void set_user_limits(pid_t pid)
 
 	/* Set soft and hard rss and vsize limit for this process,
 	 * handle job limit (for all spawned processes) in slurmd */
+#if !defined(__APPLE__)
 	task_mem_bytes  = step->step_mem;	/* MB */
 	task_mem_bytes *= (1024 * 1024);
+#endif
 
 	/* Many systems, Linux included, ignore RSS limits, but set it
 	 * here anyway for consistency and to provide a way for
 	 * applications to interrogate what the RSS limit is (with the
 	 * caveat that the real RSS limit is over all job tasks on the
 	 * node and not per process, but hopefully this is better than
-	 * nothing).  */
-#ifdef RLIMIT_RSS
+	 * nothing). Darwin aliases RLIMIT_RSS to RLIMIT_AS and rejects the
+	 * finite limits Slurm applies here, so leave both unset on macOS. */
+#if defined(RLIMIT_RSS) && !defined(__APPLE__)
 	rlimit_rc = _prlimit(pid, RLIMIT_RSS, NULL, &r);
 	if ((task_mem_bytes) && !rlimit_rc && (r.rlim_max > task_mem_bytes)) {
 		r.rlim_max =  r.rlim_cur = task_mem_bytes;
@@ -170,9 +175,9 @@ extern void set_user_limits(pid_t pid)
 		debug2("Not setting task rss rlimit, task bytes: %lu, rlimit_max: %lu",
 		       task_mem_bytes, r.rlim_max);
 	}
-#endif
+#endif /* RLIMIT_RSS && !__APPLE__ */
 
-#ifdef SLURM_RLIMIT_VSIZE
+#if defined(SLURM_RLIMIT_VSIZE) && !defined(__APPLE__)
 	rlimit_rc = _prlimit(pid, SLURM_RLIMIT_VSIZE, NULL, &r);
 	if ((task_mem_bytes) && slurm_conf.vsize_factor && !rlimit_rc &&
 	    (r.rlim_max > task_mem_bytes)) {
@@ -195,7 +200,7 @@ extern void set_user_limits(pid_t pid)
 		debug2("Not setting task vsize rlimit, task bytes: %lu, rlimit_max: %lu",
 		       task_mem_bytes, r.rlim_max);
 	}
-#endif
+#endif /* SLURM_RLIMIT_VSIZE && !__APPLE__ */
 }
 
 /*

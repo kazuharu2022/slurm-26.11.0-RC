@@ -1,0 +1,9 @@
+JOBID 33-34: no rows in squeue
+
+NodeName=PC-210
+CPUAlloc=0
+State=IDLE
+AllocTRES=(empty)
+LastBusyTime=2026-09-09T17:25:40
+
+PIDs 70758, 70772, 70774, 70775, 70778: none present

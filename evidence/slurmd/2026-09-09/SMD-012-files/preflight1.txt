@@ -1,0 +1,41 @@
+timestamp=2026-09-09T20:18:07+09:00
+mode=READ_ONLY
+configuration_changed=no
+
+production_config:
+  sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+  SlurmctldHost=ubuntu2504
+  SlurmdDebug=info
+  SlurmdLogFile=/var/log/slurm/slurmd.log
+  SlurmctldParameters=enable_configless
+  AuthType=auth/slurm
+
+network:
+  192.168.10.180:6817=reachable
+  ubuntu2504:6819=reachable
+
+runtime:
+  previous_slurmd_pid_at_smd011_completion=85145
+  current_slurmd_pid=95911
+  current_start="Wed Sep 9 20:13:15 2026"
+  current_parent_pid=95215
+  current_parent="root shell started Wed Sep 9 09:40:15 2026"
+  current_command="/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf"
+
+sack:
+  directory="/var/run/slurm"
+  directory_owner="root:daemon"
+  directory_mode="drwxr-xr-x"
+  sack_socket=missing
+  alternate_sack_socket_search=none_found
+
+client_results:
+  scontrol_ping="failed to connect to any sack sockets; auth_g_create REQUEST_PING authentication error"
+  sdiag="REQUEST_STATS_INFO authentication error; Protocol authentication error"
+  sinfo="failed to connect to any sack sockets; REQUEST_PARTITION_INFO authentication error"
+
+interpretation:
+  - TCP reachability does not indicate controller failure.
+  - auth/slurm clients cannot create credentials because no SACK socket is available.
+  - The current slurmd was started from an existing root shell after SMD011 completed.
+  - The action that replaced PID 85145 with 95911 was not performed by the SMD012 harness and is not yet attributed.

@@ -1,0 +1,47 @@
+SMD-013 read-only preflight
+Date: 2026-09-09 after SMD-012 Job 56
+
+Production spool metadata:
+
+  path=/var/spool/slurmd mode=drwxr-xr-x owner=slurm group=slurm device=16777233 inode=12843488
+  path=/var/spool/slurmd/cred_state mode=-rw------- owner=root group=slurm device=16777233 inode=13044970
+  cred_state size=62 bytes
+
+Production spool entries:
+
+  /var/spool/slurmd
+  /var/spool/slurmd/cred_state
+
+SACK metadata:
+
+  path=/var/run/slurm mode=drwxr-xr-x owner=root group=daemon device=16777233 inode=12864592
+  path=/var/run/slurm/sack.socket mode=srwxrwxrwx owner=root group=daemon device=16777233 inode=13043942
+
+Current daemon:
+
+  root 19107 1 Wed Sep 9 21:46:00 2026
+  /tmp/slurm-smd012-sack-20260909T214557/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+Controller and node:
+
+  Slurmctld(primary) at ubuntu2504 is UP
+  PC-210 queue: empty
+  State=IDLE CPUAlloc=0 CPUEfctv=18 CPUTot=18 AllocTRES=
+  SlurmdStartTime=2026-09-09T21:52:53
+
+Relevant production configuration:
+
+  GresTypes=gpu
+  SlurmdPidFile=/var/run/slurmd.pid
+  SlurmdPort=6818
+  SlurmdSpoolDir=/var/spool/slurmd
+  SlurmdLogFile=/var/log/slurm/slurmd.log
+  AuthType=auth/slurm
+  CredType=cred/slurm
+
+Preflight conclusion:
+
+  The production spool contains only a normal cred_state file and will not be
+  corrupted by SMD-013. The stale-state cases must use a dedicated /tmp spool.
+  The controller is reachable and PC-210 is currently idle, but the operator
+  must reconfirm this immediately before the state-changing driver is run.

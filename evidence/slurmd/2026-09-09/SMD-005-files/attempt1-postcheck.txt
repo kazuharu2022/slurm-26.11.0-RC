@@ -1,0 +1,7 @@
+NodeName=PC-210
+CPUAlloc=0
+State=IDLE
+AllocTRES=(empty)
+LastBusyTime=2026-09-09T17:12:03
+
+Mac process match for smd005, slurmstepd, or sleep 180: none

@@ -1,0 +1,10 @@
+JobID|JobName|User|State|ReqTRES|AllocTRES|Submit|Start|End|Elapsed|ExitCode|NodeList
+36|smd007-nonexistent_command|testuser|FAILED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T17:47:02|2026-09-09T17:47:02|2026-09-09T17:47:03|00:00:01|2:0|PC-210
+36.batch|batch||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:02|2026-09-09T17:47:02|2026-09-09T17:47:03|00:00:01|2:0|PC-210
+36.0|command-that-does-not-exist||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:03|2026-09-09T17:47:03|2026-09-09T17:47:03|00:00:00|2:0|PC-210
+37|smd007-not_executable|testuser|FAILED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T17:47:04|2026-09-09T17:47:05|2026-09-09T17:47:05|00:00:00|13:0|PC-210
+37.batch|batch||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:05|2026-09-09T17:47:05|2026-09-09T17:47:05|00:00:00|13:0|PC-210
+37.0|not-executable.sh||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:05|2026-09-09T17:47:05|2026-09-09T17:47:05|00:00:00|13:0|PC-210
+38|smd007-missing_chdir|testuser|FAILED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T17:47:06|2026-09-09T17:47:08|2026-09-09T17:47:08|00:00:00|2:0|PC-210
+38.batch|batch||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:08|2026-09-09T17:47:08|2026-09-09T17:47:08|00:00:00|2:0|PC-210
+38.0|true||FAILED||cpu=1,mem=1G,node=1|2026-09-09T17:47:08|2026-09-09T17:47:08|2026-09-09T17:47:08|00:00:00|2:0|PC-210

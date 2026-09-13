@@ -78,6 +78,7 @@
 #include "src/common/power_action.h"
 #include "src/common/proc_args.h"
 #include "src/common/read_config.h"
+#include "src/common/sack_api.h"
 #include "src/common/sercli.h"
 #include "src/common/serdes.h"
 #include "src/common/slurm_protocol_api.h"
@@ -3217,7 +3218,7 @@ _destroy_slurm_conf(void)
  *   a. argument if not NULL
  *   b. SLURM_CONF if not NULL
  *   c. default_slurm_config_file if it exists.
- *   d. /run/slurm/conf/slurm.conf if it exists.
+ *   d. the platform runtime config cache if it exists.
  * 2. SLURM_CONF_SERVER env var
  * 3. DNS SRV record
  */
@@ -3258,11 +3259,11 @@ static int _establish_config_source(char **config_file, bool *memfd)
 	}
 
 	/*
-	 * Check /run for a usable symlink. This will only exist if slurmd
-	 * is running in configless mode.
+	 * Check the platform runtime directory for a usable symlink. This will
+	 * only exist if slurmd is running in configless mode.
 	 */
-	if (!stat("/run/slurm/conf/slurm.conf", &stat_buf)) {
-		*config_file = xstrdup("/run/slurm/conf/slurm.conf");
+	if (!stat(SLURM_CONFIGLESS_CONF_FILE, &stat_buf)) {
+		*config_file = xstrdup(SLURM_CONFIGLESS_CONF_FILE);
 		debug2("%s: using config_file=%s (cached)",
 		       __func__, *config_file);
 		return SLURM_SUCCESS;

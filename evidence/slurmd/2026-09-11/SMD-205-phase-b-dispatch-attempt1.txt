@@ -1,0 +1,18 @@
+SMD-205 Phase B dispatch attempt 1
+executed=2026-09-11T22:46 JST
+result=NOT_STARTED_SUDO_CREDENTIAL_REQUIRED
+executor=Codex command runner
+
+[command]
+/usr/bin/sudo -n /usr/bin/env SMD205_REGISTRATION_MISMATCH_CONFIRMED=YES /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd205_gres_registration_mismatch_driver.sh
+
+[stdout]
+(empty)
+
+[stderr]
+sudo: a password is required
+
+[classification]
+The approval gate and driver body were not reached. No production file,
+launchd service, slurmd process, controller state, node state, or job was
+changed. This is an executor credential boundary, not a Slurm test failure.

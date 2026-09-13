@@ -1,0 +1,18 @@
+sudo /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd009_abnormal_restart.sh
+run_dir=/tmp/slurm-smd009-20260909T190245
+submitted target_job=46
+target_ready job_id=46 batch_pid=85131 child_pid=85132
+kill slurmd_pid=82165 signal=KILL target_job=46
+old_slurmd_gone wait_seconds=0
+start_candidate_pid=85145
+slurmd_restarted old_pid=82165 new_pid=85145 old_start=2026-09-09T18:41:50 new_start=2026-09-09T19:02:46
+target_state_after_restart=RUNNING
+target_state_after_5s=RUNNING
+cancel target_job=46
+job_gone job_id=46 wait_seconds=1
+target_process_cleanup=PASS wait_seconds=0
+target_accounting=CANCELLED by 0|0:0
+submitted smoke_job=47
+job_gone job_id=47 wait_seconds=1
+SMD009_ROOT_RUN_COMPLETE new_pid=85145 target_job=46 smoke_job=47 run_dir=/tmp/slurm-smd009-20260909T190245

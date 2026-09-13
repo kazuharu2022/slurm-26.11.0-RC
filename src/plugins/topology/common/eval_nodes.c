@@ -39,6 +39,11 @@
 
 #include "src/common/xstring.h"
 
+#if defined(__APPLE__)
+/* Defined by slurmctld, but topology plugins are also loaded by slurmd. */
+extern bitstr_t *idle_node_bitmap __attribute__((weak_import));
+#endif
+
 typedef struct node_weight_struct {
 	bitstr_t *node_bitmap;	/* bitmap of nodes with this weight */
 	uint64_t weight;	/* priority of node for scheduling work on */

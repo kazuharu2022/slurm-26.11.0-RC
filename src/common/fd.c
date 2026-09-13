@@ -35,6 +35,8 @@
  *  Refer to "fd.h" for documentation on public functions.
 \*****************************************************************************/
 
+#define _GNU_SOURCE /* pipe2() */
+
 #include <dirent.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -51,6 +53,12 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#if defined(__linux__)
+#include <sys/eventfd.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
 
 #include "slurm/slurm_errno.h"
 
@@ -109,6 +117,32 @@ static bool closeall_initialized = false;
 static int (*close_range_f)(unsigned int first, unsigned int last,
 			    int flags) = NULL;
 static int rlimit_nofile = INT_MAX;
+
+static int _get_open_max(void)
+{
+#ifdef __APPLE__
+	int maxfilesperproc = -1;
+	size_t size = sizeof(maxfilesperproc);
+
+	/*
+	 * With RLIMIT_NOFILE=RLIM_INFINITY, macOS returns LONG_MAX for
+	 * sysconf(_SC_OPEN_MAX). Converting that value to int and falling back
+	 * to INT_MAX makes closeall() issue billions of close() calls. The
+	 * kernel per-process maximum is the actual upper bound for open file
+	 * descriptors and can be captured safely during process startup.
+	 */
+	if (!sysctlbyname("kern.maxfilesperproc", &maxfilesperproc, &size,
+			 NULL, 0) && (maxfilesperproc > 0))
+		return maxfilesperproc;
+#endif
+
+	long open_max = sysconf(_SC_OPEN_MAX);
+
+	if ((open_max < 0) || (open_max > INT_MAX))
+		return INT_MAX;
+
+	return (int) open_max;
+}
 
 #define T(x) { x, #x }
 
@@ -284,12 +318,11 @@ extern void closeall_init(void)
 
 	if (!close_range_f) {
 		if ((getrlimit(RLIMIT_NOFILE, &rlim) == 0) &&
-		    (rlim.rlim_cur != RLIM_INFINITY)) {
-			rlimit_nofile = rlim.rlim_cur;
+		    (rlim.rlim_cur != RLIM_INFINITY) &&
+		    (rlim.rlim_cur <= INT_MAX)) {
+			rlimit_nofile = (int) rlim.rlim_cur;
 		} else {
-			rlimit_nofile = (int) sysconf(_SC_OPEN_MAX);
-			if (rlimit_nofile == -1)
-				rlimit_nofile = INT_MAX;
+			rlimit_nofile = _get_open_max();
 		}
 	}
 
@@ -312,6 +345,121 @@ extern void fd_close(int *fd)
 		close(*fd);
 		*fd = -1;
 	}
+}
+
+#ifdef __APPLE__
+static int _fd_set_close_on_exec(int fd)
+{
+	int flags = fcntl(fd, F_GETFD, 0);
+
+	if (flags < 0)
+		return -1;
+	return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
+static int _fd_set_nonblocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+
+	if (flags < 0)
+		return -1;
+	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+#endif
+
+extern int fd_pipe_close_on_exec(int fd[2])
+{
+#ifdef __APPLE__
+	int saved_errno;
+
+	fd[0] = fd[1] = -1;
+	if (pipe(fd) < 0)
+		return -1;
+
+	/* macOS has no pipe2(); setting FD_CLOEXEC is not atomic here. */
+	if ((_fd_set_close_on_exec(fd[0]) < 0) ||
+	    (_fd_set_close_on_exec(fd[1]) < 0)) {
+		saved_errno = errno;
+		close(fd[0]);
+		close(fd[1]);
+		fd[0] = fd[1] = -1;
+		errno = saved_errno;
+		return -1;
+	}
+
+	return 0;
+#else
+	fd[0] = fd[1] = -1;
+	return pipe2(fd, O_CLOEXEC);
+#endif
+}
+
+extern int fd_event_create(int *read_fd, int *write_fd)
+{
+#if defined(__linux__)
+	int fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+
+	if (fd < 0)
+		return -1;
+
+	*read_fd = fd;
+	*write_fd = fd;
+#else /* !__linux__ */
+	int fd[2] = { -1, -1 };
+
+	if (fd_pipe_close_on_exec(fd) < 0)
+		return -1;
+
+	fd_set_nonblocking(fd[0]);
+	fd_set_nonblocking(fd[1]);
+	*read_fd = fd[0];
+	*write_fd = fd[1];
+#endif /* !__linux__ */
+
+	return 0;
+}
+
+extern int fd_socket_close_on_exec(int domain, int type, int protocol)
+{
+#ifdef __APPLE__
+	int fd = socket(domain, type, protocol);
+
+	if ((fd >= 0) && (_fd_set_close_on_exec(fd) < 0)) {
+		int saved_errno = errno;
+
+		close(fd);
+		errno = saved_errno;
+		return -1;
+	}
+	return fd;
+#else
+	return socket(domain, type | SOCK_CLOEXEC, protocol);
+#endif
+}
+
+extern int fd_accept_close_on_exec(int socket_fd, struct sockaddr *address,
+				   socklen_t *address_len, bool nonblocking)
+{
+#ifdef __APPLE__
+	int fd = accept(socket_fd, address, address_len);
+
+	if ((fd >= 0) &&
+	    ((_fd_set_close_on_exec(fd) < 0) ||
+	     (nonblocking && (_fd_set_nonblocking(fd) < 0)))) {
+		int saved_errno = errno;
+
+		close(fd);
+		errno = saved_errno;
+		return -1;
+	}
+	return fd;
+#else
+	int flags = SOCK_CLOEXEC;
+
+	if (nonblocking)
+		flags |= SOCK_NONBLOCK;
+	return accept4(socket_fd, address, address_len, flags);
+#endif
 }
 
 void fd_set_close_on_exec(int fd)

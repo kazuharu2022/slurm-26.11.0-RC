@@ -1,0 +1,17 @@
+run_dir=/tmp/slurm-smd008-20260909T182435
+old_pid=7462
+new_pid=79927
+old_start_time=2026-09-09T10:52:07
+new_start_time=2026-09-09T18:24:36
+
+User-reported terminal error:
+
+sbatch: error: getcwd failed: Permission denied
+recovery: new slurmd candidate remains alive pid=79927; no duplicate start
+
+Independent postcheck:
+
+- /var/run/slurmd.pid contains 79927.
+- PID 79927 is root-owned and runs the expected slurmd command.
+- PC-210 is IDLE with CPUAlloc=0 and empty AllocTRES.
+- No job was submitted by this attempt.

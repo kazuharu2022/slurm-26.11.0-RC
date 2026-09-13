@@ -1,0 +1,54 @@
+SMD-121 Phase B Attempt 1
+date=2026-09-11T18:53:28+0900
+mode=timeout
+run_dir=/tmp/slurm-smd121-timeout-20260911T185328
+
+[driver-output]
+mode=timeout run_dir=/tmp/slurm-smd121-timeout-20260911T185328
+failure_config_active mode=timeout slurmd_pid=310 old_start=2026-09-11T18:48:32 new_start=2026-09-11T18:53:29
+submitted failure_job=362 mode=timeout
+failure_observed mode=timeout job_id=362 node_state=IDLE+DRAIN job_state=PENDING priority=0 wait_seconds=6
+timeout_process_group_cleanup=PASS pid=67079 pgid=67079
+error: worker log lacks Prolog timeout evidence
+cleanup job_id=362 state=PENDING
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T18:53:39
+recovery: node may remain DRAINED intentionally; inspect run_dir=/tmp/slurm-smd121-timeout-20260911T185328 before manual RESUME
+
+[actual-worker-log]
+[2026-09-11T18:53:38.035] error: run_command_poll_child: prolog poll timeout @ 5000 msec
+[2026-09-11T18:53:38.079] error: prolog killed by signal 15 output:
+[2026-09-11T18:53:38.079] prolog for JobId=362 SLUID=sCT1M27Y60MD00 ran for 5 seconds
+[2026-09-11T18:53:38.079] error: JobId=362 SLUID=sCT1M27Y60MD00 prolog failed status=0:15
+
+[failure-state]
+node_state=IDLE+DRAIN
+node_reason=Prolog error
+job_state=PENDING
+job_reason=launch_failed_requeued_held
+priority=0
+requeue=1
+restarts=1
+payload_executed=NO
+
+[process-group]
+timeout_pid=67079
+timeout_pgid=67079
+same_pgid_process_after_timeout=NONE
+same_pgid_process_at_followup=NONE
+
+[cleanup-readback]
+job_362_queue=EMPTY
+job_362_accounting=362|testuser|CANCELLED|0:0|None assigned
+production_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+current_node_state=IDLE+DRAIN
+current_CPUAlloc=0
+current_AllocMem=0
+
+[diagnosis]
+result=HARNESS_FALSE_NEGATIVE
+slurm_timeout_behavior=OBSERVED
+cause=actual log uses "prolog poll timeout @ 5000 msec" but driver accepted only "timeout after 5000 ms" or "timed out"
+post_recovery_smoke=NOT_RUN
+next_state=FIX_BUILT_AWAITING_RETEST

@@ -1,0 +1,2 @@
+case_begin=nonexistent_command job_id=39 job_gpus=0
+case_end=nonexistent_command srun_rc=2

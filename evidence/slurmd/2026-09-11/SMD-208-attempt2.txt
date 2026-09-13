@@ -1,0 +1,73 @@
+SMD-208 Attempt 2
+date=2026-09-11T23:58:49+09:00
+run_dir=/tmp/slurm-smd208-20260911T235849
+job_id=446
+classification=FULL_FLOAT32_CORRECTNESS_PASS
+production_change=NO
+slurmd_pid=94504
+
+driver terminal result:
+  submitted correctness_job=446
+  job_gone job_id=446 wait_seconds=1
+  SMD208_NUMERICAL_CORRECTNESS_COMPLETE job_id=446 cases=3 elements=229 slurmd_pid=94504 production_unchanged=PASS
+
+actual stdout:
+  job_id=446
+  job_user=testuser
+  node=PC-210.local
+  python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+  slurm_job_gpus=0
+  mlx_enable_tf32=0
+  smd208_schema=1
+  machine=arm64
+  mlx_version=0.32.2
+  default_device=Device(gpu, 0)
+  metal_device_name=Apple M5 Max
+  mlx_enable_tf32=0
+  dtype=float32
+  reference=python_math_fsum_float64
+  input_quantization=ieee754_binary32_struct
+  element_atol=0.00005000
+  element_rtol=0.00005000
+  max_abs_error_limit=0.00100000
+  mean_abs_error_limit=0.00002000
+  case=rect_k31 shape=7x31x11 elements=77 max_abs_error=8.148538417e-07 mean_abs_error=2.029865501e-07 max_relative_error=7.790247339e-06 max_scaled_error=1.041289963e-02 non_finite=0 status=PASS
+  case=rect_k64 shape=13x64x9 elements=117 max_abs_error=1.370529874e-06 mean_abs_error=2.826874725e-07 max_relative_error=1.075223564e-05 max_scaled_error=1.041586167e-02 non_finite=0 status=PASS
+  case=rect_k127 shape=5x127x7 elements=35 max_abs_error=1.794368213e-06 mean_abs_error=5.616576227e-07 max_relative_error=2.410022714e-06 max_scaled_error=1.185498639e-02 non_finite=0 status=PASS
+  overall_elements=229 overall_max_abs_error=1.794368213e-06 overall_mean_abs_error=2.985258316e-07 overall_max_relative_error=1.075223564e-05 overall_max_scaled_error=1.185498639e-02 status=PASS
+  SMD208_NUMERICAL_CORRECTNESS_PASS
+
+actual stderr:
+  EMPTY
+
+actual accounting:
+  446|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1
+  446.batch||COMPLETED|0:0|PC-210||cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=1G,node=1
+
+final state:
+  controller_before=UP
+  node_before=IDLE CPUAlloc=0 AllocMem=0
+  node_final=IDLE CPUAlloc=0 AllocMem=0
+  node_final_AllocTRES=EMPTY
+  slurmstepd_before=NONE
+  slurmstepd_final=NONE
+  residual_processes=NONE
+  slurmd_pid_before=94504
+  slurmd_pid_final=94504
+
+input hashes before and after:
+  9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+  3f4f7bba565e9a62e76adac981a12867bcce345d67e4e982737dd26d5cd0b036  smd208_mlx_correctness.py
+  570989fe5aa2e7118dc5ee03995f428051a8c650d89ae28cc705595f6de8dc65  smd208_mlx_correctness.sbatch
+  inputs.diff=EMPTY
+
+comparison with Attempt 1 default reduced precision:
+  overall_max_abs_error=1.198998928e-02 -> 1.794368213e-06 reduction_factor=6682.012
+  overall_mean_abs_error=2.450096443e-03 -> 2.985258316e-07 reduction_factor=8207.318
+  overall_max_scaled_error=6.320940650e+01 -> 1.185498639e-02 reduction_factor=5331.884
+
+observer conclusion:
+  full-float32 MLX/Metal result satisfies all predeclared numerical thresholds
+  scheduler allocation and generic/typed GPU accounting are correct
+  final resource and process cleanup are complete
+  default reduced-precision Attempt 1 remains a documented FAIL condition

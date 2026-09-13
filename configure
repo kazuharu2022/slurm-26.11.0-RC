@@ -884,6 +884,8 @@ ac_ct_CXX
 CXXFLAGS
 CXX
 LD_EMULATION
+DARWIN_BUILD_FALSE
+DARWIN_BUILD_TRUE
 WITH_MYSQL_FALSE
 WITH_MYSQL_TRUE
 MYSQL_CFLAGS
@@ -6438,6 +6440,19 @@ printf "%s\n" "#define USE_ALIAS 0" >>confdefs.h
 printf "%s\n" "#define USE_ALIAS 1" >>confdefs.h
  ;;
 esac
+
+case "$host" in
+	*darwin*) darwin_build=yes ;;
+	*)        darwin_build=no  ;;
+esac
+ if test "x$darwin_build" = "xyes"; then
+  DARWIN_BUILD_TRUE=
+  DARWIN_BUILD_FALSE='#'
+else
+  DARWIN_BUILD_TRUE='#'
+  DARWIN_BUILD_FALSE=
+fi
+
 
 LD_EMULATION=""
 case "$host" in
@@ -21723,6 +21738,8 @@ if test "$ac_res" != no
 then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
+printf "%s\n" "#define HAVE_TIMER_CREATE 1" >>confdefs.h
+
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing dlopen" >&5
@@ -22422,13 +22439,17 @@ printf "%s\n" "static" >&6; };
   else
     # The *_BUILD variables are here to make sure these are made before
     # compiling the bin
-    LIB_SLURM_BUILD='$(top_builddir)/src/api/full_version.map $(top_builddir)/src/api/libslurmfull.la'
+    if test "$with_gnu_ld" = yes; then
+      LIB_SLURM_BUILD='$(top_builddir)/src/api/full_version.map $(top_builddir)/src/api/libslurmfull.la'
+    else
+      LIB_SLURM_BUILD='$(top_builddir)/src/api/libslurmfull.la'
+    fi
     SLURMCTLD_INTERFACES='$(top_builddir)/src/interfaces/libslurmctld_interfaces.la'
     SLURMD_INTERFACES='$(top_builddir)/src/interfaces/libslurmd_interfaces.la'
     # You will notice " or ' each does something different when resolving
     # variables.  Some need to be resolved now ($libdir) and others
     # ($(top_builddir)) need to be resolved when dealing with the Makefile.am's
-    LIB_SLURM="-Wl,-rpath=$libdir/slurm"
+    LIB_SLURM="-Wl,-rpath,$libdir/slurm"
     LIB_SLURM=$LIB_SLURM' -L$(top_builddir)/src/api/.libs -lslurmfull'
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: shared" >&5
 printf "%s\n" "shared" >&6; };
@@ -31123,6 +31144,10 @@ if test -z "${WITH_MYSQL_TRUE}" && test -z "${WITH_MYSQL_FALSE}"; then
   as_fn_error $? "conditional \"WITH_MYSQL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${DARWIN_BUILD_TRUE}" && test -z "${DARWIN_BUILD_FALSE}"; then
+  as_fn_error $? "conditional \"DARWIN_BUILD\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -33979,5 +34004,3 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 printf "%s\n" "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
-

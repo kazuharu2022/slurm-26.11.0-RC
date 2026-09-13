@@ -79,6 +79,17 @@
 #define RANDOM_USER_PORT ((uint16_t) ((lrand48() % \
 		(MAX_USER_PORT - MIN_USER_PORT + 1)) + MIN_USER_PORT))
 
+/*
+ * Address families are part of the Slurm wire protocol here and must not use
+ * the platform's AF_* values directly.  AF_INET is 2 on Linux and Darwin,
+ * but AF_INET6 is 10 on Linux and 30 on Darwin (and 28 on FreeBSD).  Keep the
+ * historical Linux wire values so messages remain compatible with existing
+ * Linux daemons while translating to and from the local constants.
+ */
+#define SLURM_PROTOCOL_AF_UNSPEC 0
+#define SLURM_PROTOCOL_AF_INET   2
+#define SLURM_PROTOCOL_AF_INET6  10
+
 /* Static functions */
 static int _slurm_connect(int __fd, struct sockaddr const * __addr,
 			  socklen_t __len);
@@ -573,8 +584,8 @@ extern int slurm_init_msg_engine(slurm_addr_t *addr, bool quiet)
 	if (quiet)
 		log_lvl = LOG_LEVEL_DEBUG;
 
-	if ((fd = socket(addr->ss_family, SOCK_STREAM | SOCK_CLOEXEC,
-			 IPPROTO_TCP)) < 0) {
+	if ((fd = fd_socket_close_on_exec(addr->ss_family, SOCK_STREAM,
+					  IPPROTO_TCP)) < 0) {
 		format_print(log_lvl, "Error creating slurm stream socket: %m");
 		return fd;
 	}
@@ -613,7 +624,8 @@ error:
 extern int slurm_accept_conn(int fd, slurm_addr_t *addr)
 {
 	socklen_t len = sizeof(*addr);
-	int sock = accept4(fd, (struct sockaddr *) addr, &len, SOCK_CLOEXEC);
+	int sock = fd_accept_close_on_exec(fd, (struct sockaddr *) addr, &len,
+					false);
 	net_set_nodelay(sock, true, NULL);
 	return sock;
 }
@@ -630,8 +642,9 @@ extern void *slurm_accept_msg_conn(int fd, slurm_addr_t *addr)
 		socklen_t len = sizeof(*addr);
 		int err = SLURM_COMMUNICATIONS_RECEIVE_ERROR;
 
-		if ((sock = accept4(fd, (struct sockaddr *) addr, &len,
-				    SOCK_CLOEXEC)) >= 0) {
+		if ((sock = fd_accept_close_on_exec(fd,
+						    (struct sockaddr *) addr,
+						    &len, false)) >= 0) {
 			log_flag(NET, "%s: [fd:%d] accept()ed: fd:%d -> %pA",
 				 __func__, fd, sock, addr);
 			break;
@@ -642,7 +655,7 @@ extern void *slurm_accept_msg_conn(int fd, slurm_addr_t *addr)
 			err = errno;
 
 		if (err == EINTR) {
-			log_flag(NET, "%s: [fd:%d] retry accept4() due to interrupt: %s",
+			log_flag(NET, "%s: [fd:%d] retry accept() due to interrupt: %s",
 				 __func__, fd, slurm_strerror(err));
 			continue;
 		}
@@ -680,8 +693,8 @@ extern int slurm_open_stream(slurm_addr_t *addr, bool retry)
 	}
 
 	while (true) {
-		fd = socket(addr->ss_family, SOCK_STREAM | SOCK_CLOEXEC,
-			    IPPROTO_TCP);
+		fd = fd_socket_close_on_exec(addr->ss_family, SOCK_STREAM,
+					     IPPROTO_TCP);
 		if (fd < 0) {
 			error("Error creating slurm stream socket: %m");
 			return SLURM_ERROR;
@@ -916,7 +929,16 @@ extern void slurm_set_addr(slurm_addr_t *addr, uint16_t port, char *host)
 
 extern void slurm_pack_addr(slurm_addr_t *addr, buf_t *buffer)
 {
-	pack16(addr->ss_family, buffer);
+	uint16_t wire_family;
+
+	if (addr->ss_family == AF_INET6)
+		wire_family = SLURM_PROTOCOL_AF_INET6;
+	else if (addr->ss_family == AF_INET)
+		wire_family = SLURM_PROTOCOL_AF_INET;
+	else
+		wire_family = SLURM_PROTOCOL_AF_UNSPEC;
+
+	pack16(wire_family, buffer);
 
 	if (addr->ss_family == AF_INET6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) addr;
@@ -931,11 +953,17 @@ extern void slurm_pack_addr(slurm_addr_t *addr, buf_t *buffer)
 
 extern int slurm_unpack_addr_no_alloc(slurm_addr_t *addr, buf_t *buffer)
 {
-	uint16_t tmp_uint16 = 0;
+	uint16_t wire_family = SLURM_PROTOCOL_AF_UNSPEC;
 
-	/* ss_family is only uint8_t on BSD. */
-	safe_unpack16(&tmp_uint16, buffer);
-	addr->ss_family = tmp_uint16;
+	safe_unpack16(&wire_family, buffer);
+	memset(addr, 0, sizeof(*addr));
+
+	if (wire_family == SLURM_PROTOCOL_AF_INET6)
+		addr->ss_family = AF_INET6;
+	else if (wire_family == SLURM_PROTOCOL_AF_INET)
+		addr->ss_family = AF_INET;
+	else
+		return SLURM_SUCCESS;
 
 	if (addr->ss_family == AF_INET6) {
 		uint32_t size;
@@ -953,8 +981,6 @@ extern int slurm_unpack_addr_no_alloc(slurm_addr_t *addr, buf_t *buffer)
 
 		safe_unpack32(&in->sin_addr.s_addr, buffer);
 		safe_unpack16(&in->sin_port, buffer);
-	} else {
-		memset(addr, 0, sizeof(*addr));
 	}
 	return SLURM_SUCCESS;
 

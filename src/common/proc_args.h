@@ -38,11 +38,19 @@
 #ifndef _PROC_ARGS_H
 #define _PROC_ARGS_H
 
+#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "src/common/macros.h" /* true and false */
 #include "src/common/env.h"
+
+/* Exclusive upper bound for signal numbers accepted by Slurm. */
+#ifdef SIGRTMAX
+#define SLURM_SIGNAL_MAX SIGRTMAX
+#else /* !SIGRTMAX */
+#define SLURM_SIGNAL_MAX NSIG
+#endif /* !SIGRTMAX */
 
 /* convert task state ID to equivalent string */
 extern char *format_task_dist_states(task_dist_states_t t);

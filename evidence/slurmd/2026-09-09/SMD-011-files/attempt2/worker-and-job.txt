@@ -1,0 +1,35 @@
+slurmd_before:
+  pid=85145
+  start="Wed Sep 9 19:02:46 2026"
+  command="/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf"
+
+slurmd_after:
+  pid=85145
+  start="Wed Sep 9 19:02:46 2026"
+  command="/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf"
+
+survivor:
+  job_id=51
+  batch_pid=94026
+  child_pid=94027
+  start_epoch=1788951622
+  heartbeat_before=0
+  heartbeat_after=19
+  heartbeat_after_epoch=1788951641
+  finish_seen_count=20
+  finish_epoch=1788951642
+  completion_rc=0
+  stderr_empty=yes
+
+post_smoke:
+  job_id=52
+  request="--gres=gpu:apple:1"
+  stdout="PC-210.local"
+  stderr_empty=yes
+
+final_worker:
+  state=IDLE
+  cpu_alloc=0
+  alloc_tres=""
+  gres="gpu:apple:1"
+  queue_jobs_51_52=none

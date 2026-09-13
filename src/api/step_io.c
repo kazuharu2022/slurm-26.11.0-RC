@@ -1105,6 +1105,10 @@ client_io_t *client_io_handler_create(slurm_step_io_fds_t fds, int num_tasks,
 	int i;
 	client_io_t *cio = xmalloc(sizeof(*cio));
 
+	cio->io_running = false;
+	slurm_mutex_init(&cio->io_mutex);
+	slurm_cond_init(&cio->io_cond, NULL);
+
 	cio->num_tasks   = num_tasks;
 	cio->num_nodes   = num_nodes;
 	cio->het_job_offset = het_job_offset;
@@ -1209,6 +1213,8 @@ client_io_handler_destroy(client_io_t *cio)
 	/* FIXME - perhaps should make certain that IO engine is shutdown
 	   (by calling client_io_handler_finish()) before freeing anything */
 
+	slurm_cond_destroy(&cio->io_cond);
+	slurm_mutex_destroy(&cio->io_mutex);
 	slurm_mutex_destroy(&cio->ioservers_lock);
 	FREE_NULL_BITMAP(cio->ioservers_ready_bits);
 	xfree(cio->ioserver); /* need to destroy the obj first? */

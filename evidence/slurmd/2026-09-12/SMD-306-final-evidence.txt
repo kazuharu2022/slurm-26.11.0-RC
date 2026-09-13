@@ -1,0 +1,64 @@
+SMD-306 final evidence
+date=2026-09-12T10:49:14+09:00
+classification=PASS
+runtime_dir=/tmp/slurm-smd306-20260912T104914
+install_dir=/tmp/slurm-smd306-install-20260912T104914
+
+[binary]
+production_install=SKIPPED
+already_installed=YES
+production_sha256=345fbc8bfac3801ccc7e0e4593df718b2583e137ff9c26f72aed1ee19c1ea824
+candidate_sha256=345fbc8bfac3801ccc7e0e4593df718b2583e137ff9c26f72aed1ee19c1ea824
+req_c_sha256=d54d267a237d90946d950ea3944e28b7f5fac025764d4f26a344bf9c631a29ee
+backup=NOT_CREATED_ALREADY_INSTALLED
+
+[normal]
+jobs=564,565,566,567,568,569,570,571,572,573,574,575
+count=12
+oom_values=UNSET,-1000,0,1000
+repetitions_per_value=3
+job_accounting=COMPLETED_0:0 count=12
+batch_accounting=COMPLETED_0:0 count=12
+proc_state=ABSENT verified_by_root_driver_per_job
+stderr_empty=YES verified_by_root_driver_per_job
+
+[cancel]
+jobs=576,577,578
+count=3
+job_accounting=CANCELLED_by_0_0:0 count=3
+batch_accounting=CANCELLED_0:15 count=3
+job576=uid_3001 pgid_35252 pids_35252,35264,35265,35266
+job577=uid_3001 pgid_35358 pids_35358,35374,35375,35376
+job578=uid_3001 pgid_35448 pids_35448,35464,35465,35466
+tracked_pids_before_cancel=12
+tracked_pids_after_cancel=0
+
+[runtime]
+slurmd_pid_before=29439
+slurmd_pid_after=29439
+slurmd_start_before=2026-09-12T10:08:12
+slurmd_start_after=2026-09-12T10:08:12
+node_before=IDLE
+node_after=IDLE
+CPUAlloc_after=0
+AllocMem_after=0
+AllocTRES_after=EMPTY
+slurmstepd_before=0
+slurmstepd_after=0
+log_delta_lines=48
+proc_related_errors=0
+unexpected_errors=0
+residual_processes=0
+input_hash_diff=0
+
+[terminal]
+SMD306_PROC_ABSENCE_COMPLETE total_jobs=15 normal_jobs=12 cancel_jobs=3 process_cleanup=PASS proc_errors=0 slurmd_pid=29439 production_unchanged=PASS run_dir=/tmp/slurm-smd306-20260912T104914
+SMD306_INSTALL_AND_TEST_COMPLETE slurmd_pid=29439 old_hash=345fbc8bfac3801ccc7e0e4593df718b2583e137ff9c26f72aed1ee19c1ea824 new_hash=345fbc8bfac3801ccc7e0e4593df718b2583e137ff9c26f72aed1ee19c1ea824 backup=NOT_CREATED_ALREADY_INSTALLED already_installed=1 production_installed=PASS run_dir=/tmp/slurm-smd306-install-20260912T104914
+
+[boundary]
+job_output_directory=testuser_owned_mode_0700
+codex_observer_direct_job_output_read=DENIED
+job_output_validation=root_driver_individual_checks
+pam_slurm_adopt_REQUEST_ADD_EXTERN_PID_runtime=NOT_TESTED
+parallel_debugger_proc_status_path=NOT_TESTED
+unconfigured_proc_using_plugins=NOT_TESTED

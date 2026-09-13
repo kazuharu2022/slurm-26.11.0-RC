@@ -36,6 +36,24 @@
 #ifndef _SACK_API_H
 #define _SACK_API_H
 
+#ifdef __APPLE__
+#define SLURM_SACK_RUN_DIR "/var/run"
+#else
+#define SLURM_SACK_RUN_DIR "/run"
+#endif
+
+#define SLURM_CONFIGLESS_RUN_DIR SLURM_SACK_RUN_DIR "/slurm"
+#define SLURM_CONFIGLESS_CONF_DIR SLURM_CONFIGLESS_RUN_DIR "/conf"
+#define SLURM_CONFIGLESS_CONF_FILE SLURM_CONFIGLESS_CONF_DIR "/slurm.conf"
+
+#define SLURM_SACK_CLUSTER_PATTERN \
+	SLURM_SACK_RUN_DIR "/slurm-%s/sack.socket"
+#define SLURM_SACK_SOCKET SLURM_SACK_RUN_DIR "/slurm/sack.socket"
+#define SLURMCTLD_SACK_SOCKET \
+	SLURM_SACK_RUN_DIR "/slurmctld/sack.socket"
+#define SLURMDBD_SACK_SOCKET \
+	SLURM_SACK_RUN_DIR "/slurmdbd/sack.socket"
+
 /*
  * The 64000 range is reserved for SACK to
  * avoid collisions with slurm_msg_type_t.

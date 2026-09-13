@@ -1,0 +1,14 @@
+23d96741d104548920d383fbd9bc6630a5d310e0fca087bf7e6335716d4d9497  node-before.txt
+a1ad0137c2d5e0c587d821a9fdb2bba4070aeefbdcd837374641061122d276f9  node-after-start.txt
+3bfb74f9c114bab945fb6c502c29f7ec4e6907a72be5155a7768364a757e6bd1  node-after-job.txt
+4f4ee777a781b62ed20dfa2632f1cdb30eebad2f40c7ce016d91cbe2b8a29724  process-before.txt
+451df7843f6a5b617bb432899e143eee184bda4438b0c7fc88ae1c737d2ef631  process-after.txt
+c3f0c02e7c798a935f8cafe04df417538c213d0cbd75cf2bc6d0094c2aedf4ee  queue-after.txt
+a2967c7af7d5a4d8fa35d5fa5352e45371958755d88ab53b2e9be1c9e0ed8be2  sacct.txt
+9a1414052078e81d5cee134cc3c86b19fccf48dc47a6a0909be18b1dca94d16a  smoke/hostname.out
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  smoke/hostname.err
+92d4ac973aa74bb4cd8fdacb6f38287a7fbc4fb2d7f33c7e4143dba103a3fbda  slurmd-foreground.log
+a9133f9f5c61d7ca5f0e604848d9d44ca9f9d8e7b9319456c072ef9278362e50  slurmd-log-tail.txt
+
+These hashes identify the original files under /private/tmp/slurm-smd008-20260909T184149.
+The evidence copies in this directory may be filtered or annotated and are not asserted to have these hashes.

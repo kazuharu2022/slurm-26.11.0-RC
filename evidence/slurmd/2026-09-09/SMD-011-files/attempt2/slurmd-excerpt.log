@@ -1,0 +1,13 @@
+[2026-09-09T20:00:22.060] Launching batch JobId=51 SLUID=sCT1M22X6VYG00 for UID 3001
+[2026-09-09T20:00:22.089] [51.batch] task 0 (94026) started 2026-09-09T20:00:22
+[2026-09-09T20:00:42.015] debug2: Processing RPC: REQUEST_NODE_REGISTRATION_STATUS
+[2026-09-09T20:00:42.016] debug:  _fill_registration_msg: found apparently running JobId=51 SLUID=sCT1M22X6VYG00
+[2026-09-09T20:00:42.026] debug:  _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T20:00:42.831] [51.batch] task 0 (94026) exited with exit code 0.
+[2026-09-09T20:00:42.832] [51.batch] JobId=51 SLUID=sCT1M22X6VYG00 completed with slurm_rc = 0, job_rc = 0
+[2026-09-09T20:00:42.842] [51.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+[2026-09-09T20:00:47.045] Launching batch JobId=52 SLUID=sCT1M22X7H4H00 for UID 3001
+[2026-09-09T20:00:47.085] [52.batch] task 0 (94277) started 2026-09-09T20:00:47
+[2026-09-09T20:00:47.468] [52.batch] task 0 (94277) exited with exit code 0.
+[2026-09-09T20:00:47.469] [52.batch] JobId=52 SLUID=sCT1M22X7H4H00 completed with slurm_rc = 0, job_rc = 0
+[2026-09-09T20:00:47.510] [52.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket

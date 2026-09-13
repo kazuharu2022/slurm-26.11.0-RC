@@ -1,0 +1,5 @@
+JobID|JobName|User|State|ReqTRES|AllocTRES|Submit|Start|End|Elapsed|ExitCode|NodeList
+51|smd011-survivor|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=18,cpu=18,mem=1G,node=1|2026-09-09T20:00:21|2026-09-09T20:00:21|2026-09-09T20:00:42|00:00:21|0:0|PC-210
+51.batch|batch||COMPLETED||cpu=18,mem=1G,node=1|2026-09-09T20:00:21|2026-09-09T20:00:21|2026-09-09T20:00:42|00:00:21|0:0|PC-210
+52|smd011-post-smoke|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T20:00:43|2026-09-09T20:00:46|2026-09-09T20:00:47|00:00:01|0:0|PC-210
+52.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|2026-09-09T20:00:46|2026-09-09T20:00:46|2026-09-09T20:00:47|00:00:01|0:0|PC-210

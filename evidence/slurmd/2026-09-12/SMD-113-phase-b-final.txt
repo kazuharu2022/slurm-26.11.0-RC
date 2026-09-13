@@ -1,0 +1,14 @@
+PC-210:etc root# sudo env SMD113_RUNTIME_CONFIRMED=YES /bin/sh \
+>   /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd113_spool_enospc_driver.sh
+run_dir=/tmp/slurm-smd113-runtime-20260912T100801 phase=isolated_spool_enospc volume_size_mib=64 old_pid=94504 device=/dev/disk4s1 spool=/private/tmp/slurm-smd113-runtime-20260912T100801/volume/spool
+start isolated_candidate_pid=27936
+isolated_daemon_ready pid=27936 start=2026-09-12T10:08:03 wait_seconds=3
+volume_full dd_rc=1 device=/dev/disk4s1
+submitted failure_job=547
+failure_observed job_id=547 node_state=IDLE+DRAIN wait_seconds=1
+job_gone job_id=547 wait_seconds=0
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+production_restored old_pid=94504 candidate_pid=27936 restored_pid=29439
+submitted smoke_job=548
+job_gone job_id=548 wait_seconds=3
+SMD113_SPOOL_ENOSPC_COMPLETE failure_job=547 smoke_job=548 old_pid=94504 candidate_pid=27936 restored_pid=29439 production_restored=PASS run_dir=/tmp/slurm-smd113-runtime-20260912T100801

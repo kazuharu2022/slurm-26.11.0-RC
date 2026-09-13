@@ -1,0 +1,65 @@
+SMD-015 idle sleep/wake prepare evidence
+captured_at=2026-09-10T01:43:03+09:00
+mode=prepare
+run_dir=/tmp/slurm-smd015-idle-prepare-20260910T014303
+production_marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+production_marker_mode=-rw------- owner=root group=wheel
+physical_wake_access=USER_CONFIRMED
+sleep_action=NOT_RUN
+
+[driver-output]
+mode=prepare run_dir=/tmp/slurm-smd015-idle-prepare-20260910T014303 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+warning: Screen Sharing currently holds PreventSystemSleep; disconnect it before sleep
+SMD015_IDLE_SLEEP_PREPARED pid=310 start=2026-09-10T00:08:26 sleep_count=0 ip=192.168.10.128 mac=b6:08:d4:24:66:b1 SlurmdTimeout=300 ReturnToService=1 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env run_dir=/tmp/slurm-smd015-idle-prepare-20260910T014303
+NEXT_USER_ACTION_FROM_PHYSICAL_CONSOLE: disconnect Screen Sharing, run sudo /usr/bin/pmset sleepnow, wait at least 60 seconds, then wake the Mac physically
+AFTER_WAKE: sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd015_idle_sleep_wake.sh verify
+
+[marker-readback]
+old_boot=1788966497
+old_sleep_count=0
+old_pm_log_lines=51889
+old_pid=310
+old_start=2026-09-10T00:08:26
+expected_ip=192.168.10.128
+current_mac=b6:08:d4:24:66:b1
+slurmd_timeout=300
+return_to_service=1
+prepared_epoch=1788972187
+
+[node-readback]
+NodeName=PC-210
+NodeAddr=PC-210
+State=IDLE
+CPUAlloc=0
+CPUTot=18
+AllocTRES=(empty)
+Gres=gpu:apple:1
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-10T00:08:26
+
+[slurmd-readback]
+pid=310
+ppid=1
+owner=root
+command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+sack=/var/run/slurm/sack.socket
+sack_mode=srwxrwxrwx
+sack_owner=root
+sack_group=daemon
+sack_device=16777229
+sack_inode=13058989
+
+[controller-readback]
+controller=UP
+SlurmdTimeout=300
+ReturnToService=1
+
+[power-readback]
+Total Sleep/Wakes since boot=0
+screensharingd PreventSystemSleep=1
+
+[judgement]
+prepare=PASS
+idle_sleep_wake=NOT_RUN
+state=READY_TO_RUN
+reason=Screen Sharing must be disconnected before physical-console sleep

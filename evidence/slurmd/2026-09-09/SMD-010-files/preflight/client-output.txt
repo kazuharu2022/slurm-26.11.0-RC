@@ -1,0 +1,69 @@
+mode=READ_ONLY no_firewall_change=yes
+controller_name=ubuntu2504 controller_addr=192.168.10.180 controller_port=6817
+
+[route]
+   route to: 192.168.10.180
+destination: 192.168.10.180
+  interface: en0
+      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>
+ recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire
+       0         0       480         7         6         0      1500      1184
+
+[source-address]
+route_interface=en0
+192.168.10.127
+
+[pf-info]
+No ALTQ support in kernel
+ALTQ related functions disabled
+Status: Disabled                              Debug: Urgent
+
+[pf-enable-references]
+No ALTQ support in kernel
+ALTQ related functions disabled
+No pf starter references held
+
+[pf-main-anchors]
+No ALTQ support in kernel
+ALTQ related functions disabled
+  com.apple
+
+[pf-com-apple-rules-recursive]
+No ALTQ support in kernel
+ALTQ related functions disabled
+anchor "*" all {
+pfctl: DIOCGETRULES: Invalid argument
+}
+anchor "*" all {
+pfctl: DIOCGETRULES: Invalid argument
+}
+
+[test-anchor-existing-rules]
+No ALTQ support in kernel
+ALTQ related functions disabled
+pfctl: DIOCGETRULES: Invalid argument
+
+[pf-conf-anchor-reference]
+26:anchor "com.apple/*"
+
+[slurmd]
+root 85145     1 Wed Sep  9 19:02:46 2026     /opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26
+
+[node]
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+   CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+   Gres=gpu:apple:1
+   NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+   RealMemory=131072 AllocMem=0 FreeMem=0 Sockets=1 Boards=1
+   State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+   BootTime=2026-08-08T00:51:29 SlurmdStartTime=2026-09-09T19:02:46
+   CfgTRES=cpu=18,mem=128G,billing=18
+   AllocTRES=
+
+[active-jobs]
+(none)
+
+[baseline-controller-connectivity]
+Connection to 192.168.10.180 port 6817 [tcp/*] succeeded!
+
+SMD010_PREFLIGHT_COMPLETE pf_unchanged=yes interface=en0 controller=192.168.10.180:6817

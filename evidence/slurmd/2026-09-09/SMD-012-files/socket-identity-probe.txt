@@ -1,0 +1,16 @@
+macOS named UNIX socket identity probe, executed 2026-09-09:
+
+first 16777233 13035311
+replacement 16777233 13035312
+guard_would_unlink False
+
+Interpretation:
+
+After unlinking and binding a replacement UNIX socket at the same pathname,
+the filesystem device remained the same and inode changed. Comparing the
+pathname dev/inode captured after bind with its value during listener teardown
+distinguishes the old listener from the replacement on this host.
+
+An additional probe showed that fstat(socket_fd) and lstat(socket_path) do not
+have matching dev/inode values on this macOS host, so FD-to-path inode comparison
+must not be used for this guard.

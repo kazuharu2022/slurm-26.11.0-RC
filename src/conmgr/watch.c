@@ -1370,8 +1370,8 @@ static bool _attempt_accept(conmgr_fd_t *con)
 	slurm_mutex_unlock(&mgr.mutex);
 
 	/* try to get the new file descriptor and retry on errors */
-	if ((fd = accept4(input_fd, (struct sockaddr *) &addr, &addrlen,
-			  SOCK_CLOEXEC)) < 0) {
+	if ((fd = fd_accept_close_on_exec(input_fd, (struct sockaddr *) &addr,
+					&addrlen, false)) < 0) {
 		int accept_errno = errno;
 
 		if (accept_errno == EINTR) {

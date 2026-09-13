@@ -307,10 +307,14 @@ static void _run_command_child_exec(int fd, const char *path, char **argv,
 	if (!env || !env[0])
 		env = environ;
 
+	/* script_launcher_fd is only opened on Linux in run_command_init(). */
+#if defined(__linux__)
 	if (fd >= 0)
 		fexecve(fd, argv, env);
-	else
-		execve(path, argv, env);
+#else
+	(void) fd;
+#endif
+	execve(path, argv, env);
 	error("%s: execv(%s): %m", __func__, path);
 	_exit(127);
 }
@@ -328,6 +332,21 @@ static void _run_command_child_pre_exec(void)
 	 * sync euid -> ruid, egid -> rgid to avoid issues with fork'd
 	 * processes using access() or similar calls.
 	 */
+#ifdef __APPLE__
+	/*
+	 * macOS has no setresuid()/setresgid(). This child immediately calls
+	 * execve(), so synchronize real, effective, and saved IDs to the current
+	 * effective IDs and do not retain a prior saved privileged ID.
+	 */
+	if (setgid(getegid())) {
+		error("%s: Unable to setgid()", __func__);
+		_exit(127);
+	}
+	if (setuid(geteuid())) {
+		error("%s: Unable to setuid()", __func__);
+		_exit(127);
+	}
+#else
 	if (setresgid(getegid(), getegid(), -1)) {
 		error("%s: Unable to setresgid()", __func__);
 		_exit(127);
@@ -336,6 +355,7 @@ static void _run_command_child_pre_exec(void)
 		error("%s: Unable to setresuid()", __func__);
 		_exit(127);
 	}
+#endif
 }
 
 extern void run_command_launcher(int argc, char **argv)
@@ -380,8 +400,9 @@ extern char *run_command(run_command_args_t *args)
 			return resp;
 		}
 	}
-	if ((pipe2(pfd, O_CLOEXEC) != 0) ||
-	    (args->write_to_child && (pipe2(pfd_to_child, O_CLOEXEC) != 0))) {
+	if ((fd_pipe_close_on_exec(pfd) != 0) ||
+	    (args->write_to_child &&
+	     (fd_pipe_close_on_exec(pfd_to_child) != 0))) {
 		error("%s: pipe(): %m", __func__);
 		fd_close(&pfd[0]);
 		fd_close(&pfd[1]);

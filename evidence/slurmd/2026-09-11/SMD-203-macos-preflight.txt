@@ -1,0 +1,32 @@
+SMD-203 macOS local configuration preflight raw evidence
+executed_on=PC-210
+mode=READ_ONLY
+
+[static-config]
+23:GresTypes=gpu
+100:SelectType=select/cons_tres
+127:AccountingStorageTRES=gres/gpu,gres/gpu:apple
+
+[effective-controller-config-read-from-macos-client]
+AccountingStorageTRES   = cpu,mem,energy,node,billing,fs/disk,vmem,pages,gres/gpu,gres/gpu:apple,gres/gpumem,gres/gpuutil
+GresTypes               = gpu
+SelectType              = select/cons_tres
+SelectTypeParameters    = CR_CORE_MEMORY
+
+[node]
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+Gres=gpu:apple:1
+NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+BootTime=2026-09-10T00:08:17 SlurmdStartTime=2026-09-11T20:30:02
+LastBusyTime=2026-09-11T22:05:37
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=
+
+[queue]
+empty
+
+[classification]
+PASS_MACOS_PREFLIGHT_READY_TO_RUN_PHASE_JOB
+

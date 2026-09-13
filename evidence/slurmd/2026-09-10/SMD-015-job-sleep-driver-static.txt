@@ -1,0 +1,43 @@
+captured_at=2026-09-10
+phase=SMD-015 job-running sleep/wake Phase B preflight
+system_state_change=NONE
+
+artifacts:
+- contribs/macos-tests/smd015_job_sleep_wake.sh
+- contribs/macos-tests/smd015_job_sleep_payload.sh
+
+static_checks:
+driver_sh_n=PASS
+payload_sh_n=PASS
+invalid_mode_exit=64
+nonroot_prepare_exit=77
+shellcheck=NOT_INSTALLED
+
+payload_unit_test:
+payload_test_dir=/tmp/smd015-payload-final.X54znc
+payload_rc=0
+batch_pid=22506
+child_pid=22508
+start_epoch=1788999568
+heartbeat=count=1 epoch=1788999569 batch_pid=22506
+stdout=ready batch_pid=22506 child_pid=22508 job_id=unknown
+stdout=finish_seen count=2 epoch=1788999570
+stdout=payload_complete batch_pid=22506 child_pid=22508 rc=0 epoch=1788999570
+stderr=(empty)
+
+environment_note:
+- The Codex sandbox printed a nonfatal zsh nice(5) warning while starting the background unit-test process.
+- The payload itself returned rc=0 and recorded clean ready, heartbeat, finish, and completion output.
+- No Slurm job, sleep request, daemon change, controller change, or power-setting change was performed.
+
+artifact_hashes:
+a36a86545cdb3615e56fd21e434786d3f5334e225b45a4731179c6c3a9cf8443 contribs/macos-tests/smd015_job_sleep_wake.sh
+b9127ef262bcc6f8f30eb530f57df6727f9f62e44e595c9370667393704d469b contribs/macos-tests/smd015_job_sleep_payload.sh
+
+post_blocked_diagnostic_update:
+- Generic non-IDLE preflight error now includes the observed node state and reason.
+- This change does not alter submission, sleep, verification, or cleanup behavior.
+- driver_sh_n=PASS
+- current_driver_sha256=0d8be109a8a4556ed00639cc0baef32fce0d03a2635ba9a4d8d3c6174c9c3802
+
+result=READY_TO_RUN

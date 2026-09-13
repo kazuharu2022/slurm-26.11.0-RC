@@ -33,8 +33,6 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA.
 \*****************************************************************************/
 
-#include <sys/eventfd.h>
-
 #include "src/common/fd.h"
 #include "src/common/probes.h"
 #include "src/common/proc_args.h"
@@ -55,6 +53,7 @@ int srun_destroy_sig = 0;
 bool srun_job_complete_recvd = false;
 
 int srun_sig_eventfd = -1;
+static int srun_sig_eventfd_write = -1;
 
 #define SRUN_SIGNALS \
 	X(SIGINT, sigint) \
@@ -219,7 +218,7 @@ static void _on_signal(int signo)
 	 */
 	xassert(srun_sig_eventfd != -1);
 
-	safe_write(srun_sig_eventfd, &val, sizeof(uint64_t));
+	safe_write(srun_sig_eventfd_write, &val, sizeof(uint64_t));
 	write_rc = SLURM_SUCCESS;
 rwfail:
 	if (write_rc != SLURM_SUCCESS)
@@ -257,9 +256,8 @@ SRUN_SIGNALS
 
 extern void srun_sig_init(void)
 {
-	if ((srun_sig_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)) == -1) {
-		fatal("Could not create eventfd for srun signal handling: %m");
-	}
+	if (fd_event_create(&srun_sig_eventfd, &srun_sig_eventfd_write) < 0)
+		fatal("Could not create event channel for srun signal handling: %m");
 
 #define X(sig, str) conmgr_add_work_signal(sig, _on_##str, NULL);
 	SRUN_SIGNALS

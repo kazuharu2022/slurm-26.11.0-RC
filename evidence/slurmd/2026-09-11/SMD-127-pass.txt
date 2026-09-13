@@ -1,0 +1,61 @@
+SMD-127 slurmd log rotation
+date=2026-09-11T21:05:02+0900
+classification=PASS
+run_dir=/tmp/slurm-smd127-20260911T210502
+driver_sha256=c6eb354fe9c30b26f71cb5431e944fac0bb8357709f782d29d580e74cca3354a
+
+[driver-output]
+run_dir=/tmp/slurm-smd127-20260911T210502 rotated_log=/var/log/slurm/slurmd.log.smd127-20260911T210502 active_fd_path=/private/var/log/slurm/slurmd.log rotated_fd_path=/private/var/log/slurm/slurmd.log.smd127-20260911T210502
+submitted test_job=382
+job_ready job_id=382
+log_reopened pid=75048 wait_seconds=0 old_inode=12907220 new_inode=13560036
+job_gone job_id=382 wait_seconds=16
+SMD127_LOG_ROTATION_COMPLETE job_id=382 slurmd_pid=75048 fd_before=13 fd_final=13 old_size=717613 rotated_log=/var/log/slurm/slurmd.log.smd127-20260911T210502 run_dir=/tmp/slurm-smd127-20260911T210502
+
+[fd-transition]
+before=fd:3w inode:12907220 path:/private/var/log/slurm/slurmd.log size:717613
+after_rename=fd:3w inode:12907220 path:/private/var/log/slurm/slurmd.log.smd127-20260911T210502 size:717835
+after_reopen=fd:10w inode:13560036 path:/private/var/log/slurm/slurmd.log size:0
+final=fd:10w inode:13560036 path:/private/var/log/slurm/slurmd.log size:53
+descriptor_count_before=13
+descriptor_count_final=13
+rotated_descriptor_final=0
+lsof_stderr_bytes=0
+
+[log-boundary-driver-assertions]
+rotated_log_contains_Launching_batch_JobId_382=YES
+rotated_log_contains_SIGUSR2_logging_update=YES
+new_log_contains_382_batch_done_with_step=YES
+
+[payload]
+rotation_ready job_id=382 pid=81942 epoch=1789128303
+heartbeat_count=15
+rotation_complete job_id=382 epoch=1789128319
+payload_stderr_bytes=0
+payload_pid_81942_after_completion=ABSENT
+
+[accounting]
+382|testuser|COMPLETED|0:0|PC-210
+382.batch||COMPLETED|0:0|PC-210
+sacct_stderr_bytes=0
+
+[final-readback]
+queue_job_382=EMPTY
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+slurmd_pid=75048
+SlurmdStartTime=2026-09-11T20:30:02
+active_log=/var/log/slurm/slurmd.log inode=13560036 uid=0 gid=1002 mode=600 size=53
+rotated_log=/var/log/slurm/slurmd.log.smd127-20260911T210502 inode=12907220 uid=0 gid=1002 mode=600 size=717904
+
+[evidence-boundary]
+log_reopen_and_running_job_continuity=PASS
+log_descriptor_leak=NOT_OBSERVED
+daemon_restart_during_rotation=NO
+log_compression=NOT_RUN
+log_retention_generation_deletion=NOT_RUN
+external_logrotate_integration=NOT_RUN
+
+result=PASS

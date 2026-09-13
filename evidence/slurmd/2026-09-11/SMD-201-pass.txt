@@ -1,0 +1,124 @@
+SMD-201 GPU exclusivity
+date=2026-09-11T21:25:48+0900
+classification=PASS
+run_dir=/tmp/slurm-smd201-20260911T212548
+driver_sha256=37580fec643bc495a9f019c9869601fd65f17152ef27e35769f999ac490eebd4
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-output]
+submitted first_job=385
+first_ready job_id=385
+submitted second_job=386
+exclusive_pending first_job=385 state=RUNNING second_job=386 state=PENDING reason=Resources wait_seconds=3
+cancel first_job=385
+job_gone job_id=385 wait_seconds=1
+job_gone job_id=386 wait_seconds=0
+SMD201_GPU_EXCLUSIVITY_COMPLETE first_job=385 first_state=CANCELLED second_job=386 second_state=COMPLETED pending_reason=Resources slurmd_pid=75048 run_dir=/tmp/slurm-smd201-20260911T212548
+
+[exclusive-queue]
+386|PENDING|(Resources)|
+385|RUNNING|PC-210|PC-210
+
+[first-job-exclusive-readback]
+JobId=385
+UserId=testuser(3001)
+GroupId=3001(3001)
+JobState=RUNNING
+Reason=None
+NodeList=PC-210
+StartTime=2026-09-11T21:25:49
+TresPerNode=gres/gpu:apple:1
+
+[second-job-exclusive-readback]
+JobId=386
+UserId=testuser(3001)
+GroupId=3001(3001)
+JobState=PENDING
+Reason=Resources
+NodeList=empty
+StartTime=Unknown
+AllocTRES=(null)
+TresPerNode=gres/gpu:apple:1
+
+[node-during-exclusive-observation]
+State=MIXED
+CPUAlloc=1
+AllocMem=256
+Gres=gpu:apple:1
+AllocTRES=cpu=1,mem=256M
+
+[first-mlx]
+job_id=385
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+device_name=Apple M5 Max
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.014418
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+payload_pid=83734
+hold_pid=83740
+stderr=expected_cancel_message
+
+[second-mlx]
+job_id=386
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+device_name=Apple M5 Max
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.014493
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+payload_pid=83820
+hold_pid=83826
+stderr_bytes=0
+
+[accounting]
+385|testuser|CANCELLED by 0|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+385.batch||CANCELLED|0:15|PC-210||cpu=1,mem=256M,node=1
+386|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+386.batch||COMPLETED|0:0|PC-210||cpu=1,mem=256M,node=1
+sacct_stderr_bytes=0
+
+[worker-log]
+job_385_launch=YES
+job_385_cancel=YES
+job_385_stepd_cleanup=YES
+job_386_launch=YES
+job_386_done=YES
+
+[final]
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+queue=EMPTY
+slurmstepd=ABSENT
+residual_test_processes=0
+slurmd_pid=75048
+SlurmdStartTime=2026-09-11T20:30:02
+
+[separate-observation-for-SMD-203]
+scheduler_request_and_pending_reason_prove_GRES_exclusivity=YES
+sacct_ReqTRES_contains_gres_gpu=NO
+sacct_AllocTRES_contains_gres_gpu=NO
+
+[evidence-boundary]
+Slurm_scheduler_GRES_exclusivity=PASS
+Metal_device_kernel_enforcement=NOT_PROVIDED
+external_or_GRESless_process_isolation=NOT_PROVIDED
+simultaneous_GPU_performance_isolation=NOT_RUN
+
+result=PASS

@@ -1,0 +1,19 @@
+--- a/tests/unit/s2n_self_talk_certificates_test.c
++++ b/tests/unit/s2n_self_talk_certificates_test.c
+@@ -53,0 +54 @@
++        const char *trust;
+@@ -70,0 +72 @@
++                .trust = S2N_RSA_PSS_2048_SHA256_CA_CERT,
+@@ -78,0 +81 @@
++        char trust_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+@@ -81,0 +85,7 @@
++        const char *trust_pem_data = pem;
++        if (test_certs[cert_i].trust != NULL) {
++            EXPECT_SUCCESS(s2n_read_test_pem(test_certs[cert_i].trust,
++                    trust_pem, S2N_MAX_TEST_PEM_SIZE));
++            trust_pem_data = trust_pem;
++        }
++
+@@ -98 +108 @@
+-            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, pem));
++            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, trust_pem_data));

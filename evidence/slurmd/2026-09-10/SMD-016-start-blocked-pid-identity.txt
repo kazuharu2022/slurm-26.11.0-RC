@@ -1,0 +1,44 @@
+SMD-016 first start attempt blocked before marker/job creation
+captured_at=2026-09-10
+
+[user terminal]
+sudo env SMD016_24H_CONFIRMED=YES /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh start
+error: launchd and pidfile slurmd identity mismatch
+
+sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh status
+error: no active SMD-016 marker
+
+[independent read-only check after failure]
+launchd_target=system/org.schedmd.slurmd
+launchd_state=running
+launchd_pid=310
+launchd_runs=1
+launchd_last_exit=(never exited)
+pidfile=/var/run/slurmd.pid
+pidfile_mode=-rw-r--r--
+pidfile_owner=root
+pidfile_group=daemon
+pidfile_bytes=33 31 30 0a
+pidfile_value=310
+observed_identity_match=YES
+
+[analysis]
+The original preflight used one condition for two different failures:
+1. launchd PID and pidfile value differ
+2. kill -0 on the launchd PID fails
+Both paths emitted "identity mismatch". The post-failure readback proves the
+stored identities currently match, so the message did not establish an actual
+PID mismatch. The liveness predicate and diagnostic must be separated.
+
+[effect]
+job_submitted=NO
+marker_created=NO
+soak_started=NO
+cluster_state_change=NONE
+classification=TEST_HARNESS_DIAGNOSTIC_DEFECT
+
+[fix]
+Record launchctl output, service state, launchd PID, pidfile bytes/value, and ps
+command separately. Require launchd state=running, equal numeric PIDs, and the
+production slurmd command. Do not collapse kill -0 failure into PID mismatch.
+

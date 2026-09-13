@@ -1,0 +1,31 @@
+[baseline]
+PF Status: Disabled
+PF references: No pf starter references held
+Connection to 192.168.10.180 port 6817 [tcp/*] succeeded!
+
+[enabled]
+pf enabled
+Token : 1956188963478615880
+reference: PID=89580 Process=pfctl Token=1956188963478615880
+
+[idle-rule]
+block drop out quick on en0 inet proto tcp from 192.168.10.127 to 192.168.10.180 port = 6817 label "SMD010-controller-6817"
+Evaluations=120 Packets=11 Bytes=688 States=0
+nc: connectx to 192.168.10.180 port 6817 (tcp) failed: Operation timed out
+rules cleared
+Connection to 192.168.10.180 port 6817 [tcp/*] succeeded!
+
+[job-rule-after-load-check]
+Evaluations=19 Packets=11 Bytes=688 States=0
+
+[job-rule-before-recovery]
+Evaluations=95 Packets=31 Bytes=1968 States=0
+nc: connectx to 192.168.10.180 port 6817 (tcp) failed: Operation timed out
+rules cleared
+Connection to 192.168.10.180 port 6817 [tcp/*] succeeded!
+
+[final]
+test anchor rules: empty
+pf disabled
+PF Status: Disabled
+PF references: No pf starter references held

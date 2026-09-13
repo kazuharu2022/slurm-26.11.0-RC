@@ -1,0 +1,13 @@
+run_dir=/tmp/slurm-smd011-20260909T200021
+controller_data_since_before=1788951013
+submitted target_job=51
+target_ready job_id=51 batch_pid=94026 child_pid=94027 heartbeat=0
+SMD011_WAITING_FOR_CONTROLLER_RESTART job_id=51 old_data_since=1788951013
+On ubuntu2504 root shell, now run: systemctl restart slurmctld
+controller_restart_observation_attempts=300 (approximately five minutes)
+controller_restart_detected old_data_since=1788951013 new_data_since=0 attempts=15
+survivor_after_restart state=RUNNING heartbeat_before=0 heartbeat_after=19
+job_gone job_id=51 wait_seconds=1
+submitted smoke_job=52
+job_gone job_id=52 wait_seconds=4
+SMD011_ROOT_RUN_COMPLETE slurmd_pid=85145 target_job=51 smoke_job=52 run_dir=/tmp/slurm-smd011-20260909T200021

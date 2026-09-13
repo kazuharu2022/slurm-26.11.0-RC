@@ -61,7 +61,7 @@
 #include "src/common/slurm_protocol_defs.h"
 #include "src/common/xrandom.h"
 
-#if defined(__FreeBSD__) || defined(__NetBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #define	SOL_TCP		IPPROTO_TCP
 #endif
 
@@ -543,7 +543,29 @@ extern int net_get_peer(int fd, uid_t *cred_uid, gid_t *cred_gid,
 	*cred_gid = SLURM_AUTH_NOBODY;
 	*cred_pid = 0;
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__)
+#if defined(__APPLE__)
+	struct xucred cred = {
+		.cr_version = XUCRED_VERSION,
+		.cr_uid = SLURM_AUTH_NOBODY,
+		.cr_groups = { SLURM_AUTH_NOBODY, },
+	};
+	socklen_t len = sizeof(cred);
+
+	if (getsockopt(fd, SOL_LOCAL, LOCAL_PEERCRED, &cred, &len)) {
+		log_flag(NET, "%s: [fd:%d] getsockopt(LOCAL_PEERCRED) failed: %m",
+			 __func__, fd);
+		return ESLURM_AUTH_SOCKET_INVALID_PEER;
+	}
+
+	*cred_uid = cred.cr_uid;
+	*cred_gid = cred.cr_groups[0];
+	len = sizeof(*cred_pid);
+	if (getsockopt(fd, SOL_LOCAL, LOCAL_PEERPID, cred_pid, &len)) {
+		log_flag(NET, "%s: [fd:%d] getsockopt(LOCAL_PEERPID) failed: %m",
+			 __func__, fd);
+		return ESLURM_AUTH_SOCKET_INVALID_PEER;
+	}
+#elif !defined(__FreeBSD__) && !defined(__NetBSD__)
 	struct ucred cred = {
 		.uid = SLURM_AUTH_NOBODY,
 		.gid = SLURM_AUTH_NOBODY,

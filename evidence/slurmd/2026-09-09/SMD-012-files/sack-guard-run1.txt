@@ -1,0 +1,89 @@
+Controller preflight supplied by user:
+
+/usr/local/slurm/26.11.0/bin/squeue -h -w PC-210
+(no output)
+
+/usr/local/slurm/26.11.0/bin/scontrol show node PC-210
+CPUAlloc=0
+State=IDLE
+SlurmdStartTime=2026-09-09T20:13:15
+AllocTRES=
+
+PC-210 driver output supplied by user:
+
+run_dir=/tmp/slurm-smd012-sack-20260909T204155
+candidate_version=slurm 26.11.0-0rc1
+clean_stop old_pid=95911 old_command=/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+start first_candidate_pid=4156
+first_sack_identity=16777233:13036128
+start replacement_candidate_pid=4170 old_candidate_pid=4156
+second_sack_identity=16777233:13036133
+submitted smoke_job=53
+SMD012_SACK_GUARD_COMPLETE current_pid=4170 smoke_job=53 run_dir=/tmp/slurm-smd012-sack-20260909T204155
+NOTICE current slurmd is the validated /tmp candidate; install it before reboot or cleanup.
+
+Saved artifact verification:
+
+candidate slurmd sha256:
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+
+candidate libslurmfull.dylib sha256:
+2eb96943cd37abe7a9f48a4fbffd1221c8c2522a9fd5d28e5b0505ae546ab5f5
+
+controller-after-first:
+Slurmctld(primary) at ubuntu2504 is UP
+
+controller-after-replacement:
+Slurmctld(primary) at ubuntu2504 is UP
+
+sacct:
+JobID|JobName|User|State|ReqTRES|AllocTRES|ExitCode|NodeList
+53|smd012-sack-smoke|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+53.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+
+hostname output:
+PC-210.local
+
+final node:
+CPUAlloc=0
+State=IDLE
+SlurmdStartTime=2026-09-09T20:41:58
+AllocTRES=
+
+final queue:
+(header only; no job rows)
+
+Independent live read-only verification after the driver:
+
+process:
+root 4170 1 Wed Sep 9 20:41:58 2026 /tmp/slurm-smd012-sack-20260909T204155/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+socket:
+srwxrwxrwx root daemon /var/run/slurm/sack.socket
+
+controller:
+Slurmctld(primary) at ubuntu2504 is UP
+
+node:
+CPUAlloc=0
+State=IDLE
+SlurmdStartTime=2026-09-09T20:41:58
+AllocTRES=
+
+Relevant slurmd log sequence:
+
+[2026-09-09T20:41:57.160] debug: _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T20:41:58.274] slurmd version 26.11.0-0rc1 started
+[2026-09-09T20:41:58.274] killing old slurmd[4156]
+[2026-09-09T20:41:58.274] Caught SIGTERM. Shutting down.
+[2026-09-09T20:41:58.277] Slurmd shutdown completing
+[2026-09-09T20:41:58.279] slurmd started on Wed, 09 Sep 2026 20:41:58 +0900
+[2026-09-09T20:41:58.291] debug: _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T20:41:59.845] [53.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+[2026-09-09T20:41:59.860] debug: credential for JobId=53 SLUID=sCT1M22ZK37F00 revoked
+
+Verdict:
+PASS. The replacement created a different pathname inode, the patched old
+candidate exited without removing the replacement pathname, SACK authentication
+remained usable, and the post-replacement GRES smoke job completed with no
+queue or allocation residue.

@@ -1,0 +1,72 @@
+SMD-103 final evidence
+date=2026-09-12T00:07:10+09:00
+run_dir=/tmp/slurm-smd103-20260912T000710
+slurmd_pid=94504
+production_change=NO
+
+jobs:
+  home job_id=447 requested=/Users/testuser observed=/Users/testuser
+  tmp job_id=448 requested=/tmp observed=/private/tmp
+  unicode job_id=449 requested=/tmp/slurm-smd103-20260912T000710/work dir-日本語 observed=/private/tmp/slurm-smd103-20260912T000710/work dir-日本語
+  denied job_id=450 requested=/tmp/slurm-smd103-20260912T000710/root-only-denied observed=/private/tmp
+
+identity and HOME for all jobs:
+  job_user=testuser
+  actual_user=testuser
+  actual_uid=3001
+  actual_gid=3001
+  home=/Users/testuser
+
+allowed-path stderr:
+  home=EMPTY
+  tmp=EMPTY
+  unicode=EMPTY
+
+denied-path stdout:
+  case=denied
+  job_id=450
+  job_user=testuser
+  actual_user=testuser
+  actual_uid=3001
+  actual_gid=3001
+  home=/Users/testuser
+  cwd=/private/tmp
+  denied_directory_access=BLOCKED
+  SMD103_PAYLOAD_PASS case=denied home=/Users/testuser cwd=/private/tmp
+
+denied-path stderr:
+  [2026-09-12T00:07:11.269] error: couldn't chdir to `/tmp/slurm-smd103-20260912T000710/root-only-denied': Permission denied: going to /tmp instead
+  [2026-09-12T00:07:11.270] error: couldn't chdir to `/tmp/slurm-smd103-20260912T000710/root-only-denied': Permission denied: going to /tmp instead
+
+accounting:
+  447|testuser|COMPLETED|0:0|PC-210
+  447.batch||COMPLETED|0:0|PC-210
+  448|testuser|COMPLETED|0:0|PC-210
+  448.batch||COMPLETED|0:0|PC-210
+  449|testuser|COMPLETED|0:0|PC-210
+  449.batch||COMPLETED|0:0|PC-210
+  450|testuser|COMPLETED|0:0|PC-210
+  450.batch||COMPLETED|0:0|PC-210
+
+output ownership:
+  all stdout/stderr files owner=3001:3001 mode=644
+
+final state:
+  controller_before=UP
+  node_before=IDLE CPUAlloc=0 AllocMem=0 AllocTRES=EMPTY
+  node_final=IDLE CPUAlloc=0 AllocMem=0 AllocTRES=EMPTY
+  slurmstepd_before=NONE
+  slurmstepd_final=NONE
+  residual_processes=NONE
+  slurmd_pid_before=94504
+  slurmd_pid_final=94504
+
+input hashes before and after:
+  9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+  ffa9df0eba4acddc192051662d6da01b3d0e889c2e1e90519140fba007a4fbcf  smd103_home_workdir_payload.sh
+  inputs.diff=EMPTY
+
+terminal marker:
+  SMD103_HOME_WORKDIR_COMPLETE jobs=4 slurmd_pid=94504 production_unchanged=PASS run_dir=/tmp/slurm-smd103-20260912T000710
+
+classification=PASS

@@ -350,13 +350,27 @@ extern void close_con(bool locked, conmgr_fd_t *con)
 	/* unlink listener sockets to avoid leaving ghost socket */
 	if (is_listen && (con->address.ss_family == AF_LOCAL)) {
 		struct sockaddr_un *un = (struct sockaddr_un *) &con->address;
+		struct stat path_stat = { 0 };
 
-		if (unlink(un->sun_path))
+		if (!un->sun_path[0]) {
+			/* Abstract UNIX sockets do not have a filesystem entry. */
+		} else if (lstat(un->sun_path, &path_stat)) {
+			if (errno != ENOENT)
+				error("%s: [%s] unable to stat %s before unlink: %m",
+				      __func__, con->name, un->sun_path);
+		} else if (!con->unix_socket_identity_valid ||
+			   (path_stat.st_dev != con->unix_socket_dev) ||
+			   (path_stat.st_ino != con->unix_socket_ino)) {
+			log_flag(CONMGR,
+				 "%s: [%s] refusing to unlink replaced UNIX socket %s",
+				 __func__, con->name, un->sun_path);
+		} else if (unlink(un->sun_path)) {
 			error("%s: [%s] unable to unlink %s: %m",
 			      __func__, con->name, un->sun_path);
-		else
+		} else {
 			log_flag(CONMGR, "%s: [%s] unlinked %s",
 			      __func__, con->name, un->sun_path);
+		}
 	}
 
 	if (is_listen || !is_same_fd) {
@@ -410,7 +424,8 @@ static char *_resolve_fd(int fd, struct stat *stat_ptr)
 		return xstrdup_printf("device:%u.%u", major(stat_ptr->st_dev),
 				      minor(stat_ptr->st_dev));
 #else /* !__linux__ */
-		return xstrdup_printf("device:0x%"PRIx64, stat_ptr->st_dev);
+		return xstrdup_printf("device:0x%"PRIx64,
+				      (uint64_t) stat_ptr->st_dev);
 #endif /* !__linux__ */
 	}
 
@@ -579,17 +594,36 @@ static void _check_timeouts(const conmgr_timeouts_t *timeouts)
 	xassert(!timespec_is_zero(timeouts->write_complete));
 }
 
+static int _get_socket_acceptconn(int fd, int *listening)
+{
+	socklen_t len = sizeof(*listening);
+
+	*listening = -1;
+	if (!getsockopt(fd, SOL_SOCKET, SO_ACCEPTCONN, listening, &len))
+		return SLURM_SUCCESS;
+
+#if defined(__APPLE__)
+	/*
+	 * Darwin defines SO_ACCEPTCONN but getsockopt() returns ENOPROTOOPT
+	 * for both Internet and UNIX domain sockets. Leave the state unknown
+	 * and rely on the caller-selected listener API in that case.
+	 */
+	if (errno == ENOPROTOOPT)
+		return SLURM_SUCCESS;
+#endif /* __APPLE__ */
+
+	return errno;
+}
+
 static int _validate_socket_fd(int input_fd, int output_fd, const bool has_in,
 			       const bool has_out, bool is_listen)
 {
-	int in_listening = 0, out_listening = 0;
+	int in_listening = -1, out_listening = -1;
 
 	if (has_in) {
-		socklen_t len = sizeof(in_listening);
+		int rc;
 
-		if (getsockopt(input_fd, SOL_SOCKET, SO_ACCEPTCONN,
-			       &in_listening, &len)) {
-			int rc = errno;
+		if ((rc = _get_socket_acceptconn(input_fd, &in_listening))) {
 			log_flag(CONMGR, "%s: [fd:%d->%d] getsockopt(fd:%d, SO_ACCEPTCONN) failed: %s",
 				 __func__, input_fd, output_fd, input_fd,
 				 slurm_strerror(rc));
@@ -598,11 +632,9 @@ static int _validate_socket_fd(int input_fd, int output_fd, const bool has_in,
 	}
 
 	if (has_out) {
-		socklen_t len = sizeof(out_listening);
+		int rc;
 
-		if (getsockopt(output_fd, SOL_SOCKET, SO_ACCEPTCONN,
-			       &out_listening, &len)) {
-			int rc = errno;
+		if ((rc = _get_socket_acceptconn(output_fd, &out_listening))) {
 			log_flag(CONMGR, "%s: [fd:%d->%d] getsockopt(fd:%d, SO_ACCEPTCONN) failed: %s",
 				 __func__, input_fd, output_fd, output_fd,
 				 slurm_strerror(rc));
@@ -615,17 +647,17 @@ static int _validate_socket_fd(int input_fd, int output_fd, const bool has_in,
 			log_flag(CONMGR, "%s: [fd:%d->%d] rejecting unexpected listening on output_fd",
 				 __func__, input_fd, output_fd);
 			return SLURM_COMMUNICATIONS_INVALID_OUTGOING_FD;
-		} else if (!in_listening) {
+		} else if (in_listening == 0) {
 			log_flag(CONMGR, "%s: [fd:%d->%d] rejecting non-listening input socket",
 				 __func__, input_fd, output_fd);
 			return SLURM_COMMUNICATIONS_INVALID_INCOMING_FD;
 		}
 	} else {
-		if (in_listening) {
+		if (in_listening > 0) {
 			log_flag(CONMGR, "%s: [fd:%d->%d] rejecting unexpected listening input socket",
 				 __func__, input_fd, output_fd);
 			return SLURM_COMMUNICATIONS_INVALID_INCOMING_FD;
-		} else if (out_listening) {
+		} else if (out_listening > 0) {
 			log_flag(CONMGR, "%s: [fd:%d->%d] rejecting unexpected listening output socket",
 				 __func__, input_fd, output_fd);
 			return SLURM_COMMUNICATIONS_INVALID_OUTGOING_FD;
@@ -864,6 +896,27 @@ extern int add_connection(conmgr_con_type_t type,
 		} else if (slurm_get_stream_addr(fd, &con->address)) {
 			log_flag(CONMGR, "%s: [fd:%d] Unable to resolve bind()ed IP: %m",
 				 __func__, fd);
+		}
+	}
+
+	if (is_listen && (con->address.ss_family == AF_LOCAL)) {
+		struct sockaddr_un *un = (struct sockaddr_un *) &con->address;
+		struct stat path_stat = { 0 };
+
+		if (!un->sun_path[0]) {
+			/* Abstract UNIX sockets do not have a filesystem entry. */
+		} else if (lstat(un->sun_path, &path_stat)) {
+			log_flag(CONMGR,
+				 "%s: [fd:%d] unable to stat UNIX listener %s: %m",
+				 __func__, input_fd, un->sun_path);
+		} else if (!S_ISSOCK(path_stat.st_mode)) {
+			log_flag(CONMGR,
+				 "%s: [fd:%d] refusing non-socket UNIX listener path %s",
+				 __func__, input_fd, un->sun_path);
+		} else {
+			con->unix_socket_dev = path_stat.st_dev;
+			con->unix_socket_ino = path_stat.st_ino;
+			con->unix_socket_identity_valid = true;
 		}
 	}
 
@@ -1333,7 +1386,7 @@ static int _add_unix_listener(const conmgr_timeouts_t *timeouts,
 			      const conmgr_events_t *events, void *arg)
 {
 	slurm_addr_t addr = { 0 };
-	int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	int fd = fd_socket_close_on_exec(AF_UNIX, SOCK_STREAM, 0);
 	int rc = EINVAL;
 	socklen_t bind_len = 0;
 
@@ -1404,8 +1457,8 @@ static int _add_socket_listener(const conmgr_timeouts_t *timeouts,
 			continue;
 		}
 
-		fd = socket(addr->ai_family, addr->ai_socktype | SOCK_CLOEXEC,
-			    addr->ai_protocol);
+		fd = fd_socket_close_on_exec(addr->ai_family, addr->ai_socktype,
+					     addr->ai_protocol);
 		if (fd < 0)
 			fatal("%s: [%s] Unable to create socket: %m",
 			      __func__, addrinfo_to_string(addr, true));
@@ -1524,11 +1577,11 @@ extern int conmgr_create_connect_socket(conmgr_con_type_t type,
 	socklen_t connect_len = 0;
 
 	if (addr->ss_family == AF_UNIX) {
-		fd = socket(addr->ss_family, (SOCK_STREAM | SOCK_CLOEXEC), 0);
+		fd = fd_socket_close_on_exec(addr->ss_family, SOCK_STREAM, 0);
 	} else if ((addr->ss_family == AF_INET) ||
 		   (addr->ss_family == AF_INET6)) {
-		fd = socket(addr->ss_family, (SOCK_STREAM | SOCK_CLOEXEC),
-			    IPPROTO_TCP);
+		fd = fd_socket_close_on_exec(addr->ss_family, SOCK_STREAM,
+					     IPPROTO_TCP);
 	} else {
 		return EAFNOSUPPORT;
 	}

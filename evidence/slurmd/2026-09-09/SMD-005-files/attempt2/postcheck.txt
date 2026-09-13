@@ -1,0 +1,9 @@
+Jobs 31/32: no rows in squeue
+
+NodeName=PC-210
+CPUAlloc=0
+State=IDLE
+AllocTRES=(empty)
+LastBusyTime=2026-09-09T17:19:15
+
+Recorded PIDs 69541, 69551, 69557, 69558, and 69567: none remain

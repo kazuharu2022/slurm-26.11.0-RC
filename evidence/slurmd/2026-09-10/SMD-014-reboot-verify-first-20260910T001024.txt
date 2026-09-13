@@ -1,0 +1,61 @@
+SMD-014 controlled reboot first verify evidence
+Date: 2026-09-10 00:10-00:14 JST
+
+[verify-output]
+mode=verify run_dir=/tmp/slurm-smd014-reboot-verify-20260910T001024 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+reboot_detected old_boot_epoch=1786117889 new_boot_epoch=1788966495
+error: launchd/slurmd/controller did not become stable after reboot
+recovery: no daemon or launchd configuration was changed; inspect run_dir=/tmp/slurm-smd014-reboot-verify-20260910T001024 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+
+[independent-launchd-readback]
+service=system/org.schedmd.slurmd
+state=running
+program=/opt/slurm/26.11.0/sbin/slurmd
+runs=1
+pid=310
+last_exit_code=(never exited)
+properties=runatload | inferred program | managed LWCR | has LWCR
+pid_file=310
+process=root 310 1 Thu Sep 10 00:08:24 2026 /opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+sack=/var/run/slurm/sack.socket mode=srwxrwxrwx owner=root group=daemon device=16777229 inode=13058989
+
+[startup-log]
+2026-09-10T00:07:52.515 old slurmd caught SIGTERM
+2026-09-10T00:07:52.558 old slurmd shutdown completed
+2026-09-10T00:08:26.530 slurmd version 26.11.0-0rc1 started
+2026-09-10T00:08:26.614 slurmd started on Thu, 10 Sep 2026 00:08:26 +0900
+2026-09-10T00:08:26.622 CPUs=18 Memory=131072 Uptime=11
+
+[controller-node]
+controller=UP
+controller_port_192.168.10.180_6817=reachable
+local_slurmd_port_127.0.0.1_6818=reachable
+NodeName=PC-210
+State=DOWN+NOT_RESPONDING
+BootTime=2026-09-10T00:08:22
+SlurmdStartTime=2026-09-10T00:08:26
+Reason=Node unexpectedly rebooted [slurm@2026-09-10T00:08:33]
+CPUAlloc=0
+AllocTRES=(empty)
+active_queue=(empty)
+
+[controller-policy]
+ReturnToService=1
+ResumeTimeout=600 sec
+SlurmdTimeout=300 sec
+Local source doc/html/configurator.html.in states that ReturnToService=1 only returns a node set DOWN for being non-responsive; ReturnToService=2 returns a node upon registration with a valid configuration.
+
+[decision]
+boot_epoch_change=PASS
+launchd_RunAtLoad=PASS
+slurmd_process_and_SACK=PASS
+controller_connectivity=PASS
+automatic_node_return_to_IDLE=BLOCKED_BY_CONTROLLER_POLICY
+smoke_job=NOT_RUN
+marker=RETAINED
+
+[required-recovery]
+On ubuntu2504:
+/usr/local/slurm/26.11.0/bin/scontrol update NodeName=PC-210 State=RESUME
+
+Then rerun verify on PC-210 without rerunning prepare.

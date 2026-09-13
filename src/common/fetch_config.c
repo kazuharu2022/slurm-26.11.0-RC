@@ -392,7 +392,9 @@ rwfail:
 	fatal("%s: could not write conf file, likely out of memory", __func__);
 	return SLURM_ERROR;
 #else
+#ifndef __APPLE__
 	pid_t pid = getpid();
+#endif
 	char template[] = "/tmp/fake-memfd-XXXXXX";
 	int fd = mkstemp(template);
 
@@ -402,10 +404,20 @@ rwfail:
 	(void) unlink(template);
 
 	xfree(*filename);
+#ifdef __APPLE__
+	xstrfmtcat(*filename, "/dev/fd/%d", fd);
+#else
 	xstrfmtcat(*filename, "/proc/%lu/fd/%d", (unsigned long) pid, fd);
+#endif
 
-	if (config)
+	if (config) {
 		safe_write(fd, config, strlen(config));
+#ifdef __APPLE__
+		/* /dev/fd opens share the underlying file offset on macOS. */
+		if (lseek(fd, 0, SEEK_SET) < 0)
+			fatal("%s: could not rewind conf file: %m", __func__);
+#endif
+	}
 
 	return fd;
 

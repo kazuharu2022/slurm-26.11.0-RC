@@ -1,0 +1,32 @@
+SMD-014 controlled reboot prepare evidence
+Date: 2026-09-09 23:39 JST
+
+[prepare-output]
+mode=prepare run_dir=/tmp/slurm-smd014-reboot-prepare-20260909T233914 marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+marker=/opt/slurm/26.11.0/.smd014-reboot-validation.env mode=-rw------- owner=root group=wheel
+SMD014_REBOOT_PREPARED old_boot_epoch=1786117889 old_pid=49421 old_start=2026-09-09T23:12:55 run_dir=/tmp/slurm-smd014-reboot-prepare-20260909T233914
+NEXT_USER_ACTION: sudo /sbin/shutdown -r now
+AFTER_LOGIN: sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd014_reboot_validation.sh verify
+
+[independent-readback-after-prepare]
+marker_path=/opt/slurm/26.11.0/.smd014-reboot-validation.env
+marker_mode=-rw-------
+marker_owner=root
+marker_group=wheel
+marker_size=316
+marker_modified=Sep 9 23:39:14 2026
+launchd_state=running
+launchd_program=/opt/slurm/26.11.0/sbin/slurmd
+launchd_runs=2
+launchd_pid=49421
+controller=UP
+active_queue=(empty)
+node_state=IDLE
+CPUAlloc=0
+SlurmdStartTime=2026-09-09T23:12:55
+current_boot_epoch=1786117889
+
+[decision]
+prepare=PASS
+actual_reboot=NOT_RUN
+post_reboot_verify=NOT_RUN

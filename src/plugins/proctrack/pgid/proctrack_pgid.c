@@ -58,6 +58,11 @@
 #include <libprocstat.h> /* must be last */
 #endif
 
+#ifdef __APPLE__
+#include <sys/proc.h>
+#include <sys/sysctl.h>
+#endif
+
 #include "slurm/slurm.h"
 #include "slurm/slurm_errno.h"
 #include "src/common/log.h"
@@ -213,6 +218,52 @@ extern int proctrack_p_get_pids(uint64_t cont_id, pid_t **pids, int *npids)
 	*npids = pid_count;
 
 	return SLURM_SUCCESS;
+}
+#elif defined(__APPLE__)
+extern int proctrack_p_get_pids(uint64_t cont_id, pid_t **pids, int *npids)
+{
+	int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PGRP, (int) cont_id };
+	struct kinfo_proc *proc_list = NULL;
+	pid_t *pid_array = NULL;
+	int pid_count = 0;
+	int rc = SLURM_SUCCESS;
+	size_t proc_count, proc_list_size = 0;
+
+	if (sysctl(mib, ARRAY_SIZE(mib), NULL, &proc_list_size, NULL, 0)) {
+		error("sysctl(KERN_PROC_PGRP, %"PRIu64"): %m", cont_id);
+		rc = SLURM_ERROR;
+		goto fini;
+	}
+
+	if (!proc_list_size)
+		goto fini;
+
+	/* Allow for processes entering the group between the two sysctl calls. */
+	proc_list_size += 16 * sizeof(*proc_list);
+	proc_list = xmalloc(proc_list_size);
+	if (sysctl(mib, ARRAY_SIZE(mib), proc_list, &proc_list_size, NULL, 0)) {
+		error("sysctl(KERN_PROC_PGRP, %"PRIu64"): %m", cont_id);
+		rc = SLURM_ERROR;
+		goto fini;
+	}
+
+	proc_count = proc_list_size / sizeof(*proc_list);
+	for (size_t i = 0; i < proc_count; i++) {
+		if (proc_list[i].kp_proc.p_stat == SZOMB) {
+			debug3("Defunct process skipped: pid=%d pgid=%d",
+			       proc_list[i].kp_proc.p_pid,
+			       proc_list[i].kp_eproc.e_pgid);
+			continue;
+		}
+		xrealloc(pid_array, sizeof(*pid_array) * (pid_count + 1));
+		pid_array[pid_count++] = proc_list[i].kp_proc.p_pid;
+	}
+
+fini:
+	xfree(proc_list);
+	*pids = pid_array;
+	*npids = pid_count;
+	return rc;
 }
 #else
 extern int

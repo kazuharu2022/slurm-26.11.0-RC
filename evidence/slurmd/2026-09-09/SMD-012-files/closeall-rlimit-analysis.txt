@@ -1,0 +1,126 @@
+SMD-012 macOS closeall/RLIMIT_NOFILE analysis
+Date: 2026-09-09 JST
+Verdict: FIX_BUILT_AWAITING_RETEST
+
+Observed duplicate delay
+========================
+
+Reconfigure path:
+
+20:47:53.407  REQUEST_RECONFIGURE_WITH_CONFIG; all threads complete
+20:51:00.082  Log file re-opened by the exec'd slurmd
+elapsed: 186.675 seconds
+
+Batch launch path:
+
+20:51:04.094  REQUEST_BATCH_JOB_LAUNCH; Launching batch JobId=54
+20:54:11.060  slurmstepd starts reading its initialization data
+elapsed: 186.966 seconds
+
+The credential carried to slurmstepd expired at epoch 1788954724
+(2026-09-09 20:52:04 +0900). slurmstepd did not unpack it until 20:54:11:
+
+[2026-09-09T20:54:11.062] error: decode_jwt: token expired at 1788954724
+[2026-09-09T20:54:11.062] error: cred_p_unpack: decode_jwt() failed
+[2026-09-09T20:54:11.062] error: Malformed RPC of type REQUEST_BATCH_JOB_LAUNCH(4005) received
+[2026-09-09T20:54:11.062] fatal: slurmstepd: we didn't unpack the request correctly
+
+Common source path
+==================
+
+- src/slurmd/slurmd/slurmd.c::_try_to_reconfig() calls
+  closeall_except(3, close_skip) immediately before execve().
+- src/slurmd/slurmd/req.c::_forkexec_slurmstepd() calls closeall(3)
+  immediately before execvp(slurmstepd).
+- src/common/fd.c uses close_range() when available. macOS does not expose
+  close_range(), so the fallback calls close(fd) for every descriptor number
+  below rlimit_nofile.
+- When RLIMIT_NOFILE is RLIM_INFINITY, the original fallback calls
+  sysconf(_SC_OPEN_MAX), casts it to int, and maps -1 to INT_MAX.
+
+Runtime values
+==============
+
+Normal shell:
+
+soft RLIMIT_NOFILE: 1048575
+hard RLIMIT_NOFILE: unlimited
+sysconf(_SC_OPEN_MAX): 1048575
+
+Unlimited subprocess:
+
+soft RLIMIT_NOFILE: unlimited
+hard RLIMIT_NOFILE: unlimited
+sysconf(_SC_OPEN_MAX): 9223372036854775807
+kern.maxfilesperproc: 245760
+kern.maxfiles: 491520
+
+Original-loop probe with 1,048,572 invalid close calls:
+
+elapsed_seconds=0.093918
+
+Linear estimate for INT_MAX-3 calls:
+
+estimated_seconds=192.345
+
+This estimate is close to both observed 186.675 and 186.966 second delays.
+The exact RLIMIT_NOFILE value inherited by PID 4170 was not captured before
+the failure, so removal of the delay by the staged fix remains the final
+causal confirmation gate.
+
+Source correction
+=================
+
+On macOS, when RLIMIT_NOFILE is infinite or does not fit in int,
+closeall_init() now reads kern.maxfilesperproc via sysctlbyname(). The sysctl
+call occurs during process startup, before any post-fork closeall() call. A
+finite representable RLIMIT_NOFILE keeps the existing behavior. Other systems
+retain the sysconf fallback.
+
+Fixed-loop probe under an explicitly unlimited soft limit:
+
+rlimit_nofile=9223372036854775807 kern.maxfilesperproc=245760 close_calls=245757 closed=0 ebadf=245757 elapsed_seconds=0.037036
+
+Build verification
+==================
+
+make -C src/common fd.lo                     PASS
+make -C src/common libcommon.la              PASS
+make -C src/slurmd/slurmd slurmd             PASS
+make -C src/slurmd/slurmstepd slurmstepd     PASS
+
+The first parallel slurmd/slurmstepd link attempt collided while both libtool
+processes rebuilt src/api/.libs and the slurmstepd side failed. Re-running the
+slurmstepd link sequentially passed. This was a build-artifact race, not a C
+compile failure.
+
+SHA-256
+=======
+
+041c61570104c1e32da2bc62be1618d8d9424b8cb2433662ce6285843d2499f4  src/common/fd.c
+8982a8772164be0effdfdc9fef0a32e1c42db10e178e209e1f0db6a33d0c3ac5  src/common/.libs/fd.o
+cbe62a38946a3f0a17f2bcf8840638ff31120d626dbbdffdf7f89a36ab852fae  src/api/.libs/libslurmfull.dylib
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  src/slurmd/slurmd/.libs/slurmd
+738fe94b7cb24702de8c5c1b65c0c82a619e072d1e1a12aa4a0d143092d643b0  src/slurmd/slurmstepd/.libs/slurmstepd
+
+The rebuilt libslurmfull.dylib has an undefined dynamic reference to
+_sysctlbyname, resolved by macOS libSystem. The rebuilt slurmd reports:
+
+slurm 26.11.0-0rc1
+
+Retest gate
+===========
+
+1. Start a candidate with RLIMIT_NOFILE soft limit explicitly set to unlimited.
+2. Require a GRES smoke batch job to complete in at most 30 seconds.
+3. Require alternate and restore reconfigure cycles to each complete in at
+   most 30 seconds.
+4. Require no JWT expiry, malformed batch-launch RPC, held job, process, or
+   resource residue.
+5. Do not install production binaries until both candidate tests pass.
+
+Retest driver SHA-256
+====================
+
+3696d7a49859d153b710d6dbf65afaff16853c55c8a8b197153379bcc28f1a67  contribs/macos-tests/smd012_sack_replacement_guard.sh
+5bd56ffd6ef78bdcdf2703ebc2536eb95e727725bb55ccbc321a15a76fe4f5e0  contribs/macos-tests/smd012_local_reconfigure.sh

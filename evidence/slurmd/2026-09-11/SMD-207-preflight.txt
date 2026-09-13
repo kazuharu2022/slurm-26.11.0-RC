@@ -1,0 +1,45 @@
+SMD-207 approved preflight
+observed=2026-09-11T23:22:32+09:00
+result=READY_TO_RUN_USER_ROOT_SHELL
+
+[launchd]
+service_target=system/org.schedmd.slurmd
+state=running
+runs=1
+pid=94504
+pidfile=94504
+last_exit_code=(never exited)
+
+[controller]
+ubuntu2504:6817=CONNECTED
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+
+[thermal-capability]
+pmset_therm=No thermal warning level has been recorded
+pmset_performance=No performance warning level has been recorded
+powermetrics_sampler=thermal:thermal pressure notifications
+powermetrics_sampler=gpu_power:gpu power and frequency info
+powermetrics_sampler_smc=not_listed
+
+[artifacts]
+driver_sha256=03dc6cd0acf80964256e761206d6da876258f18c0553092d5f574c528f3324a4
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+driver_sh_n=PASS
+approval_gate_exit_64=PASS
+shellcheck=NOT_INSTALLED_NOT_RUN
+
+[approval]
+The user explicitly approved 30 sequential gpu:apple:1 jobs and root
+powermetrics sampling. The production configuration is not modified. The
+state-changing driver must run from the PC-210 root shell because the Codex
+command runner does not hold sudo credentials.

@@ -1,0 +1,187 @@
+SMD-207 GPU repetition stability raw and processed evidence
+executed=2026-09-11T23:24:05+09:00
+run_dir=/tmp/slurm-smd207-20260911T232405
+result=PASS
+
+[driver-result]
+repetitions=30
+successful_jobs=30
+failed_jobs=0
+job_ids=414-443
+slurmd_pid=94504
+temperature_celsius=NOT_AVAILABLE
+thermal_pressure=RECORDED
+gpu_power=RECORDED
+
+[environment]
+model=MacBook Pro Mac17,6
+chip=Apple M5 Max
+cpu_cores=18
+memory=128 GB
+os=macOS 26.5.1 build 25F80
+kernel=Darwin 25.5.0 arm64
+slurm=26.11.0-0rc1
+mlx=0.32.2
+
+[workload]
+resource=gpu:apple:1
+user=testuser uid=3001 gid=3001
+matrix_shape=4096x4096
+iterations_per_job=5
+jobs_are_sequential=YES
+
+[metrics-tsv]
+sequence	job_id	elapsed_seconds	mean_value	job_elapsed_raw
+1	414	0.014504	1.023572e+03	1
+2	415	0.026655	1.023572e+03	1
+3	416	0.014500	1.023572e+03	0
+4	417	0.014506	1.023572e+03	0
+5	418	0.014392	1.023572e+03	1
+6	419	0.014512	1.023572e+03	1
+7	420	0.014428	1.023572e+03	1
+8	421	0.014381	1.023572e+03	1
+9	422	0.015166	1.023572e+03	0
+10	423	0.021671	1.023572e+03	0
+11	424	0.014567	1.023572e+03	1
+12	425	0.014457	1.023572e+03	1
+13	426	0.014524	1.023572e+03	0
+14	427	0.014441	1.023572e+03	0
+15	428	0.015081	1.023572e+03	0
+16	429	0.014428	1.023572e+03	0
+17	430	0.014474	1.023572e+03	0
+18	431	0.014510	1.023572e+03	0
+19	432	0.014382	1.023572e+03	1
+20	433	0.014495	1.023572e+03	1
+21	434	0.014361	1.023572e+03	0
+22	435	0.014474	1.023572e+03	1
+23	436	0.014512	1.023572e+03	0
+24	437	0.014956	1.023572e+03	0
+25	438	0.014397	1.023572e+03	0
+26	439	0.014503	1.023572e+03	0
+27	440	0.014517	1.023572e+03	0
+28	441	0.014482	1.023572e+03	0
+29	442	0.014548	1.023572e+03	0
+30	443	0.014489	1.023572e+03	0
+
+[statistics-all-30-values]
+elapsed_mean_seconds=0.015177
+elapsed_median_seconds=0.014502
+elapsed_min_seconds=0.014361
+elapsed_max_seconds=0.026655
+elapsed_population_stddev_seconds=0.002493
+elapsed_cv_percent=16.428
+failure_rate_percent=0.000
+unique_mean_value=1.023572e+03
+
+[exploratory-tukey-outliers-not-removed]
+q1_tukey_seconds=0.014441
+q3_tukey_seconds=0.014524
+iqr_seconds=0.000083
+low_fence_seconds=0.014317
+high_fence_seconds=0.014649
+candidate=sequence:2 job:415 elapsed:0.026655
+candidate=sequence:9 job:422 elapsed:0.015166
+candidate=sequence:10 job:423 elapsed:0.021671
+candidate=sequence:11 job:424 elapsed:0.014567
+candidate=sequence:15 job:428 elapsed:0.015081
+candidate=sequence:24 job:437 elapsed:0.014956
+max_vs_median_percent=83.802
+second_high_vs_median_percent=49.435
+outliers_removed_from_primary_statistics=NO
+
+[sequence-trend-descriptive-only]
+first5_mean_seconds=0.016911
+last5_mean_seconds=0.014508
+last_vs_first_percent=-14.213
+ols_slope_seconds_per_sequence=-0.000090687
+interpretation=no_observed_progressive_slowdown
+
+[job-evidence-set]
+stdout_files=30
+stderr_files=30
+nonempty_stderr_files=0
+gpu_smoke_pass=30
+apple_m5_max=30
+slurm_job_gpus_0=30
+completed_root_accounting_rows=30
+completed_batch_accounting_rows=30
+root_exit_0_0=30
+generic_and_typed_gpu_req_alloc_rows=30
+
+[temperature-capability]
+smc_probe=powermetrics: unrecognized sampler: smc
+absolute_temperature_celsius=NOT_AVAILABLE_FROM_SUPPORTED_POWERMETRICS_SAMPLERS
+thermal_substitute=powermetrics_thermal_pressure_and_gpu_power
+pmset_before=No thermal warning level has been recorded
+pmset_after=No thermal warning level has been recorded
+
+[powermetrics]
+sample_period_seconds=1
+first_sample=2026-09-11T23:24:06+09:00
+last_sample=2026-09-11T23:25:32+09:00
+samples=87
+thermal_pressure_Nominal=87
+other_thermal_pressure_levels=0
+gpu_power_mean_mw=373.793
+gpu_power_min_mw=0
+gpu_power_max_mw=1346
+gpu_active_frequency_mean_mhz=466.368
+gpu_active_frequency_min_mhz=0
+gpu_active_frequency_max_mhz=957
+
+[inputs-before-and-after]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e  /opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch
+before_after_match=YES
+
+[final-driver-readback]
+slurmd_pid=94504
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+residual_processes=NONE
+
+[final-independent-readback-2026-09-11T23:27:49+09:00]
+launchd_state=running
+launchd_pid=94504
+pidfile=94504
+launchd_last_exit_code=(never exited)
+controller_6817=CONNECTED
+controller_state=UP
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+powermetrics=NONE
+test_processes=NONE
+accounting_root_jobs=30
+accounting_COMPLETED=30
+accounting_exit_0_0=30
+input_hashes_match=YES
+
+[observer-diagnostics]
+system_profiler_stderr=hw.cpufamily: 0xf76c5b1a
+system_profiler_result=hardware_output_completed
+first_independent_sacct_command=-j 414-443
+first_independent_sacct_result=Bad job/step specified; range syntax unsupported
+corrected_independent_sacct_command=explicit comma-separated job IDs 414 through 443
+corrected_independent_sacct_result=30 COMPLETED 0:0
+
+[interpretation-boundary]
+All 30 scheduler jobs and MLX GPU calculations completed without a functional
+failure, resource leak or thermal pressure escalation. The 16.428 percent CV
+is driven by short-duration timing spikes, especially sequences 2 and 10.
+Their cause was not measured, so no scheduler, GPU or thermal cause is claimed.
+The one-second powermetrics samples cannot be correlated precisely with each
+roughly 15 millisecond timed kernel section. Identical mean_value confirms
+repeatability of this workload output but is not a CPU-reference correctness
+test; numerical correctness remains SMD-208.

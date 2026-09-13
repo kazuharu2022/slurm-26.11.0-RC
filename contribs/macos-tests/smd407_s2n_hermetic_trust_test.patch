@@ -1,0 +1,4 @@
+--- a/tests/unit/s2n_self_talk_certificates_test.c
++++ b/tests/unit/s2n_self_talk_certificates_test.c
+@@ -106,0 +107 @@
++            EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));

@@ -1,0 +1,22 @@
+root@ubuntu2504:/home/REDACTED_USER# sudo env SMD102_MISMATCH_TEST_CONFIRMED=YES /bin/sh \
+  /tmp/smd102_uid_gid_mismatch_driver.sh
+run_dir=/tmp/slurm-smd102-20260911T115712
+test_identity controller=3201:3201 worker_local=3202:3202 user=smdmismatch
+srun_rc=86
+[srun-stdout]
+SMD102_PAYLOAD_EXECUTED=YES
+job_id=357
+job_user=smdmismatch
+actual_uid=3201
+actual_gid=3201
+actual_user=3201 rc=0
+actual_group=3201 rc=0
+home=/home/smdmismatch
+cwd=/private/tmp
+[srun-stderr]
+srun: error: PC-210: task 0: Exited with exit code 86
+[accounting]
+357|smd102-mismatch-20260911T115712|smdmismatch|FAILED|86:0|PC-210
+357.0|smd102-mismatch-20260911T115712||FAILED|86:0|PC-210
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=0
+SMD102_OBSERVATION classification=FAIL_OPEN_PAYLOAD_EXECUTED srun_rc=86 job_id=357 run_dir=/tmp/slurm-smd102-20260911T115712

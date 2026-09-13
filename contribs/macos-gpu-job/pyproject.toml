@@ -1,0 +1,11 @@
+[project]
+name = "slurm-macos-mlx-job"
+version = "0.1.0"
+description = "Reproducible MLX environment for a Slurm Metal GPU smoke job"
+requires-python = "==3.14.6"
+dependencies = [
+    "mlx==0.32.2",
+]
+
+[tool.uv]
+package = false

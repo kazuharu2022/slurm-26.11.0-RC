@@ -1,0 +1,68 @@
+SMD-121 Phase A Attempt 2
+date=2026-09-11T18:48:24+0900
+mode=nonzero
+run_dir=/tmp/slurm-smd121-nonzero-20260911T184824
+
+[driver-output]
+mode=nonzero run_dir=/tmp/slurm-smd121-nonzero-20260911T184824
+failure_config_active mode=nonzero slurmd_pid=310 old_start=2026-09-11T12:41:35 new_start=2026-09-11T18:48:25
+submitted failure_job=360 mode=nonzero
+failure_observed mode=nonzero job_id=360 node_state=IDLE+DRAIN job_state=PENDING priority=0 wait_seconds=3
+failure_state=PASS mode=nonzero job_id=360 node_reason=Prolog job_reason=launch_failed_requeued_held restarts=1 payload_executed=NO
+job_gone job_id=360 wait_seconds=0
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T18:48:32
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+submitted smoke_job=361
+job_gone job_id=361 wait_seconds=3
+SMD121_PHASE_COMPLETE mode=nonzero failure_job=360 smoke_job=361 slurmd_pid=310 run_dir=/tmp/slurm-smd121-nonzero-20260911T184824
+
+[failure-node-readback]
+State=IDLE+DRAIN
+CPUAlloc=0
+AllocMem=0
+Reason=Prolog error [slurm@2026-09-11T18:48:33]
+
+[held-job-readback]
+JobId=360
+UserId=testuser(3001)
+GroupId=3001(3001)
+Priority=0
+JobState=PENDING
+Reason=launch_failed_requeued_held
+Requeue=1
+Restarts=1
+AllocTRES=(null)
+
+[slurmd-failure-log]
+[2026-09-11T18:48:31.463] error: prolog failed: rc:42 output:
+[2026-09-11T18:48:31.464] error: JobId=360 SLUID=sCT1M27XWR1400 prolog failed status=42:0
+
+[failure-accounting-after-cancel]
+360|testuser|REQUEUED|0:0|PC-210
+360.batch||CANCELLED||PC-210
+
+[smoke-accounting]
+361|testuser|COMPLETED|0:0|PC-210
+361.batch||COMPLETED|0:0|PC-210
+
+[restoration]
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+slurmd_pid_before=310
+slurmd_pid_after=310
+final_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_queue=EMPTY
+
+[known-nonblocking-log-messages]
+_handle_poll_event->_interrupt_write_failed=Bad_file_descriptor
+core_spec_init=not_supported_on_macOS
+http_parser_context=unavailable
+
+[classification]
+result=PASS_PHASE_A
+phase_b=READY_TO_RUN
+

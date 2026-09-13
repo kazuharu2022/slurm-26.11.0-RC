@@ -1,0 +1,2 @@
+case_begin=not_executable job_id=40 job_gpus=0
+case_end=not_executable srun_rc=13

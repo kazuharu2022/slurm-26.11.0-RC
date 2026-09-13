@@ -1,0 +1,37 @@
+SMD-125 Phase A Attempt 1
+date=2026-09-11T20:09:10+0900
+classification=HARNESS_FALSE_NEGATIVE_START_PATH
+run_dir=/tmp/slurm-smd125-success-20260911T200910
+
+[driver-output]
+mode=success run_dir=/tmp/slurm-smd125-success-20260911T200910
+error: health-check begin event not observed or environment/identity mismatch
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=72770 start=2026-09-11T20:10:12
+recovery: node may remain DRAINED intentionally; inspect run_dir=/tmp/slurm-smd125-success-20260911T200910 before RESUME
+
+[observed]
+health_event_bytes=0
+health_runtime_measured=no
+job_submitted=no
+intentional_drain_requested=no
+slurmd_pid_before=72770
+slurmd_pid_after=72770
+node_after=IDLE
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_candidate_sha256=24f1048a4fb1ed9a24ebe8c877ca8958601d409961e13836cb7cc98198e692a3
+config_restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_compare=equal
+
+[source-cause]
+src/slurmd/slurmd/slurmd.c:411=SLURMD_RECONF sets original=false
+src/slurmd/slurmd/slurmd.c:577=START_ONLY startup health check guarded by original
+cause=reconfigure is not a START_ONLY execution path
+
+[fix]
+method=launchctl bootout then bootstrap with candidate config
+recovery=restore production config and ensure launchd/node responds
+cleanup_message=success mode no longer claims intentional DRAIN
+fixed_driver_sha256=75dc1bc1b943cabe60745f5fcd5df3a29dea2254d92bda0c37fe5da683fafbef
+
+result=NOT_A_HEALTHCHECK_FAILURE

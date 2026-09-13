@@ -1,0 +1,88 @@
+SMD-012 local configuration reconfigure retest
+Date: 2026-09-09 21:52-21:53 JST
+Worker: PC-210 / macOS arm64
+Slurm: 26.11.0-0rc1 staging candidate
+Controller: ubuntu2504 / Ubuntu 24.04 x86-64
+
+Operator command:
+
+  sudo /bin/sh \
+    /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd012_local_reconfigure.sh
+
+Driver output:
+
+  run_dir=/tmp/slurm-smd012-20260909T215244
+  apply alternate_log=/tmp/slurm-smd012-20260909T215244/slurmd-alternate.log
+  alternate_reconfigure_elapsed_seconds=4
+  alternate_applied pid=19107 old_start=2026-09-09T21:46:00 new_start=2026-09-09T21:52:46 wait_seconds=3
+  restore production_log=/var/log/slurm/slurmd.log
+  restore_reconfigure_elapsed_seconds=4
+  production_restored pid=19107 restored_start=2026-09-09T21:52:53 wait_seconds=3
+  submitted smoke_job=56
+  job_gone job_id=56 wait_seconds=3
+  SMD012_ROOT_RUN_COMPLETE slurmd_pid=19107 smoke_job=56 run_dir=/tmp/slurm-smd012-20260909T215244
+
+Independent read-only verification:
+
+  slurmd before and after:
+    root 19107 1 Wed Sep 9 21:46:00 2026
+    /tmp/slurm-smd012-sack-20260909T214557/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+  SlurmdStartTime sequence:
+    before=2026-09-09T21:46:00
+    alternate=2026-09-09T21:52:46
+    restored=2026-09-09T21:52:53
+
+  configuration SHA-256:
+    before=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+    alternate=908532ee720dd28678886bd4e96e58c10ccd6aaecdc13da5ceb46ae32f0ef255
+    restored=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+    cmp(production, backup)=equal
+
+  SACK after test:
+    device=16777233 inode=13043942 mode=srwxrwxrwx owner=root group=daemon
+
+  controller after test:
+    Slurmctld(primary) at ubuntu2504 is UP
+
+  node after test:
+    State=IDLE CPUAlloc=0 CPUEfctv=18 CPUTot=18 AllocTRES=
+    SlurmdStartTime=2026-09-09T21:52:53
+    LastBusyTime=2026-09-09T21:52:59
+
+  queue after test:
+    no jobs
+
+  accounting:
+    56|smd012-post-smoke|testuser|COMPLETED|...|0:0|PC-210
+    56.batch|batch||COMPLETED|...|0:0|PC-210
+
+  stdout:
+    PC-210.local
+
+  stderr:
+    empty
+
+  residual processes:
+    no job00056 or slurmstepd process found
+
+Observed residual log message:
+
+  Each reconfigure logged one conmgr poll interrupt write after all RPC
+  handlers had drained and immediately before exec:
+
+    _handle_poll_event->_interrupt: [POLL] write(5) failed: Bad file descriptor
+
+  The first occurrence was followed by alternate-log startup in 0.031 seconds;
+  the second was followed by production-log startup in 0.063 seconds. PID,
+  inherited listener FD, SACK, controller registration, and Job 56 remained
+  healthy. No token-expired, Malformed RPC, or fatal record occurred. This is
+  retained as a non-blocking conmgr teardown/exec diagnostic and is not erased
+  from the evidence.
+
+Conclusion:
+
+  PASS_STAGING. Both local configuration transitions completed in four seconds,
+  the PID was preserved, the original configuration was restored byte-for-byte,
+  and the post-reconfigure GRES job completed without residue. Production
+  installation remains untested.

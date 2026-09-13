@@ -1,0 +1,194 @@
+[macOS]
+command:
+sudo env SMD406_IPV6_PREFLIGHT_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd406_macos_ipv6_preflight.sh
+
+output:
+mode=READ_ONLY_PRODUCTION run_dir=/tmp/slurm-smd406-mac-preflight-20260912T141109 interface=en0
+mac_routable_ipv6_count=0
+controller_routable_ipv6_count=0 controller_ipv6=NONE
+controller_6817_ipv6=NOT_TESTED_NO_ADDRESS
+slurm_enable_ipv6=NO
+network_prerequisite=MISSING_ROUTABLE_IPV6
+SMD406_MAC_PREFLIGHT_COMPLETE classification=MISSING_ROUTABLE_IPV6 slurmd_pid=62843 production_unchanged=PASS run_dir=/tmp/slurm-smd406-mac-preflight-20260912T141109
+
+[Ubuntu]
+driver expected SHA-256:
+41601605a8bb9c61a528b0d630a761b0063f421635adad437d93f3ed88db86b3
+
+driver actual SHA-256:
+41601605a8bb9c61a528b0d630a761b0063f421635adad437d93f3ed88db86b3
+
+command:
+sudo env SMD406_IPV6_PREFLIGHT_CONFIRMED=YES /bin/sh \
+  /tmp/smd406_ubuntu_ipv6_preflight.sh
+
+output:
+mode=READ_ONLY_PRODUCTION run_dir=/tmp/slurm-smd406-ubuntu-preflight-20260912T141132
+ubuntu_routable_ipv6_count=0
+mac_routable_ipv6_count=1 mac_ipv6=::ffff:192.168.10.128
+mac_6818_ipv6=PASS
+slurm_enable_ipv6=NO slurmdbd_enable_ipv6=NO
+network_prerequisite=MISSING_ROUTABLE_IPV6
+SMD406_UBUNTU_PREFLIGHT_COMPLETE classification=MISSING_ROUTABLE_IPV6 production_unchanged=PASS run_dir=/tmp/slurm-smd406-ubuntu-preflight-20260912T141132
+
+[analysis note]
+`::ffff:192.168.10.128` is an IPv4-mapped IPv6 address. The reported
+mac_routable_ipv6_count=1 and mac_6818_ipv6=PASS do not demonstrate native
+IPv6 transport. The driver was corrected after this run to exclude ::ffff:/96.
+The final MISSING_ROUTABLE_IPV6 classification is unchanged because the Mac
+reported zero native routable IPv6 addresses and Ubuntu reported zero global
+IPv6 addresses.
+
+[temporary ULA Attempt 1]
+driver expected SHA-256:
+a8331090f8d5999fe591eb8e4b5dd598789b956d89d21198624af90114e807f3
+
+driver actual SHA-256:
+a8331090f8d5999fe591eb8e4b5dd598789b956d89d21198624af90114e807f3
+
+apply output:
+mode=apply run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T143548 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+error: IPv6 default route changed
+recovery: removed temporary Ubuntu ULA=fd40:534d:4406:1::180/64 interface=br0
+recovery: Slurm config and daemons were not intentionally changed; inspect run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T143548
+
+manual restore output after automatic recovery:
+mode=restore run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T143618 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+error: missing active state: /run/smd406-ubuntu-ula.env
+recovery: Slurm config and daemons were not intentionally changed; inspect run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T143618
+
+[temporary ULA Attempt 1 readback]
+IPv6 default before:
+default via fe80::a10:86ff:fe16:5c9c dev br0 proto ra metric 1024 expires 3582sec hoplimit 64 pref medium
+
+IPv6 default applied:
+default via fe80::a10:86ff:fe16:5c9c dev br0 proto ra metric 1024 expires 3579sec hoplimit 64 pref medium
+
+IPv4 default diff: empty
+
+Applied address:
+3: br0    inet6 fd40:534d:4406:1::180/64 scope global \\       valid_lft forever preferred_lft forever
+
+Route to Mac candidate:
+fd40:534d:4406:1::128 from :: dev br0 proto kernel src fd40:534d:4406:1::180 metric 256 pref medium
+
+Recovery:
+ubuntu_ula_residual=NO
+state_file=ABSENT
+production hash diff: empty
+services: slurmctld active, slurmdbd active, slurmd active
+nodes: ubuntu IDLE, PC-210 IDLE, CPUAlloc=0, AllocMem=0
+
+[temporary ULA Attempt 2: Ubuntu control lifecycle]
+driver expected SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+driver actual SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+apply output:
+mode=apply run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144457 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+SMD406_UBUNTU_ULA_APPLY_COMPLETE address=fd40:534d:4406:1::180/64 interface=br0 state=/run/smd406-ubuntu-ula.env production_unchanged=PASS run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144457
+NEXT_ON_MAC: run smd406_macos_ula_probe.sh, then run this script with restore on Ubuntu
+
+restore output executed before the Mac probe:
+mode=restore run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T144511 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+SMD406_UBUNTU_ULA_RESTORE_COMPLETE removed=fd40:534d:4406:1::180/64 interface=br0 production_unchanged=PASS services_unchanged=PASS run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T144511 apply_run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144457
+
+classification:
+ubuntu_control_lifecycle=PASS
+cross_host_native_ipv6=NOT_MEASURED
+reason=Ubuntu restore completed before the Mac ULA probe was run
+
+[temporary ULA Attempt 3: Ubuntu active for Mac probe]
+driver expected SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+driver actual SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+apply output:
+mode=apply run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144805 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+SMD406_UBUNTU_ULA_APPLY_COMPLETE address=fd40:534d:4406:1::180/64 interface=br0 state=/run/smd406-ubuntu-ula.env production_unchanged=PASS run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144805
+NEXT_ON_MAC: run smd406_macos_ula_probe.sh, then run this script with restore on Ubuntu
+
+classification:
+ubuntu_ula_active=YES
+cross_host_native_ipv6=AWAITING_MAC_PROBE
+ubuntu_restore=DO_NOT_RUN_BEFORE_MAC_PROBE
+
+[Mac ULA probe Attempt 1: harness preflight failure]
+driver expected SHA-256:
+4e1e0c50a3cf837c91a9ce81f0c1eda485363074e3a6268495d22b4d6d912fa5
+
+driver actual SHA-256:
+4e1e0c50a3cf837c91a9ce81f0c1eda485363074e3a6268495d22b4d6d912fa5
+
+probe output:
+error: missing /Library/LaunchDaemons/org.schedmd.slurm.slurmd.plist
+recovery: temporary Mac ULA removal attempted; Slurm config and daemon were not intentionally changed; inspect run_dir=/tmp/slurm-smd406-mac-ula-probe-20260912T145040
+
+readback:
+actual_plist=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+actual_label=org.schedmd.slurmd
+actual_service_target=system/org.schedmd.slurmd
+launchd_pid=62843
+pidfile_pid=62843
+failed_run_dir=ABSENT
+mac_candidate_ula=ABSENT
+
+classification:
+failure=HARNESS_FIXED_NAME_MISMATCH
+network_probe=NOT_STARTED
+slurmd=RUNNING_PID_MATCH
+ubuntu_ula=ACTIVE_AWAITING_RETRY
+
+[Mac ULA probe retry approval]
+approved=YES
+driver_sha256=89596d5bcd1aabea5ee374213ec3274dd406b24f4cc52f552cae84bad041abc6
+shell_syntax=PASS
+diff_check=PASS
+scope=temporary Mac ULA add, three native IPv6 ping packets, Mac ULA removal, production invariants
+ubuntu_ula=KEEP_ACTIVE_UNTIL_PROBE_COMPLETES
+
+[Mac ULA probe Attempt 2]
+driver expected SHA-256:
+89596d5bcd1aabea5ee374213ec3274dd406b24f4cc52f552cae84bad041abc6
+
+driver actual SHA-256:
+89596d5bcd1aabea5ee374213ec3274dd406b24f4cc52f552cae84bad041abc6
+
+probe output:
+mode=TEMPORARY_ULA_PROBE run_dir=/tmp/slurm-smd406-mac-ula-probe-20260912T145452 interface=en0 mac_ula=fd40:534d:4406:1::128/64 ubuntu_ula=fd40:534d:4406:1::180/64
+SMD406_MAC_ULA_PROBE_COMPLETE source=fd40:534d:4406:1::128 destination=fd40:534d:4406:1::180 packets=3 native_ipv6=PASS mac_address_removed=PASS slurmd_pid=62843 production_unchanged=PASS run_dir=/tmp/slurm-smd406-mac-ula-probe-20260912T145452
+NEXT_ON_UBUNTU: run smd406_ubuntu_ula_control.sh restore
+
+classification:
+native_ipv6_ping=PASS
+packets=3
+mac_address_removed=PASS
+slurmd_pid=62843
+production_unchanged=PASS
+ubuntu_restore=AWAITING_EXECUTION
+raw_run_dir_readback=NOT_READ_CURRENT_CODEX_USER_ROOT_0700
+
+[Ubuntu final restore]
+driver expected SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+driver actual SHA-256:
+78be3cc8bb50de5d163055d217ad327bcdaa1f51d4d963f8b714dea321fbf961
+
+restore output:
+mode=restore run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T150326 interface=br0 ubuntu_ula=fd40:534d:4406:1::180/64 mac_ula=fd40:534d:4406:1::128/64
+SMD406_UBUNTU_ULA_RESTORE_COMPLETE removed=fd40:534d:4406:1::180/64 interface=br0 production_unchanged=PASS services_unchanged=PASS run_dir=/tmp/slurm-smd406-ubuntu-ula-restore-20260912T150326 apply_run_dir=/tmp/slurm-smd406-ubuntu-ula-apply-20260912T144805
+
+final classification:
+temporary_ula_network_phase=PASS
+ubuntu_address_removed=PASS
+mac_address_removed=PASS
+native_ipv6_ping_packets=3
+production_unchanged=PASS
+services_unchanged=PASS
+slurm_ipv6_runtime=NOT_MEASURED

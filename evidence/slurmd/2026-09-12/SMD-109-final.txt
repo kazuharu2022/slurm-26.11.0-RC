@@ -1,0 +1,47 @@
+SMD-109 orphan/zombie cleanup final evidence
+date=2026-09-12T01:24:03+09:00
+result=PASS
+run_dir=/tmp/slurm-smd109-20260912T012403
+job_id=463
+slurmd_pid=94504
+slurmd_start_time=2026-09-11T23:11:50
+production_changed=NO
+
+[fixture-before-cancel]
+coordinator pid=9597 uid=3001 ppid=9596 pgid=9597 state=S
+term_ignorer pid=9604 uid=3001 ppid=9597 pgid=9597 state=S
+zombie pid=9605 uid=3001 ppid=9597 pgid=9597 state=Z command=<defunct>
+escaped_orphan pid=9607 uid=3001 ppid=1 pgid=9606 state=S
+
+[post-cancel]
+coordinator_residual=NO
+term_ignorer_residual=NO
+zombie_residual=NO
+escaped_orphan_residual=YES
+escaped_orphan_exact_identity=PASS
+escaped_orphan_cleanup=SIGKILL
+escaped_orphan_residual_after_cleanup=NO
+
+[accounting]
+463|testuser|CANCELLED by 0|0:0|PC-210|billing=1,cpu=1,mem=128M,node=1
+463.batch||CANCELLED|0:15|PC-210|cpu=1,mem=128M,node=1
+
+[final-state]
+node_state=IDLE
+cpu_alloc=0
+alloc_mem=0
+alloc_tres=EMPTY
+queue_residual=NO
+slurmstepd_residual=NO
+fixture_residual=NO
+unexpected_errors=0
+slurmd_identity_unchanged=YES
+input_hashes_unchanged=YES
+
+[interpretation]
+worker_local_proctrack=proctrack/pgid
+same_pgid_cleanup=PASS
+zombie_cleanup=PASS
+escaped_pgid_limit=OBSERVED
+escaped_process_was_driver_cleaned=YES
+controller_scontrol_config_is_not_worker_plugin_evidence=YES

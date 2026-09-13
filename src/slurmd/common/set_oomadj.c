@@ -45,7 +45,7 @@
 #include "src/common/log.h"
 #include "src/common/env.h"
 
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 extern int set_oom_adj(int adj)
 {
 	int fd;
@@ -104,11 +104,11 @@ extern void set_oom_adj_env(int adj)
 		setenvfs("SLURMSTEPD_OOM_ADJ=%d", adj);
 }
 
-#else /* __FreeBSD__ */
+#else /* __FreeBSD__ || __APPLE__ */
 
 extern int set_oom_adj(int adj)
 {
-	/* FreeBSD does not handle OOM the same way Linux does */
+	/* FreeBSD and macOS do not expose Linux's /proc OOM adjustment files. */
 	(void) adj; /* unused argument */
 	return 0;
 }

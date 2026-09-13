@@ -1,0 +1,55 @@
+SMD-205 preflight Attempt 1 raw evidence
+executed=2026-09-11T22:31 JST
+run_dir=/tmp/slurm-smd205-preflight-20260911T223116
+result=HARNESS_FALSE_NEGATIVE_MISSING_CANDIDATE_KEY_PATH
+
+[driver]
+run_dir=/tmp/slurm-smd205-preflight-20260911T223116 mode=READ_ONLY_PRODUCTION
+error: candidate slurmd -G failed
+
+[controller]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before]
+Gres=gpu:apple:1
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T20:30:02
+
+[slurmd-before]
+pid=75048
+command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+
+[production-slurmd-G]
+[2026-09-11T22:31:16.960] Gres Name=gpu Type=apple Count=1 Index=0 ID=7696487 File=/dev/null Links=(null) Flags=HAS_FILE,HAS_TYPE,ENV_NVML,ENV_RSMI,ENV_ONEAPI,ENV_OPENCL,ENV_DEFAULT
+
+[candidate-slurmd-G]
+[2026-09-11T22:31:16.970] _read_slurm_cgroup_conf: No cgroup.conf file (/tmp/slurm-smd205-preflight-20260911T223116/candidate/cgroup.conf), using defaults
+[2026-09-11T22:31:16.973] fatal: auth/slurm: cannot stat '/tmp/slurm-smd205-preflight-20260911T223116/candidate/slurm.key': No such file or directory
+
+[production-hashes-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+08d31ac718b61395b0a452bb6700c1143352357cf505b3791c0285f55f43f1d0  /opt/slurm/26.11.0/etc/gres.conf
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+
+[controller-readback]
+executed=2026-09-11T22:31:34+09:00
+GresTypes_line=23:GresTypes=gpu
+AccountingStorageTRES_line=125:AccountingStorageTRES=gres/gpu,gres/gpu:apple
+NodeName=PC-210
+Gres=gpu:apple:1
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=empty
+queue=empty
+
+[diagnosis]
+The candidate switched SLURM_CONF to its temporary directory. auth/slurm therefore
+resolved slurm.key beside that temporary slurm.conf and failed before evaluating the
+empty candidate gres.conf. This does not measure controller GRES mismatch handling.
+Production daemon/configuration was not changed by the driver.

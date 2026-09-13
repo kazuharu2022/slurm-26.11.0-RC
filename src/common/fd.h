@@ -41,6 +41,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -72,6 +73,23 @@ extern void closeall_except(int fd, int *skipped);
 
 /* Close a specific file descriptor and replace it with -1 */
 extern void fd_close(int *fd);
+
+/* Create a pipe whose descriptors are closed across exec(). */
+extern int fd_pipe_close_on_exec(int fd[2]);
+
+/*
+ * Create a nonblocking event notification channel.
+ * read_fd is polled for readability and write_fd is used for notifications.
+ * Both values may refer to the same descriptor on platforms with eventfd().
+ */
+extern int fd_event_create(int *read_fd, int *write_fd);
+
+/* Create a socket whose descriptor is closed across exec(). */
+extern int fd_socket_close_on_exec(int domain, int type, int protocol);
+
+/* Accept a socket and close it across exec(). Optionally make it nonblocking. */
+extern int fd_accept_close_on_exec(int socket, struct sockaddr *address,
+				   socklen_t *address_len, bool nonblocking);
 
 void fd_set_close_on_exec(int fd);
 /*

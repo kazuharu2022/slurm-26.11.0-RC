@@ -1,0 +1,70 @@
+SMD-124 SPANK Phase A Attempt 2
+Date: 2026-09-11 19:36 JST
+Classification: HARNESS_FALSE_NEGATIVE_EXPECTATION
+
+[user execution]
+PC-210:~ root# sudo env SMD124_SPANK_CONFIRMED=YES /bin/sh \
+>   /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd124_spank_driver.sh
+run_dir=/tmp/slurm-smd124-20260911T193650 task_count=2
+spank_config_active slurmd_pid=310 old_start=2026-09-11T19:32:38 new_start=2026-09-11T19:36:50 client_node_addr=192.168.10.128
+srun_rc=0
+job_gone job_id=373 wait_seconds=1
+error: unexpected total callback count=19 expected=18
+job_gone job_id=373 wait_seconds=0
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:36:57
+recovery: inspect run_dir=/tmp/slurm-smd124-20260911T193650; production config restore was attempted
+
+[spank-events-evidence.txt]
+callback=slurm_spank_init context=slurmd job_id=0 task_id=-1 euid=0 egid=0 pid=310
+callback=slurm_spank_init context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71149
+callback=slurm_spank_init_post_opt context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71149
+callback=slurm_spank_local_user_init context=local job_id=373 task_id=-1 euid=3001 egid=3001 pid=71149
+callback=slurm_spank_job_prolog context=job_script job_id=373 task_id=-1 euid=0 egid=0 pid=71151
+callback=slurm_spank_init context=remote job_id=373 task_id=-1 euid=0 egid=0 pid=71153
+callback=slurm_spank_init_post_opt context=remote job_id=373 task_id=-1 euid=0 egid=0 pid=71153
+callback=slurm_spank_user_init context=remote job_id=373 task_id=-1 euid=3001 egid=3001 pid=71153
+callback=slurm_spank_task_init_privileged context=remote job_id=373 task_id=0 euid=0 egid=3001 pid=71154
+callback=slurm_spank_task_post_fork context=remote job_id=373 task_id=0 euid=0 egid=3001 pid=71153
+callback=slurm_spank_task_post_fork context=remote job_id=373 task_id=1 euid=0 egid=3001 pid=71153
+callback=slurm_spank_task_init_privileged context=remote job_id=373 task_id=1 euid=0 egid=3001 pid=71155
+callback=slurm_spank_task_init context=remote job_id=373 task_id=0 euid=3001 egid=3001 pid=71154
+callback=slurm_spank_task_init context=remote job_id=373 task_id=1 euid=3001 egid=3001 pid=71155
+callback=slurm_spank_task_exit context=remote job_id=373 task_id=1 euid=0 egid=3001 pid=71153
+callback=slurm_spank_task_exit context=remote job_id=373 task_id=0 euid=0 egid=3001 pid=71153
+callback=slurm_spank_exit context=remote job_id=373 task_id=-1 euid=0 egid=3001 pid=71153
+callback=slurm_spank_exit context=local job_id=0 task_id=-1 euid=3001 egid=3001 pid=71149
+callback=slurm_spank_job_epilog context=job_script job_id=373 task_id=-1 euid=0 egid=0 pid=71157
+
+[callback summary]
+slurmd: init=1
+local: init=1 init_post_opt=1 local_user_init=1 exit=1
+job_script: job_prolog=1 job_epilog=1
+remote: init=1 init_post_opt=1 user_init=1 exit=1
+remote per-task: task_init_privileged=2 task_post_fork=2 task_init=2 task_exit=2
+total=19
+
+[accounting]
+373|testuser|COMPLETED|0:0|PC-210
+373.0||COMPLETED|0:0|PC-210
+
+[configuration and node]
+production_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+backup_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_cmp_rc=0
+restored_node_state=IDLE
+restored_CPUAlloc=0
+restored_AllocMem=0
+smoke_job=NOT_SUBMITTED
+
+[analysis]
+The 19th callback is not a duplicate. It is slurm_spank_init in slurmd
+context, executed by PID 310 when the foreground/launchd slurmd reconfigured
+itself through execve and initialized the new plugstack. The prior expected
+total omitted this documented slurmd context. All originally expected 18
+local, remote, and job_script callbacks were present with the expected counts.
+
+[fix]
+Require exactly one slurm_spank_init callback in slurmd context and set the
+Phase A total to 19. slurm_spank_slurmd_exit remains outside Phase A because
+this reconfigure exec path does not run _slurmd_fini().

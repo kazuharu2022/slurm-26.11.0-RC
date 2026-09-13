@@ -1,0 +1,76 @@
+SMD-206 Phase B attempt 1 raw evidence
+executed=2026-09-11T23:02:05+09:00
+run_dir=/tmp/slurm-smd206-running-20260911T230205
+result=HARNESS_FALSE_NEGATIVE_PENDING_REASON_SOURCE
+
+[driver-output]
+run_dir=/tmp/slurm-smd206-running-20260911T230205 phase=gpu_job_running_restart
+submitted target_job=410
+submitted probe_job=411
+error: probe did not remain pending for the single allocated GPU
+cleanup job_id=410 state=RUNNING
+cleanup job_id=411 state=PENDING
+recovery: production configuration was not changed; jobs were cancelled and launchd recovery was attempted; inspect run_dir=/tmp/slurm-smd206-running-20260911T230205
+
+[target-before-restart]
+JobId=410 JobState=RUNNING Reason=None Requeue=0
+StartTime=2026-09-11T23:02:06 EndTime=2026-09-11T23:07:06
+ReqTRES=cpu=2,mem=4G,node=1,billing=2,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=cpu=2,mem=4G,node=1,billing=2,gres/gpu=1,gres/gpu:apple=1
+JOB_GRES=gpu:apple:1 GRES=gpu:apple:1(IDX:0)
+
+[node-with-target]
+CPUAlloc=2
+AllocMem=4096
+State=MIXED
+Gres=gpu:apple:1
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=cpu=2,mem=4G,gres/gpu=1,gres/gpu:apple=1
+
+[target-mlx]
+payload_pid=92706
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+slurm_job_gpus=0
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+device_name=Apple M5 Max
+elapsed_seconds=0.014912
+gpu_smoke_test=PASS
+restart_ready_sequence=1
+heartbeat_last=65@1789135396
+
+[accounting-after-cleanup]
+410|testuser|CANCELLED by 0|0:0|PC-210|2026-09-11T23:02:06|2026-09-11T23:03:16|00:01:10|gres/gpu:apple=1,gres/gpu=1
+410.batch||CANCELLED|0:15|PC-210|2026-09-11T23:02:06|2026-09-11T23:03:16|00:01:10|gres/gpu:apple=1,gres/gpu=1
+411|testuser|CANCELLED by 0|0:0|PC-210|2026-09-11T23:03:16|2026-09-11T23:03:16|00:00:00|gres/gpu:apple=1,gres/gpu=1
+411.batch||CANCELLED|0:15|PC-210|2026-09-11T23:03:16|2026-09-11T23:03:16|00:00:00|gres/gpu:apple=1,gres/gpu=1
+probe_stdout_bytes=0
+
+[restart-boundary]
+No bootout, bootstrap, node-after-restart, or production-after artifact exists.
+The driver stopped before restart_started=1. slurmd PID stayed 91811.
+
+[final-readback-2026-09-11T23:04:53+09:00]
+launchd_state=running
+launchd_pid=91811
+pidfile=91811
+last_exit_code=(never exited)
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=(empty)
+queue_rows=0
+slurmstepd=NONE
+production_hashes_match_pretest=YES
+
+[classification]
+Job 411 did not overlap Job 410: its Start and End are both the cleanup second,
+which is also when Job 410 ended, and its elapsed time and stdout bytes are zero.
+The old harness compared the human-facing squeue %R text to the exact literal
+Resources and did not retain poll samples. Therefore the actual displayed text
+cannot be recovered and the failure does not measure slurmd restart behavior.
+The corrected harness reads canonical Reason= from scontrol show job, records
+every poll, requires target RUNNING plus probe PENDING Resources, and fails
+immediately if the probe becomes RUNNING.

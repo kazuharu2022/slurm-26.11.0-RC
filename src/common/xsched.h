@@ -36,7 +36,95 @@
 #ifndef _XSCHED_H
 #define _XSCHED_H
 
-#ifdef __FreeBSD__
+#ifdef __APPLE__
+#include <stdint.h>
+#include <string.h>
+
+/*
+ * macOS does not provide the Linux cpu_set_t or CPU_*_S API. This
+ * compatibility type is only Slurm's internal, dynamically sized CPU bitmap;
+ * it does not provide kernel CPU affinity.
+ */
+#ifndef CPU_SETSIZE
+#define CPU_SETSIZE 1024
+#endif
+
+#define SLURM_XCPU_WORD_BITS (sizeof(unsigned long) * 8)
+
+typedef struct {
+	unsigned long bits[1];
+} cpu_set_t;
+
+static inline size_t slurm_xcpu_alloc_size(size_t count)
+{
+	return ((count + SLURM_XCPU_WORD_BITS - 1) /
+		SLURM_XCPU_WORD_BITS) * sizeof(unsigned long);
+}
+
+static inline void slurm_xcpu_zero_s(size_t setsize, cpu_set_t *set)
+{
+	memset(set, 0, setsize);
+}
+
+static inline void slurm_xcpu_set_s(size_t cpu, size_t setsize,
+				    cpu_set_t *set)
+{
+	unsigned long *bits = (unsigned long *) set;
+
+	if (cpu >= (setsize * 8))
+		return;
+
+	bits[cpu / SLURM_XCPU_WORD_BITS] |=
+		(1UL << (cpu % SLURM_XCPU_WORD_BITS));
+}
+
+static inline void slurm_xcpu_clr_s(size_t cpu, size_t setsize,
+				    cpu_set_t *set)
+{
+	unsigned long *bits = (unsigned long *) set;
+
+	if (cpu >= (setsize * 8))
+		return;
+
+	bits[cpu / SLURM_XCPU_WORD_BITS] &=
+		~(1UL << (cpu % SLURM_XCPU_WORD_BITS));
+}
+
+static inline int slurm_xcpu_isset_s(size_t cpu, size_t setsize,
+				    const cpu_set_t *set)
+{
+	const unsigned long *bits = (const unsigned long *) set;
+
+	if (cpu >= (setsize * 8))
+		return 0;
+
+	return !!(bits[cpu / SLURM_XCPU_WORD_BITS] &
+		  (1UL << (cpu % SLURM_XCPU_WORD_BITS)));
+}
+
+static inline int slurm_xcpu_count_s(size_t setsize, const cpu_set_t *set)
+{
+	const unsigned long *bits = (const unsigned long *) set;
+	size_t words = setsize / sizeof(unsigned long);
+	int count = 0;
+
+	for (size_t i = 0; i < words; i++)
+		count += __builtin_popcountl(bits[i]);
+
+	return count;
+}
+
+#define CPU_ALLOC_SIZE(_count) slurm_xcpu_alloc_size((_count))
+#define CPU_ZERO_S(_size, _set) slurm_xcpu_zero_s((_size), (_set))
+#define CPU_SET_S(_cpu, _size, _set) \
+	slurm_xcpu_set_s((_cpu), (_size), (_set))
+#define CPU_CLR_S(_cpu, _size, _set) \
+	slurm_xcpu_clr_s((_cpu), (_size), (_set))
+#define CPU_ISSET_S(_cpu, _size, _set) \
+	slurm_xcpu_isset_s((_cpu), (_size), (_set))
+#define CPU_COUNT_S(_size, _set) slurm_xcpu_count_s((_size), (_set))
+
+#elif defined(__FreeBSD__)
 #include <sys/param.h> /* param.h must precede cpuset.h */
 #include <sys/cpuset.h>
 typedef cpuset_t cpu_set_t;

@@ -1,0 +1,46 @@
+SMD-127 Attempt 1
+date: 2026-09-11 21:00 JST
+classification: HARNESS_FALSE_NEGATIVE_PATH_CANONICALIZATION
+state: FIX_BUILT_AWAITING_RETEST
+
+[user-visible-result]
+run_dir=/tmp/slurm-smd127-20260911T210008 rotated_log=/var/log/slurm/slurmd.log.smd127-20260911T210008
+error: slurmd does not have exactly one active log descriptor before rotation
+recovery: rotated log is preserved at /var/log/slurm/slurmd.log.smd127-20260911T210008; inspect run_dir=/tmp/slurm-smd127-20260911T210008
+
+[lsof-before]
+slurmd  75048 root    3w   REG               1,13   717613            12907220 /private/var/log/slurm/slurmd.log
+
+[path-comparison]
+logical_path=/var/log/slurm/slurmd.log matches=0
+physical_path=/private/var/log/slurm/slurmd.log matches=1
+
+[mutation-check]
+active_log=/var/log/slurm/slurmd.log inode=12907220 uid=0 gid=1002 mode=600 size=717613
+rotated_log_exists=no
+job_submitted=no
+rotation_started=no
+production_config_changed=no
+slurmd_signaled=no
+
+[cause]
+macOSの/varは/private/varへのsymlinkである。lsofはFDのNAMEを物理path
+/private/var/log/slurm/slurmd.logとして表示したが、driverは論理path
+/var/log/slurm/slurmd.logとの完全一致を要求したため、実際には1本あるFDを0本と誤判定した。
+
+[repair]
+file操作用の/var/log pathと、lsof照合用の/private/var/log pathを分離した。
+rotation開始前の失敗時には「rotated log preserved」と表示せず、production logをrenameして
+いないことを表示するようcleanupも修正した。
+
+[static-verification]
+driver_before_sha256=6c316d6d76be9bd4159240ef706fbc6a61ccc00b1c7d9095cb179d5aaed891ad
+driver_after_sha256=c6eb354fe9c30b26f71cb5431e944fac0bb8357709f782d29d580e74cca3354a
+sh_n=PASS
+approval_gate_without_confirmation=64
+whitespace_check=PASS
+saved_lsof_logical_path_matches=0
+saved_lsof_physical_path_matches=1
+
+[boundary]
+Attempt 1はlog rotation、SIGUSR2、job継続性を実行していないためSMD-127のruntime PASS証拠ではない。

@@ -1,0 +1,44 @@
+command:
+sudo env SMD120_HOOK_TEST_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd120_prolog_epilog_driver.sh
+
+driver output supplied by operator:
+run_dir=/tmp/slurm-smd120-20260911T124125
+existing_hook_timeout_seconds=120
+hook_config_active slurmd_pid=310 old_start=2026-09-10T00:08:26 new_start=2026-09-11T12:41:25
+submitted test_job=358
+job_gone job_id=358 wait_seconds=6
+lifecycle=PASS job_id=358 order=prolog,payload,epilog hook_identity=0:0
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T12:41:35
+submitted smoke_job=359
+job_gone job_id=359 wait_seconds=5
+SMD120_ROOT_RUN_COMPLETE test_job=358 smoke_job=359 slurmd_pid=310 run_dir=/tmp/slurm-smd120-20260911T124125
+
+independent read-only accounting:
+358|testuser|COMPLETED|0:0|PC-210
+358.batch||COMPLETED|0:0|PC-210
+359|testuser|COMPLETED|0:0|PC-210
+359.batch||COMPLETED|0:0|PC-210
+
+independent final node fields:
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=
+SlurmdStartTime=2026-09-11T12:41:35
+
+configuration restoration:
+before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+byte_compare_rc=0
+restored_Prolog=ABSENT
+restored_Epilog=ABSENT
+
+relevant worker log observations:
+Launching batch JobId=358 for UID 3001
+Launching batch JobId=359 for UID 3001
+known_nonblocking=_core_spec_init not supported on macOS
+known_nonblocking=http_parser plugin unavailable
+known_nonblocking=_handle_poll_event->_interrupt write failed Bad file descriptor
+

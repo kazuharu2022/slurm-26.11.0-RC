@@ -1572,8 +1572,8 @@ extern int spawn_anchor(void)
 		fatal("%s: failed to initialize plugin stack: %s",
 		      __func__, slurm_strerror(rc));
 
-	if (pipe2(pipe_fd, O_CLOEXEC))
-		fatal("pipe2() failed: %m");
+	if (fd_pipe_close_on_exec(pipe_fd))
+		fatal("pipe() failed: %m");
 	xassert(pipe_fd[0] > STDERR_FILENO);
 	xassert(pipe_fd[1] > STDERR_FILENO);
 

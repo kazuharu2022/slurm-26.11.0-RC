@@ -39,6 +39,7 @@
 #include "src/common/macros.h"
 #include "src/common/read_config.h"
 #include "src/common/slurm_time.h"
+#include "src/common/threadpool.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
 
@@ -52,7 +53,6 @@ typedef struct {
 #define MAGIC_FOREACH_DELAYED_WORK 0xB233443A
 	int magic; /* MAGIC_FOREACH_DELAYED_WORK */
 	work_t *shortest;
-	timespec_t time;
 } foreach_delayed_work_t;
 
 #define MAGIC_FOREACH_CANCEL_WORK 0xA238483A
@@ -63,13 +63,64 @@ typedef struct {
 } foreach_cancel_work_t;
 
 /* timer to trigger SIGALRM */
+#ifdef HAVE_TIMER_CREATE
 static timer_t timer = {0};
+#else /* !HAVE_TIMER_CREATE */
+static pthread_t timer_thread = 0;
+static pthread_cond_t timer_cond = PTHREAD_COND_INITIALIZER;
+static timespec_t timer_deadline = {0};
+static bool timer_armed = false;
+static bool timer_shutdown = false;
+#endif /* !HAVE_TIMER_CREATE */
 /* Mutex to protect timer */
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int _inspect_work(void *x, void *key);
-static void _update_timer(work_t *shortest, const timespec_t time);
+static void _update_timer(work_t *shortest);
 static bool _work_clear_time_delay(work_t *work);
+
+#ifndef HAVE_TIMER_CREATE
+/*
+ * Some platforms, including macOS, do not provide POSIX per-process timers.
+ * Use a dedicated condition-variable waiter so the absolute CLOCK_REALTIME
+ * deadline and SIGALRM delivery semantics remain the same without consuming
+ * the process-wide alarm()/setitimer() timer.
+ */
+static void *_timer_wait(void *arg)
+{
+	(void) arg;
+
+	slurm_mutex_lock(&mutex);
+	while (!timer_shutdown) {
+		int rc;
+
+		if (!timer_armed) {
+			slurm_cond_wait(&timer_cond, &mutex);
+			continue;
+		}
+
+		rc = pthread_cond_timedwait(&timer_cond, &mutex,
+					    &timer_deadline);
+		if (!rc)
+			continue;
+		if (rc != ETIMEDOUT) {
+			slurm_mutex_unlock(&mutex);
+			fatal("%s: pthread_cond_timedwait() failed: %s",
+			      __func__, slurm_strerror(rc));
+		}
+
+		if (timer_armed) {
+			timer_armed = false;
+			if (kill(getpid(), SIGALRM))
+				error("%s: unable to deliver SIGALRM: %m",
+				      __func__);
+		}
+	}
+	slurm_mutex_unlock(&mutex);
+
+	return NULL;
+}
+#endif /* !HAVE_TIMER_CREATE */
 
 /*
  * Remove delay dependency and release work back into work queue
@@ -125,19 +176,17 @@ static void _inspect(void)
 	int count, total;
 	foreach_delayed_work_t dargs = {
 		.magic = MAGIC_FOREACH_DELAYED_WORK,
-		.time = timespec_now(),
 	};
 
 	total = list_count(mgr.delayed_work);
 	count = list_delete_all(mgr.delayed_work, _inspect_work, &dargs);
-	_update_timer(dargs.shortest, dargs.time);
+	_update_timer(dargs.shortest);
 
 	log_flag(CONMGR, "%s: checked all timers and triggered %d/%d delayed work",
 		 __func__, count, total);
 }
 
-static struct itimerspec _calc_timer(work_t *shortest,
-				     const timespec_t time)
+static void _log_timer(work_t *shortest)
 {
 	const timespec_t begin = shortest->control.time_begin;
 
@@ -149,27 +198,38 @@ static struct itimerspec _calc_timer(work_t *shortest,
 		log_flag(CONMGR, "%s: setting conmgr timer for %s for %s()",
 			 __func__, str, shortest->callback.func_name);
 	}
-
-	return (struct itimerspec) {
-		.it_value = begin,
-	};
 }
 
-static void _update_timer(work_t *shortest, const timespec_t time)
+static void _update_timer(work_t *shortest)
 {
+#ifdef HAVE_TIMER_CREATE
 	int rc;
 	struct itimerspec spec = {{0}};
+#endif /* HAVE_TIMER_CREATE */
 
-	if (shortest) {
-		spec = _calc_timer(shortest, time);
-	} else {
+	if (shortest)
+		_log_timer(shortest);
+	else
 		log_flag(CONMGR, "%s: disabling conmgr timer", __func__);
-	}
 
 	slurm_mutex_lock(&mutex);
+#ifdef HAVE_TIMER_CREATE
+	if (shortest)
+		spec.it_value = shortest->control.time_begin;
 	rc = timer_settime(timer, TIMER_ABSTIME, &spec, NULL);
+#else /* !HAVE_TIMER_CREATE */
+	if (shortest) {
+		timer_deadline = shortest->control.time_begin;
+		timer_armed = true;
+	} else {
+		timer_deadline = (timespec_t) {0};
+		timer_armed = false;
+	}
+	slurm_cond_signal(&timer_cond);
+#endif /* !HAVE_TIMER_CREATE */
 	slurm_mutex_unlock(&mutex);
 
+#ifdef HAVE_TIMER_CREATE
 	if (rc) {
 		if ((rc == -1) && errno)
 			rc = errno;
@@ -177,6 +237,7 @@ static void _update_timer(work_t *shortest, const timespec_t time)
 		error("%s: timer_set_time() failed: %s",
 		      __func__, slurm_strerror(rc));
 	}
+#endif /* HAVE_TIMER_CREATE */
 }
 
 /* check begin times to see if the work delay has elapsed */
@@ -229,10 +290,13 @@ extern timespec_t conmgr_calc_work_time_delay(
 
 extern void init_delayed_work(void)
 {
+#ifdef HAVE_TIMER_CREATE
 	int rc;
+#endif /* HAVE_TIMER_CREATE */
 
 	mgr.delayed_work = list_create(_release_work);
 
+#ifdef HAVE_TIMER_CREATE
 again:
 	slurm_mutex_lock(&mutex);
 	{
@@ -257,23 +321,46 @@ again:
 	else if (rc)
 		fatal("%s: timer_create() failed: %s",
 		      __func__, slurm_strerror(rc));
+#else /* !HAVE_TIMER_CREATE */
+	slurm_mutex_lock(&mutex);
+	timer_deadline = (timespec_t) {0};
+	timer_armed = false;
+	timer_shutdown = false;
+	slurm_mutex_unlock(&mutex);
+
+	slurm_thread_create("conmgr-timer", &timer_thread, _timer_wait, NULL);
+#endif /* !HAVE_TIMER_CREATE */
 }
 
 extern void free_delayed_work(void)
 {
+#ifdef HAVE_TIMER_CREATE
 	int rc;
+#endif /* HAVE_TIMER_CREATE */
 
 	if (!mgr.delayed_work)
 		return;
 
+#ifndef HAVE_TIMER_CREATE
+	slurm_mutex_lock(&mutex);
+	timer_armed = false;
+	timer_shutdown = true;
+	slurm_cond_signal(&timer_cond);
+	slurm_mutex_unlock(&mutex);
+
+	slurm_thread_join(timer_thread);
+#endif /* !HAVE_TIMER_CREATE */
+
 	FREE_NULL_LIST(mgr.delayed_work);
 
+#ifdef HAVE_TIMER_CREATE
 	slurm_mutex_lock(&mutex);
 	rc = timer_delete(timer);
 	slurm_mutex_unlock(&mutex);
 
 	if (rc)
 		fatal("%s: timer_delete() failed: %m", __func__);
+#endif /* HAVE_TIMER_CREATE */
 }
 
 static void _update_delayed_work(bool locked)

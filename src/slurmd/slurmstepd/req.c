@@ -49,6 +49,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include <sys/proc.h>
+#include <sys/sysctl.h>
+#endif
+
 #include "src/common/cpu_frequency.h"
 #include "src/common/eio.h"
 #include "src/common/fd.h"
@@ -102,6 +107,7 @@
 
 static void *_handle_accept(void *arg);
 static int _handle_request(int fd, uid_t uid, pid_t remote_pid);
+static bool _get_process_ppid(pid_t pid, pid_t *ppid);
 static void *_wait_extern_pid(void *args);
 static int _handle_add_extern_pid_internal(pid_t pid);
 static bool _msg_socket_readable(eio_obj_t *obj);
@@ -163,7 +169,7 @@ _create_socket(const char *name)
 	}
 
 	/* create a unix domain stream socket */
-	if ((fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)) < 0)
+	if ((fd = fd_socket_close_on_exec(AF_UNIX, SOCK_STREAM, 0)) < 0)
 		return -1;
 
 	memset(&addr, 0, sizeof(addr));
@@ -375,8 +381,9 @@ static int _msg_socket_accept(eio_obj_t *obj, list_t *objs)
 
 	debug3("Called _msg_socket_accept");
 
-	while ((fd = accept4(obj->fd, (struct sockaddr *) &addr, &len,
-			     SOCK_CLOEXEC)) < 0) {
+	while ((fd = fd_accept_close_on_exec(obj->fd,
+					  (struct sockaddr *) &addr, &len,
+					  false)) < 0) {
 		if (errno == EINTR)
 			continue;
 		if ((errno == EAGAIN) ||
@@ -1654,6 +1661,54 @@ static void _block_on_pid(pid_t pid)
 }
 
 /*
+ * Return the parent PID without assuming that procfs is available. macOS does
+ * not mount Linux's /proc, so use its native process-information sysctl.
+ */
+static bool _get_process_ppid(pid_t pid, pid_t *ppid)
+{
+#ifdef __APPLE__
+	int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
+	struct kinfo_proc process = { 0 };
+	size_t process_size = sizeof(process);
+
+	if (sysctl(mib, ARRAY_SIZE(mib), &process, &process_size, NULL, 0))
+		return false;
+	if (!process_size)
+		return false;
+
+	*ppid = process.kp_eproc.e_ppid;
+	return true;
+#else
+	char proc_stat_file[256]; /* Allow ~20x extra length */
+	char sbuf[256], *tmp, state;
+	FILE *stat_fp;
+	int fd, num_read;
+
+	snprintf(proc_stat_file, sizeof(proc_stat_file),
+		 "/proc/%d/stat", pid);
+	if (!(stat_fp = fopen(proc_stat_file, "r")))
+		return false; /* Assume the process went away */
+
+	fd = fileno(stat_fp);
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
+		error("%s: fcntl(%s): %m", __func__, proc_stat_file);
+
+	num_read = read(fd, sbuf, (sizeof(sbuf) - 1));
+	fclose(stat_fp);
+	if (num_read <= 0)
+		return false;
+
+	sbuf[num_read] = '\0';
+	/* Skip the command name, which may itself contain spaces. */
+	if (!(tmp = strrchr(sbuf, ')')) ||
+	    (sscanf(tmp + 2, "%c %d ", &state, ppid) != 2))
+		return false;
+
+	return true;
+#endif
+}
+
+/*
  * Wait for the given pid and when it ends, get any children that the pid might
  * have left behind. Then wait on these if so.
  */
@@ -1663,11 +1718,7 @@ static void *_wait_extern_pid(void *args)
 	jobacctinfo_t *jobacct = NULL;
 	pid_t *pids = NULL;
 	int npids = 0, i;
-	char	proc_stat_file[256];	/* Allow ~20x extra length */
-	FILE *stat_fp = NULL;
-	int fd;
-	char sbuf[256], *tmp, state[1];
-	int num_read, ppid;
+	pid_t ppid;
 
 	xfree(args);
 
@@ -1691,10 +1742,6 @@ static void *_wait_extern_pid(void *args)
 	 */
 	proctrack_g_get_pids(step->cont_id, &pids, &npids);
 	for (i = 0; i < npids; i++) {
-		snprintf(proc_stat_file, 256, "/proc/%d/stat", pids[i]);
-		if (!(stat_fp = fopen(proc_stat_file, "r")))
-			continue;  /* Assume the process went away */
-
 		/*
 		 * If this pid is slurmstepd's pid (ourselves) or it is already
 		 * tracked in the accounting, this is not an orphaned pid,
@@ -1702,34 +1749,13 @@ static void *_wait_extern_pid(void *args)
 		 */
 		if ((getpid() == pids[i]) ||
 		    jobacct_gather_stat_task(pids[i], false))
-			goto next_pid;
+			continue;
 
-		fd = fileno(stat_fp);
-		if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
-			error("%s: fcntl(%s): %m", __func__, proc_stat_file);
+		if (!_get_process_ppid(pids[i], &ppid) || (ppid != 1))
+			continue;
 
-		num_read = read(fd, sbuf, (sizeof(sbuf) - 1));
-
-		if (num_read <= 0)
-			goto next_pid;
-
-		sbuf[num_read] = '\0';
-
-		/* get to the end of cmd name */
-		tmp = strrchr(sbuf, ')');
-		if (tmp) {
-			*tmp = '\0';	/* replace trailing ')' with NULL */
-			/* skip space after ')' too */
-			sscanf(tmp + 2,	"%c %d ", state, &ppid);
-
-			if (ppid == 1) {
-				debug2("adding tracking of orphaned process %d",
-				       pids[i]);
-				_handle_add_extern_pid_internal(pids[i]);
-			}
-		}
-	next_pid:
-		fclose(stat_fp);
+		debug2("adding tracking of orphaned process %d", pids[i]);
+		_handle_add_extern_pid_internal(pids[i]);
 	}
 end:
 	xfree(pids);

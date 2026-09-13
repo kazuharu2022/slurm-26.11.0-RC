@@ -1,0 +1,2 @@
+[2026-09-09T18:06:16.168] error: execve(): /tmp/slurm-smd007-20260909T180613/not-executable.sh: Permission denied
+srun: error: PC-210: task 0: Exited with exit code 13

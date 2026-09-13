@@ -55,9 +55,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 
 #if defined(__APPLE__)
-#  include <sys/times.h>
+#  include <sys/sysctl.h>
+#  include <sys/time.h>
 #  include <sys/types.h>
 #elif defined(__NetBSD__) || defined(__FreeBSD__)
 #  include <sys/times.h> /* for times(3) */
@@ -201,7 +203,35 @@ extern int get_up_time(uint32_t *up_time)
 		return 0;
 	}
 
-#if defined(__APPLE__) || defined(__NetBSD__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
+	struct timeval boot_time = {0};
+	size_t len = sizeof(boot_time);
+	time_t now;
+	uint64_t elapsed;
+
+	/* kern.boottime is an Epoch timestamp, not elapsed uptime. */
+	if (sysctlbyname("kern.boottime", &boot_time, &len, NULL, 0) < 0) {
+		int rc = errno;
+
+		*up_time = 0;
+		return rc;
+	}
+
+	now = time(NULL);
+	if ((len != sizeof(boot_time)) || (now == (time_t) -1) ||
+	    (boot_time.tv_sec <= 0) || (boot_time.tv_sec > now)) {
+		*up_time = 0;
+		return EINVAL;
+	}
+
+	elapsed = (uint64_t) (now - boot_time.tv_sec);
+	if (elapsed > UINT32_MAX) {
+		*up_time = 0;
+		return EOVERFLOW;
+	}
+
+	*up_time = (uint32_t) elapsed;
+#elif defined(__NetBSD__) || defined(__FreeBSD__)
 	clock_t tm;
 	struct tms buf;
 

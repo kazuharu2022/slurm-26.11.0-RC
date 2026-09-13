@@ -1,0 +1,26 @@
+Command supplied by user:
+
+grep -E \
+  '2026-09-09T20:1[23]|sack|SACK|fatal|Protocol not available|conmgr rejected' \
+  /var/log/slurm/slurmd.log | tail -n 200
+
+Relevant output before replacement:
+
+[2026-09-09T20:00:42.842] [51.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+[2026-09-09T20:00:47.510] [52.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+
+Relevant replacement sequence:
+
+[2026-09-09T20:13:15.829] debug:  auth/slurm: init: running as daemon
+[2026-09-09T20:13:15.829] debug:  auth/slurm: init_internal: loading key: `/opt/slurm/26.11.0/etc/slurm.key`
+[2026-09-09T20:13:15.830] debug:  auth/slurm: init: loaded: internal=true, use_client_ids=false
+[2026-09-09T20:13:15.835] slurmd version 26.11.0-0rc1 started
+[2026-09-09T20:13:15.835] killing old slurmd[85145]
+[2026-09-09T20:13:15.835] Caught SIGTERM. Shutting down.
+[2026-09-09T20:13:15.839] Slurmd shutdown completing
+[2026-09-09T20:13:15.841] slurmd started on Wed, 09 Sep 2026 20:13:15 +0900
+[2026-09-09T20:13:15.861] debug:  _handle_node_reg_resp: slurmctld sent back 8 TRES.
+
+No fatal, Protocol not available, or conmgr rejected line was present for the
+20:13 replacement. The new process initialized auth/slurm before it killed the
+old slurmd.

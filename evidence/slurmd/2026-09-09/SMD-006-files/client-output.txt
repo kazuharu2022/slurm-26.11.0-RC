@@ -1,0 +1,17 @@
+/tmp/slurm-smd001-fixed/smd006_time_limit_driver.sh
+run_dir=/tmp/slurm-smd006-20260909T173530
+submitted job_id=35 time_limit=00:01:00 workload_seconds=180
+running job_id=35
+[processes_before_timeout]
+role=batch expected_pid=72278 72278 72277 72278 S    /bin/sh /var/spool/slurmd/job00035/slurm_script /tmp/slurm-smd006-20260909T1
+role=child expected_pid=72280 72280 72278 72278 S    /bin/sleep 180
+finished job_id=35 wait_seconds=64 wall_seconds=69
+[processes_after_timeout]
+role=batch pid=72278 residual=NO
+role=child pid=72280 residual=NO
+[file=/tmp/slurm-smd006-20260909T173530/time-limit.out]
+ready batch_pid=72278 child_pid=72280 epoch=1788942931
+term_received batch_pid=72278 epoch=1788943000
+[file=/tmp/slurm-smd006-20260909T173530/time-limit.err]
+[2026-09-09T17:36:40.015] error: *** JOB 35 ON PC-210 CANCELLED AT 2026-09-09T17:36:40 DUE TO TIME LIMIT ***
+SMD006_CLIENT_RUN_COMPLETE job_id=35 run_dir=/tmp/slurm-smd006-20260909T173530

@@ -1,0 +1,47 @@
+SMD-124 Phase B static validation
+date=2026-09-11
+status=READY_TO_RUN
+
+driver=contribs/macos-tests/smd124_spank_slurmd_exit_driver.sh
+driver_sh_n=PASS
+approval_gate_without_confirmation=exit_64
+approval_gate_message=error: set SMD124_SPANK_EXIT_CONFIRMED=YES after confirming PC-210 is idle
+
+plugin_source=contribs/macos-tests/smd124_spank_slurmd_lifecycle.c
+compile_flags=-Wall -Wextra -Werror -fPIC -bundle -undefined dynamic_lookup
+compile=PASS
+file=Mach-O 64-bit bundle arm64
+exports=plugin_name,plugin_type,plugin_version,spank_plugin_version,slurm_spank_init,slurm_spank_slurmd_exit
+
+plugin_source_sha256=a933edfcfd21c25e30c306e060b4f3ead3a3245bbe1ccade2453e327404c79af
+driver_sha256=df69b78a5b6d55b3a8ff2fac1d6c1a20145e77d8b6bc8ebae6b4f65b207bce22
+static_probe_bundle_sha256=dacfeef26c2a3851f5e2320a0701fcc34e4369a39df645ca0a31c15034d7ff77
+git_diff_check=PASS
+
+read_only_preflight_at=2026-09-11T19:48:57+0900
+launchd_label=system/org.schedmd.slurmd
+launchd_state=running
+launchd_enabled=yes
+slurmd_pid=310
+slurmd_ppid=1
+slurmd_command=/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+controller=UP
+node_state=IDLE
+cpu_alloc=0
+alloc_mem=0
+queue=empty
+production_config_matches_attempt3_backup=yes
+
+not_measured=slurm_spank_slurmd_exit runtime callback
+next=run Phase B once with explicit confirmation
+
+attempt1_classification=HARNESS_PREFLIGHT_FAILURE
+attempt1_wrong_plist=/Library/LaunchDaemons/org.schedmd.slurm.slurmd.plist
+attempt1_correct_plist=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+attempt1_wrong_label=org.schedmd.slurm.slurmd
+attempt1_correct_label=org.schedmd.slurmd
+attempt1_mutation_before_failure=no
+attempt1_runtime_measured=no
+post_fix_plist_lint=PASS
+post_fix_plist_label=org.schedmd.slurmd
+post_fix_keepalive_successful_exit=false

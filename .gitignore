@@ -3,6 +3,7 @@
 *.lo
 *.orig
 *.rej
+.DS_Store
 .*.swp
 .*.swo
 *.bino
@@ -71,6 +72,7 @@ autom4te.cache
 /src/squeue/squeue
 /src/sreport/sreport
 /src/srun/srun
+/src/swait/swait
 /src/sshare/sshare
 /src/sstat/sstat
 /src/strigger/strigger

@@ -1,0 +1,118 @@
+SMD-202 Phase E crash Attempt 2 raw evidence
+date=2026-09-11 21:53 JST
+classification=PASS_PHASE_CRASH
+overall_classification=PASS
+run_dir=/tmp/slurm-smd202-crash-20260911T215300
+driver_sha256=5ed246af1b864bab3aa5c424f509f40f0ac765aeddf1d783965e1e74d387cb27
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-result]
+mode=crash run_dir=/tmp/slurm-smd202-crash-20260911T215300 mlx_job=/opt/slurm/26.11.0/share/macos-gpu-job/mlx_gpu_smoke.sbatch
+submitted mode=crash target_job=398
+target_ready mode=crash job_id=398
+job_gone job_id=398 wait_seconds=0
+submitted mode=crash probe_job=399
+job_gone job_id=399 wait_seconds=0
+SMD202_GRES_RELEASE_PHASE_COMPLETE mode=crash target_job=398 probe_job=399 probe_state=COMPLETED slurmd_pid=75048 run_dir=/tmp/slurm-smd202-crash-20260911T215300
+
+[controller-before]
+Slurmctld(primary) at ubuntu2504 is UP
+
+[node-before-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+BootTime=2026-09-10T00:08:18
+SlurmdStartTime=2026-09-11T20:30:02
+
+[target-398-stdout]
+mode=crash
+payload_pid=87377
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=398
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.014409
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=crash job_id=398
+crash_signal=SEGV
+
+[target-398-stderr]
+bytes=0
+
+[target-accounting]
+398|testuser|FAILED|0:11|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+398.batch||CANCELLED|0:11|PC-210||cpu=1,mem=256M,node=1
+accounting_stderr_bytes=0
+
+[node-after-target-summary]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+
+[probe-399-stdout]
+mode=probe
+payload_pid=87430
+actual_uid=3001
+actual_gid=3001
+job_gpus=0
+job_id=399
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.026558
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+case_ready mode=probe job_id=399
+case_complete mode=probe job_id=399
+
+[probe-accounting]
+399|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1|billing=1,cpu=1,mem=256M,node=1
+399.batch||COMPLETED|0:0|PC-210||cpu=1,mem=256M,node=1
+probe_stderr_bytes=0
+accounting_stderr_bytes=0
+
+[slurmd-log-delta]
+[2026-09-11T21:53:00.870] Launching batch JobId=398 SLUID=sCT1M288EJBY00 for UID 3001
+[2026-09-11T21:53:00.936] [398.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:53:01.376] [398.batch] get_exit_code task 0 died by signal: 11
+[2026-09-11T21:53:01.391] [398.batch] stepd_cleanup: done with step (step_rc: 11, slurm_rc: 0 - No error)
+[2026-09-11T21:53:04.020] Launching batch JobId=399 SLUID=sCT1M288EKK500 for UID 3001
+[2026-09-11T21:53:04.084] [399.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T21:53:04.386] [399.batch] done with step
+
+[final-state]
+NodeName=PC-210 Version=26.11.0-0rc1
+Gres=gpu:apple:1
+State=IDLE CPUAlloc=0 AllocMem=0
+SlurmdStartTime=2026-09-11T20:30:02
+slurmd_pid=75048
+slurmstepd_before_bytes=0
+slurmstepd_after_bytes=0
+residual_processes_bytes=0
+target_payload_pid_87377_alive=NO
+probe_payload_pid_87430_alive=NO
+
+[overall]
+Normal exit, scancel, time limit, explicit USR1, and SIGSEGV crash phases all completed.
+Every phase released scheduler-visible gpu:apple:1 and immediately ran a subsequent
+MLX/Metal GPU probe. This proves the SMD-202 lifecycle hypothesis for the tested Slurm
+paths. It does not prove kernel-level Metal device isolation. ReqTRES/AllocTRES still
+omit gres/gpu and remain assigned to SMD-203.

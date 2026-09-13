@@ -1,0 +1,65 @@
+SMD-122 Phase A
+date=2026-09-11T19:03:51+0900
+mode=nonzero
+run_dir=/tmp/slurm-smd122-nonzero-20260911T190351
+
+[driver-output]
+mode=nonzero run_dir=/tmp/slurm-smd122-nonzero-20260911T190351
+failure_config_active mode=nonzero slurmd_pid=310 old_start=2026-09-11T18:57:10 new_start=2026-09-11T19:03:51
+submitted failure_job=365 mode=nonzero
+failure_observed mode=nonzero job_id=365 node_state=IDLE+DRAIN accounting=COMPLETED:0:0 wait_seconds=5
+failure_state=PASS mode=nonzero job_id=365 node_reason=Epilog accounting=COMPLETED:0:0 payload_executed=YES
+restore production_config=/opt/slurm/26.11.0/etc/slurm.conf
+production_restored slurmd_pid=310 start=2026-09-11T19:04:00
+node_recovered state=IDLE CPUAlloc=0 AllocMem=0 wait_seconds=1
+submitted smoke_job=366
+SMD122_PHASE_COMPLETE mode=nonzero failure_job=365 smoke_job=366 slurmd_pid=310 run_dir=/tmp/slurm-smd122-nonzero-20260911T190351
+
+[failure-node-readback]
+State=IDLE+DRAIN
+CPUAlloc=0
+AllocMem=0
+Reason=Epilog error [slurm@2026-09-11T19:03:59]
+
+[failure-accounting]
+365|testuser|COMPLETED|0:0|PC-210
+365.batch||COMPLETED|0:0|PC-210
+
+[slurmd-failure-log]
+[2026-09-11T19:03:57.070] Launching batch JobId=365 SLUID=sCT1M27YRYXP00 for UID 3001
+[2026-09-11T19:03:59.541] [365.batch] done with step
+[2026-09-11T19:03:59.959] error: epilog failed: rc:42 output:
+[2026-09-11T19:03:59.959] error: JobId=365 SLUID=sCT1M27YRYXP00 epilog failed status=42:0
+
+[hook-and-payload-validation]
+event_log_mode=0600 root-owned
+event_log_direct_read=current_non-root_session_permission_denied
+event_log_driver_validation=PASS
+expected_event=epilog_nonzero job_id=365 euid=0 egid=0 context=epilog_slurmd exit_code=42
+payload_marker_driver_validation=PASS
+payload_executed=YES
+payload_identity=3001:3001
+
+[smoke-accounting]
+366|testuser|COMPLETED|0:0|PC-210
+366.batch||COMPLETED|0:0|PC-210
+
+[restoration]
+config_before_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_restored_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+config_byte_cmp_rc=0
+slurmd_pid_before=310
+slurmd_pid_after=310
+final_state=IDLE
+final_CPUAlloc=0
+final_AllocMem=0
+final_queue=EMPTY
+
+[known-nonblocking-log-messages]
+_handle_poll_event->_interrupt_write_failed=Bad_file_descriptor
+core_spec_init=not_supported_on_macOS
+http_parser_context=unavailable
+
+[classification]
+result=PASS_PHASE_A
+phase_b=READY_TO_RUN

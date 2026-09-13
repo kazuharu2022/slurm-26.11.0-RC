@@ -1,0 +1,12 @@
+[2026-09-09T19:34:10.435] [48.batch] task 0 (89630) exited with exit code 0.
+[2026-09-09T19:34:10.437] [48.batch] JobId=48 SLUID=sCT1M22VPNBK00 completed with slurm_rc = 0, job_rc = 0
+[2026-09-09T19:34:12.440] [48.batch] debug2: _slurm_connect: connect to 192.168.10.180:6817 in 2s: Operation timed out
+[2026-09-09T19:34:12.441] [48.batch] debug2: Error connecting slurm stream socket at 192.168.10.180:6817: Operation timed out
+[2026-09-09T19:34:15.443] [48.batch] debug2: _slurm_connect: connect to 192.168.10.180:6817 in 2s: Operation timed out
+[2026-09-09T19:34:15.443] [48.batch] debug2: Error connecting slurm stream socket at 192.168.10.180:6817: Operation timed out
+[2026-09-09T19:34:16.449] [48.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket
+[2026-09-09T19:34:16.454] [48.batch] done with step
+[2026-09-09T19:34:16.462] debug2: Processing RPC: REQUEST_TERMINATE_JOB
+[2026-09-09T19:34:20.066] debug2: Processing RPC: REQUEST_BATCH_JOB_LAUNCH
+[2026-09-09T19:34:20.066] debug:  _rpc_batch_job: starting for JobId=49 SLUID=sCT1M22VQ4H300 StepId=49.batch
+[2026-09-09T19:34:20.401] [49.batch] task 0 (89717) exited with exit code 0.

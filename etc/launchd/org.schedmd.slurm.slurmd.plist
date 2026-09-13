@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.schedmd.slurmd</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/slurm/26.11.0/sbin/slurmd</string>
+		<string>-D</string>
+		<string>-f</string>
+		<string>/opt/slurm/26.11.0/etc/slurm.conf</string>
+		<string>-N</string>
+		<string>PC-210</string>
+	</array>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/slurm/26.11.0/bin:/opt/slurm/26.11.0/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>SLURM_CONF</key>
+		<string>/opt/slurm/26.11.0/etc/slurm.conf</string>
+		<key>SLURM_SACK_KEY</key>
+		<string>/opt/slurm/26.11.0/etc/slurm.key</string>
+	</dict>
+
+	<key>WorkingDirectory</key>
+	<string>/opt/slurm/26.11.0</string>
+
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+
+	<key>StandardOutPath</key>
+	<string>/var/log/slurm/slurmd-launchd.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>/var/log/slurm/slurmd-launchd.err.log</string>
+</dict>
+</plist>

@@ -1,0 +1,18 @@
+sudo /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd010_controller_outage.sh
+run_dir=/tmp/slurm-smd010-20260909T193353
+pf_enabled token=1956188963478615880
+blocked phase=idle destination=192.168.10.180:6817
+recovered phase=idle destination=192.168.10.180:6817
+idle_phase=PASS slurmd_pid=85145
+submitted target_job=48
+target_ready job_id=48 batch_pid=89630 child_pid=89632
+blocked phase=job destination=192.168.10.180:6817
+workload_completed_while_blocked wait_seconds=5
+recovered phase=job destination=192.168.10.180:6817
+job_gone job_id=48 wait_seconds=1
+job_phase=PASS job_id=48
+submitted smoke_job=49
+job_gone job_id=49 wait_seconds=3
+pf_restore=PASS status=Disabled references=none
+SMD010_ROOT_RUN_COMPLETE slurmd_pid=85145 target_job=48 smoke_job=49 run_dir=/tmp/slurm-smd010-20260909T193353

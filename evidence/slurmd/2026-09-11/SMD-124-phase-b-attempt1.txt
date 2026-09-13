@@ -1,0 +1,32 @@
+SMD-124 Phase B Attempt 1
+date=2026-09-11
+classification=HARNESS_PREFLIGHT_FAILURE
+runtime_test_started=no
+
+[command]
+sudo env SMD124_SPANK_EXIT_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd124_spank_slurmd_exit_driver.sh
+
+[output]
+error: missing /Library/LaunchDaemons/org.schedmd.slurm.slurmd.plist
+
+[cause]
+driver_plist_wrong=/Library/LaunchDaemons/org.schedmd.slurm.slurmd.plist
+driver_label_wrong=org.schedmd.slurm.slurmd
+installed_plist_correct=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+installed_label_correct=org.schedmd.slurmd
+
+[impact]
+stopped_at=required_file_preflight
+slurm_conf_changed=no
+slurmd_reconfigured=no
+launchctl_bootout_called=no
+job_submitted=no
+spank_runtime_measured=no
+
+[fix]
+plist=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+service_label=org.schedmd.slurmd
+
+result=NOT_A_SLURM_FAILURE
+next=repeat Phase B with corrected driver after static validation

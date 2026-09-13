@@ -46,19 +46,17 @@
 #include "src/common/slurm_protocol_api.h"
 #include "src/common/xmalloc.h"
 
-#define SACK_CLUSTER_PATTERN "/run/slurm-%s/sack.socket"
-
 static struct sockaddr_un sack_addrs[] =
 {
 	{
 		.sun_family = AF_UNIX,
-		.sun_path = "/run/slurm/sack.socket",
+		.sun_path = SLURM_SACK_SOCKET,
 	}, {
 		.sun_family = AF_UNIX,
-		.sun_path = "/run/slurmctld/sack.socket",
+		.sun_path = SLURMCTLD_SACK_SOCKET,
 	}, {
 		.sun_family = AF_UNIX,
-		.sun_path = "/run/slurmdbd/sack.socket",
+		.sun_path = SLURMDBD_SACK_SOCKET,
 	}
 };
 
@@ -89,16 +87,17 @@ static int _sack_connect_cluster(char *cluster_name)
 	struct sockaddr_un sack_addr = { .sun_family = AF_UNIX };
 
 	ret = snprintf(sack_addr.sun_path, sizeof(sack_addr.sun_path),
-		       SACK_CLUSTER_PATTERN, cluster_name);
+		       SLURM_SACK_CLUSTER_PATTERN, cluster_name);
 
 	if (ret < 0) {
-		error("snprintf failed for '/run/slurm-%s/sack.socket'",
+		error("snprintf failed for '" SLURM_SACK_CLUSTER_PATTERN "'",
 		      cluster_name);
 		return -1;
 	}
 
 	if (ret >= (sizeof(sack_addr.sun_path))) {
-		error("'/run/slurm-%s/sack.socket' exceeds unix socket path max size",
+		error("'" SLURM_SACK_CLUSTER_PATTERN
+		      "' exceeds unix socket path max size",
 		      cluster_name);
 		return -1;
 	}

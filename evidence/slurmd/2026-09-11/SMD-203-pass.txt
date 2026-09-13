@@ -1,0 +1,78 @@
+SMD-203 GRES accounting final job raw evidence
+executed_on=PC-210
+run_dir=/tmp/slurm-smd203-20260911T221434
+driver_sha256=03767530ff980dd18a741456101fd69a20b0daf331d166f5f987df033836fccb
+local_config_sha256=9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2
+mlx_job_sha256=f5ec71fd295e817c32c7ca38c87dc9e49518fbd67e97821ca8ad4deaf45a224e
+
+[driver-summary]
+submitted gpu_job=400
+job_gone job_id=400 wait_seconds=2
+SMD203_GRES_ACCOUNTING_COMPLETE job_id=400 state=COMPLETED req_generic=1 req_typed=1 alloc_generic=1 alloc_typed=1 slurmd_pid=75048 run_dir=/tmp/slurm-smd203-20260911T221434
+
+[controller]
+Slurmctld(primary) at ubuntu2504 is UP
+AccountingStorageTRES   = cpu,mem,energy,node,billing,fs/disk,vmem,pages,gres/gpu,gres/gpu:apple,gres/gpumem,gres/gpuutil
+HASH_VAL                = Different Ours=0x9b92c9d2 Slurmctld=0x4a845a04
+SLURM_VERSION           = 26.11.0-0rc1
+
+[registered-tres]
+gres|gpu|1001
+gres|gpu:apple|1002
+gres|gpumem|1003
+gres|gpuutil|1004
+
+[job-400-accounting]
+400|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1|billing=2,cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1
+400.batch||COMPLETED|0:0|PC-210||cpu=2,gres/gpu:apple=1,gres/gpu=1,mem=4G,node=1
+
+[job-400-stdout]
+job_id=400
+node=PC-210.local
+python=/opt/slurm/26.11.0/share/macos-gpu-job/.venv/bin/python
+slurm_job_gpus=0
+machine=arm64
+mlx_version=0.32.2
+default_device=Device(gpu, 0)
+metal_device={'device_name': 'Apple M5 Max', 'max_recommended_working_set_size': 115448725504, 'memory_size': 137438953472, 'architecture': 'applegpu_g17s', 'max_buffer_length': 86586540032, 'resource_limit': 499000}
+matrix_shape=4096x4096
+iterations=5
+elapsed_seconds=0.014538
+mean_value=1.023572e+03
+gpu_smoke_test=PASS
+
+[worker-log-delta]
+[2026-09-11T22:14:35.148] Launching batch JobId=400 SLUID=sCT1M289P22T00 for UID 3001
+[2026-09-11T22:14:35.213] [400.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T22:14:35.714] [400.batch] done with step
+
+[final-node]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+CfgTRES=cpu=18,mem=128G,billing=18,gres/gpu=1,gres/gpu:apple=1
+AllocTRES=
+SlurmdStartTime=2026-09-11T20:30:02
+LastBusyTime=2026-09-11T22:14:35
+
+[empty-evidence-files]
+registered-tres.err=0_bytes
+sacct.err=0_bytes
+gpu-400.err=0_bytes
+slurmstepd-before.txt=0_bytes
+slurmstepd-after.txt=0_bytes
+residual-processes.txt=0_bytes
+
+[process-snapshot]
+No mlx_gpu_smoke, macos-gpu-job/.venv/bin/python, or slurmstepd entry exists
+in processes-after.txt. The driver processes themselves were still present when
+the final snapshot was taken, as expected.
+
+[scope-limit]
+gres/gpumem and gres/gpuutil were registered as TRES, but this run did not
+observe Apple Metal usage values. The result proves requested and allocated GPU
+count accounting, not GPU utilization or GPU memory telemetry.
+
+[classification]
+PASS
+

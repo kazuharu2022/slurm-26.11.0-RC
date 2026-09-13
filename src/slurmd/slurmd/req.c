@@ -1577,8 +1577,17 @@ static int _open_as_other(char *path_name, int flags, int mode, uint32_t jobid,
 		error("%s: uid:%u setgid(%u): %m", __func__, uid, gid);
 		_exit(errno);
 	}
+	/*
+	 * This forked helper exits after the I/O, so it can drop uid forever.
+	 */
+#ifdef HAVE_SETRESUID
 	if (setresuid(uid, uid, -1) < 0) {
-		error("%s: setresuid(%u, %u, %d): %m", __func__, uid, uid, -1);
+		error("%s: setresuid(%u, %u, %d): %m", __func__, uid, uid,
+		      -1);
+#else
+	if (setuid(uid) < 0) {
+		error("%s: setuid(%u): %m", __func__, uid);
+#endif
 		_exit(errno);
 	}
 

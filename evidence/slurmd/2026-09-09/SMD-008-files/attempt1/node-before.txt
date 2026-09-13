@@ -1,0 +1,16 @@
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18 
+   CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+   AvailableFeatures=(null)
+   ActiveFeatures=(null)
+   Gres=gpu:apple:1
+   NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+   OS=Darwin 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:12 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6050 
+   RealMemory=131072 AllocMem=0 FreeMem=0 Sockets=1 Boards=1
+   State=IDLE ThreadsPerCore=1 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
+   Partitions=debug 
+   BootTime=2026-08-08T00:51:29 SlurmdStartTime=2026-09-09T10:52:07
+   LastBusyTime=2026-09-09T18:06:19 ResumeAfterTime=None SuspendTime=INFINITE
+   CfgTRES=cpu=18,mem=128G,billing=18
+   AllocTRES=
+   CurrentWatts=0 AveWatts=0
+

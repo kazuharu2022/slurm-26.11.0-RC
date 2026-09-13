@@ -1,0 +1,18 @@
+Checked after the driver completed on 2026-09-09 JST.
+
+sacct:
+46|smd009-survivor|testuser|CANCELLED by 0|billing=1,cpu=1,mem=1G,node=1|billing=18,cpu=18,mem=1G,node=1|2026-09-09T19:02:45|2026-09-09T19:02:46|2026-09-09T19:02:52|00:00:06|0:0|PC-210
+46.batch|batch||FAILED||cpu=18,mem=1G,node=1|2026-09-09T19:02:46|2026-09-09T19:02:46|2026-09-09T19:02:53|00:00:07|143:0|PC-210
+47|smd009-post-smoke|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T19:02:54|2026-09-09T19:02:54|2026-09-09T19:02:55|00:00:01|0:0|PC-210
+47.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|2026-09-09T19:02:54|2026-09-09T19:02:54|2026-09-09T19:02:55|00:00:01|0:0|PC-210
+
+squeue -j 46,47:
+(header only; no active jobs)
+
+scontrol show node PC-210:
+State=IDLE CPUAlloc=0 AllocMem=0 AllocTRES=
+SlurmdStartTime=2026-09-09T19:02:46 Gres=gpu:apple:1
+
+pidfile=85145
+running_slurmd_pid=85145
+job46_or_job47_residual_processes=(none)

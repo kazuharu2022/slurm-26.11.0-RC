@@ -1,0 +1,95 @@
+SMD-016 fourth start evidence
+captured_at=2026-09-10T10:25:47+0900
+verdict=RUNNING
+final_verdict=NOT_YET_AVAILABLE
+
+[operator-command-and-output]
+sudo env SMD016_24H_CONFIRMED=YES /bin/sh \
+  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh start
+SMD016_STARTED first_job=67 first_successful_jobs=1 duration_seconds=86400 interval_seconds=300 expected_jobs_about=288 slurmd_pid=310 supervisor_pid=26922 runner_pid=26922 marker=/opt/slurm/26.11.0/.smd016-soak.env run_dir=/tmp/slurm-smd016-20260910T102345
+STATUS: sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh status
+VERIFY_AFTER_24H: sudo /bin/sh /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd016_soak.sh verify
+
+[marker]
+run_dir=/tmp/slurm-smd016-20260910T102345
+start_epoch=1789003426
+duration_seconds=86400
+interval_seconds=300
+payload_path=/tmp/slurm-smd016-20260910T102345/smd016_soak_payload.sh
+old_pid=310
+old_boot=1788966497
+old_start=2026-09-10T00:08:26
+start_log_line=6279
+rss_limit_kb=16384
+fd_final_limit=2
+fd_peak_limit=8
+expected_end=2026-09-11T10:23:46+0900
+
+[launchd-and-slurmd-identity]
+launchd_target=system/org.schedmd.slurmd
+launchd_state=running
+launchd_runs=1
+launchd_pid=310
+launchd_last_exit_code=never_exited
+pidfile_pid=310
+identity=PASS
+command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+
+[runner]
+supervisor_pid=26922
+runner_pid=26922
+caffeinate_pid=26924
+runner_cwd_inherited=/tmp
+runner_cwd_effective=/tmp
+caffeinate_PreventDiskIdle=1
+caffeinate_PreventSystemSleep=1
+caffeinate_PreventUserIdleSystemSleep=1
+
+[progress]
+state=RUNNING
+sequence=1
+successful_jobs=1
+last_job=67
+epoch=1789003429
+
+[job-67-output]
+sequence=1
+job_id=67
+node=PC-210.local
+uid=3001 gid=3001
+start_epoch=1789003427
+end_epoch=1789003429
+job_stderr=EMPTY
+submit_stderr=EMPTY
+
+[job-67-accounting]
+67|COMPLETED|0:0
+67.batch|COMPLETED|0:0
+
+[sample-before]
+epoch=1789003426
+slurmd_pid=310
+rss_kb=14016
+fd_count=13
+thread_count=11
+node_state=IDLE
+cpu_alloc=0
+alloc_mem=0
+queue_count=0
+
+[sample-after-job-67]
+epoch=1789003429
+slurmd_pid=310
+rss_kb=14032
+fd_count=13
+thread_count=11
+node_state=IDLE
+cpu_alloc=0
+alloc_mem=0
+queue_count=0
+
+[scope]
+This evidence proves only that the 24-hour runner started and its first job
+completed successfully. It does not prove the 24-hour acceptance criteria.
+The final PASS/FAIL decision remains pending until the runner reaches COMPLETE
+and smd016_soak.sh verify finishes.

@@ -36,7 +36,11 @@
 #ifndef _SCRUN_H
 #define _SCRUN_H
 
+#if defined(__APPLE__)
+#include <util.h>
+#else
 #include <pty.h>
+#endif
 #include <stdbool.h>
 #include <termios.h>
 

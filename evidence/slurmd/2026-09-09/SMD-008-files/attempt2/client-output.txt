@@ -1,0 +1,8 @@
+User-reported terminal result:
+
+run_dir=/tmp/slurm-smd008-20260909T184149
+new_running pid=82165 wait_seconds=1
+node_registered state=IDLE old_start=2026-09-09T18:24:36 new_start=2026-09-09T18:41:50 wait_seconds=0
+submitted smoke_job=45
+smoke_finished job_id=45 wait_seconds=2
+SMD008_ROOT_RUN_COMPLETE new_pid=82165 smoke_job=45 run_dir=/tmp/slurm-smd008-20260909T184149

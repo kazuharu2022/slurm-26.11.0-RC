@@ -1,0 +1,10 @@
+[2026-09-09T18:41:49.173] Caught SIGTERM. Shutting down.
+[2026-09-09T18:41:49.176] Slurmd shutdown completing
+[2026-09-09T18:41:50.215] Gres Name=gpu Type=apple Count=1 Flags=HAS_FILE,HAS_TYPE,ENV_NVML,ENV_RSMI,ENV_ONEAPI,ENV_OPENCL,ENV_DEFAULT
+[2026-09-09T18:41:50.217] slurmd version 26.11.0-0rc1 started
+[2026-09-09T18:41:50.220] slurmd started on Wed, 09 Sep 2026 18:41:50 +0900
+[2026-09-09T18:41:50.238] debug:  _handle_node_reg_resp: slurmctld sent back 8 TRES.
+[2026-09-09T18:41:52.065] debug2: Processing RPC: REQUEST_BATCH_JOB_LAUNCH
+[2026-09-09T18:41:52.065] Launching batch JobId=45 SLUID=sCT1M22RQ42M00 for UID 3001
+[2026-09-09T18:41:52.436] [45.batch] JobId=45 SLUID=sCT1M22RQ42M00 completed with slurm_rc = 0, job_rc = 0
+[2026-09-09T18:41:52.445] [45.batch] debug2: _sack_connect: connected to /var/run/slurm/sack.socket

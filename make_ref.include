@@ -22,8 +22,23 @@ CLEANFILES = *.bino
 BIN_REF = $(REF:.txt=.bino)
 
 %.bino: %.txt
+if DARWIN_BUILD
+	$(AM_V_GEN)cd "$(abs_srcdir)" && \
+	ref_name='$(notdir $<)'; \
+	case "$$ref_name" in ''|*[!A-Za-z0-9_.-]*) exit 1 ;; esac; \
+	sym_name=$$(printf '%s' "$$ref_name" | sed 's/[^A-Za-z0-9_]/_/g'); \
+	printf '%s\n' \
+	  '.section __TEXT,__const' \
+	  ".globl __binary_$${sym_name}_start" \
+	  ".globl __binary_$${sym_name}_end" \
+	  "__binary_$${sym_name}_start:" \
+	  ".incbin \"$${ref_name}\"" \
+	  "__binary_$${sym_name}_end:" | \
+	$(CC) -x assembler -c -o "$(abs_builddir)/$*.bino" -
+else
 	$(AM_V_GEN)curr_dir=$(shell pwd); cd $(abs_srcdir); $(LD) -r $(LD_EMULATION) -o "$(abs_builddir)/$*.bino" -z noexecstack --format=binary "$(notdir $<)"; cd $$curr_dir
 	$(AM_V_at)@OBJCOPY@ --rename-section .data=.rodata,alloc,load,readonly,data,contents "$*.bino"
+endif
 
 lib_ref.lo: $(BIN_REF)
 	$(AM_V_at)echo "# $@ - a libtool object file" >"$@"

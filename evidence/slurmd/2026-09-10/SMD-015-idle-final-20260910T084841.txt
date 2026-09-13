@@ -1,0 +1,79 @@
+captured_at=2026-09-10T08:48:41+09:00
+run_dir=/tmp/slurm-smd015-idle-verify-20260910T084841
+marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env.completed-20260910T084841
+
+driver_result:
+mode=verify run_dir=/tmp/slurm-smd015-idle-verify-20260910T084841 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env
+stable_idle_wait_limit_seconds=2100
+submitted smoke_job=65
+job_gone job_id=65 wait_seconds=1
+SMD015_IDLE_SLEEP_COMPLETE old_sleep_count=0 new_sleep_count=25 old_boot=1788966497 new_boot=1788966497 pid=310 start=2026-09-10T00:08:26 ip=192.168.10.128 smoke_job=65 wait_seconds=0 marker=/opt/slurm/26.11.0/.smd015-idle-sleep.env.completed-20260910T084841 run_dir=/tmp/slurm-smd015-idle-verify-20260910T084841
+
+launchd:
+target=system/org.schedmd.slurmd
+path=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+state=running
+runs=1
+pid=310
+last_exit_code=never_exited
+program=/opt/slurm/26.11.0/sbin/slurmd
+arguments=-D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+
+process:
+user=root
+pid=310
+ppid=1
+start=Thu Sep 10 00:08:24 2026
+command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+
+controller:
+Slurmctld(primary) at ubuntu2504 is UP
+
+node_before_smoke:
+State=IDLE
+CPUAlloc=0
+BootTime=2026-09-10T00:08:17
+SlurmdStartTime=2026-09-10T00:08:26
+AllocTRES=
+
+smoke_stdout:
+PC-210.local
+
+smoke_stderr:
+(empty)
+
+accounting:
+JobID|JobName|User|State|ReqTRES|AllocTRES|ExitCode|NodeList
+65|smd015-idle-wake|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|0:0|PC-210
+65.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|0:0|PC-210
+
+node_after_smoke:
+State=IDLE
+CPUAlloc=0
+SlurmdStartTime=2026-09-10T00:08:26
+LastBusyTime=2026-09-10T08:48:48
+AllocTRES=
+
+queue_after_smoke:
+(empty)
+
+source_file_hashes:
+698b02e86bd085c8e47c292dd370abfab6c6ab15cb2c904e26847e47c9d85040 launchd-after.txt
+b6059ed47b8ee84a332bf30937948f575487ef566d0a4e347c087fd9070bafcf slurmd-after.txt
+f5a95d53a7c46dcd3196404925731d608c13095ba65620bc0b378335e2155a37 controller-after.txt
+5e23378556d6c8ab2698c9662e26933f5da9a8da29561b2567a938fe88f589a6 node-after.txt
+0b93e3ca481302832a2895a61f3cef869da19355971be1f3c38b671563d7c81a node-final.txt
+c3f0c02e7c798a935f8cafe04df417538c213d0cbd75cf2bc6d0094c2aedf4ee queue-final.txt
+9a1414052078e81d5cee134cc3c86b19fccf48dc47a6a0909be18b1dca94d16a smoke/hostname.out
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 smoke/hostname.err
+d7b94ea5f117b8e069a1ffd97e32c9bfe8fdd73bbf9c502289571a95a8135984 smoke/sacct.txt
+
+result:
+idle_sleep_wake_phase_a=PASS
+same_boot=PASS
+same_slurmd_pid=PASS
+automatic_reregistration=PASS
+post_wake_job=PASS
+accounting=PASS
+resource_cleanup=PASS
+job_during_sleep_phase_b=NOT_RUN

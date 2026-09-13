@@ -1,0 +1,78 @@
+SMD-012 closeall/RLIMIT fix retest 1
+Date: 2026-09-09 21:45-21:46 JST
+Worker: PC-210 / macOS arm64
+Slurm: 26.11.0-0rc1
+
+Command executed by operator:
+
+  sudo env SMD012_CONTROLLER_IDLE_CONFIRMED=YES /bin/sh \
+    /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd012_sack_replacement_guard.sh
+
+Driver output:
+
+  nofile_soft_limit=unlimited
+  run_dir=/tmp/slurm-smd012-sack-20260909T214557
+  candidate_version=slurm 26.11.0-0rc1
+  clean_stop old_pid=4170 old_command=/tmp/slurm-smd012-sack-20260909T204155/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+  start first_candidate_pid=19093
+  first_sack_identity=16777233:13043937
+  start replacement_candidate_pid=19107 old_candidate_pid=19093
+  second_sack_identity=16777233:13043942
+  submitted smoke_job=55
+  smoke_elapsed_seconds=1
+  SMD012_SACK_GUARD_COMPLETE current_pid=19107 smoke_job=55 run_dir=/tmp/slurm-smd012-sack-20260909T214557
+  NOTICE current slurmd is the validated /tmp candidate; install it before reboot or cleanup.
+
+Independent read-only verification:
+
+  process:
+    pid=19107 ppid=1 start=Wed Sep 9 21:46:00 2026
+    command=/tmp/slurm-smd012-sack-20260909T214557/candidate/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf
+
+  SACK:
+    device=16777233 inode=13043942 mode=srwxrwxrwx owner=root group=daemon
+
+  controller:
+    Slurmctld(primary) at ubuntu2504 is UP
+
+  node:
+    State=IDLE CPUAlloc=0 CPUEfctv=18 CPUTot=18 AllocTRES=
+    SlurmdStartTime=2026-09-09T21:46:00
+    LastBusyTime=2026-09-09T21:46:01
+
+  queue:
+    no jobs
+
+  accounting:
+    55|smd012-sack-smoke|testuser|COMPLETED|00:00:00|0:0|PC-210
+    55.batch|batch||COMPLETED|00:00:00|0:0|PC-210
+
+  stdout:
+    PC-210.local
+
+  stderr:
+    empty
+
+  residual processes:
+    no job00055 or slurmstepd process found
+
+  candidate SHA-256:
+    a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  candidate/slurmd
+    cbe62a38946a3f0a17f2bcf8840638ff31120d626dbbdffdf7f89a36ab852fae  candidate/libslurmfull.dylib
+
+Timing evidence from candidate-second.log:
+
+  21:46:01.319  REQUEST_BATCH_JOB_LAUNCH accepted
+  21:46:01.356  slurmstepd started reading slurmd configuration
+
+The observed launch-to-stepd interval is approximately 0.037 seconds. The
+previous failing Job 54 interval was 186.966 seconds. No token-expired,
+Malformed RPC, or slurmstepd fatal record exists in candidate-first.log or
+candidate-second.log. Known non-blocking macOS messages remain for core-spec
+and missing HTTP parser plugins.
+
+Conclusion:
+
+  PASS_STAGING for the closeall/RLIMIT fix under an explicitly unlimited soft
+  RLIMIT_NOFILE. The SACK replacement guard also passed again. This run does
+  not test local configuration reconfigure; that remains READY_TO_RUN.

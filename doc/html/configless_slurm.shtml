@@ -76,7 +76,8 @@ slurmctld, with higher priority values for backup slurmctlds.
 <p>With the slurmctld configured and slurmd started, you can check in a couple
 places to make sure the configs are present on the node. Config files will be
 in <b>SlurmdSpoolDir</b> under the <b>/conf-cache/</b>, and a symlink to this
-location will be created automatically in <b>/run/slurm/conf</b>. You can
+location will be created automatically in <b>/run/slurm/conf</b>
+(<b>/var/run/slurm/conf</b> on macOS). You can
 confirm that reloading is working by adding a comment to your slurm.conf on the
 slurmctld node and running
 <span class="commandline">scontrol reconfig</span> and checking that the config

@@ -1,0 +1,2 @@
+old_pid=7462
+old_command=/opt/slurm/26.11.0/sbin/slurmd -Dvvv -f /opt/slurm/26.11.0/etc/slurm.conf

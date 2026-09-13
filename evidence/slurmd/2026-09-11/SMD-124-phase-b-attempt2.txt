@@ -1,0 +1,55 @@
+SMD-124 Phase B Attempt 2
+date=2026-09-11T19:56:49+0900
+classification=PASS
+run_dir=/tmp/slurm-smd124-exit-20260911T195649
+
+[driver-output]
+run_dir=/tmp/slurm-smd124-exit-20260911T195649
+slurmd_plugin_loaded pid=310 old_start=2026-09-11T19:42:11 new_start=2026-09-11T19:56:50
+graceful_stop old_pid=310 method=launchctl_bootout
+slurmd_graceful_exit=PASS pid=310 callbacks=2 identity=0:0
+production_restarted old_pid=310 new_pid=72770 new_start=2026-09-11T19:56:55
+submitted smoke_job=376
+job_gone job_id=376 wait_seconds=2
+SMD124_PHASE_B_COMPLETE old_pid=310 new_pid=72770 smoke_job=376 callbacks=2 slurmd_exit=PASS run_dir=/tmp/slurm-smd124-exit-20260911T195649
+
+[callbacks]
+callback=slurm_spank_init context=slurmd euid=0 egid=0 pid=310
+callback=slurm_spank_slurmd_exit context=slurmd euid=0 egid=0 pid=310
+callback_count=2
+
+[accounting]
+376|testuser|COMPLETED|0:0|PC-210
+376.batch||COMPLETED|0:0|PC-210
+
+[config-hashes]
+before=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+candidate=8e0d6decc495d303b4789d016056f7360d75a8c27ea2770c3e29a1fa5bde1c77
+restored_before_stop=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+restored_final=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+runtime_plugin=b134acea6aa97023e8264a803524f99ae8b98f0bfd351d096a061b3dc82a83e9
+byte_restore_checked_by_driver=yes
+
+[launchd-after]
+target=system/org.schedmd.slurmd
+path=/Library/LaunchDaemons/org.schedmd.slurmd.plist
+state=running
+program=/opt/slurm/26.11.0/sbin/slurmd
+config=/opt/slurm/26.11.0/etc/slurm.conf
+old_pid=310
+new_pid=72770
+new_start=2026-09-11T19:56:55
+
+[node-after]
+state=IDLE
+CPUAlloc=0
+AllocMem=0
+queue=empty
+
+[smoke-output-boundary]
+direct_read_as_workspace_user=permission_denied
+driver_required_hostname_match=PC-210_or_PC-210.local
+driver_required_stderr_empty=yes
+driver_success_marker_reached=yes
+
+result=PASS

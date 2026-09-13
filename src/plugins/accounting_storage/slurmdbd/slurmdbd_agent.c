@@ -48,6 +48,19 @@
 
 #include "slurmdbd_agent.h"
 
+#if defined(__APPLE__)
+/*
+ * These symbols are provided by slurmctld, but this plugin is also loaded by
+ * client commands such as sinfo. The weak_import declarations in
+ * accounting_storage_slurmdbd.c only affect that translation unit; without
+ * matching declarations here, this object's references make the final Mach-O
+ * bundle require the slurmctld-only symbols at dlopen() time.
+ */
+extern uint16_t running_cache __attribute__((weak_import));
+extern pthread_mutex_t assoc_cache_mutex __attribute__((weak_import));
+extern pthread_cond_t assoc_cache_cond __attribute__((weak_import));
+#endif
+
 enum {
 	MAX_DBD_ACTION_DISCARD,
 	MAX_DBD_ACTION_EXIT

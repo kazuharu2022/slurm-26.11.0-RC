@@ -1,0 +1,13 @@
+squeue -j 39,40,41:
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+
+scontrol show node PC-210:
+NodeName=PC-210 Arch=arm64 CoresPerSocket=18
+   CPUAlloc=0 CPUEfctv=18 CPUTot=18 CPULoad=0.00
+   Gres=gpu:apple:1
+   NodeAddr=PC-210 NodeHostName=PC-210 Version=26.11.0-0rc1
+   State=IDLE ThreadsPerCore=1
+   AllocTRES=
+
+related process search:
+(no output)

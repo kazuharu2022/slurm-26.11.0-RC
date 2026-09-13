@@ -33,12 +33,16 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA.
 \*****************************************************************************/
 
+#if defined(__APPLE__)
+#define _DARWIN_C_SOURCE /* BSD types hidden by _XOPEN_SOURCE */
+#endif
 #define _XOPEN_SOURCE 600 /* putenv(), unsetenv() */
-#define _GNU_SOURCE /* getopt_long(), get_current_dir_name() */
+#define _GNU_SOURCE /* getopt_long() */
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -191,9 +195,11 @@ static void _parse_create(int argc, char **argv)
 	}
 
 	if (!state.bundle) {
-		char *dir = get_current_dir_name();
+		char dir[PATH_MAX];
+
+		if (!getcwd(dir, sizeof(dir)))
+			fatal("getcwd() failed: %m");
 		state.bundle = xstrdup(dir);
-		free(dir);
 	}
 }
 
@@ -280,7 +286,7 @@ static void _parse_kill(int argc, char **argv)
 			signal = sig_name2num(s);
 		}
 
-		if ((signal < 1) || (signal >= SIGRTMAX))
+		if ((signal < 1) || (signal >= SLURM_SIGNAL_MAX))
 			fatal("Invalid requested signal: %s", s);
 
 		optind++;

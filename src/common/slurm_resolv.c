@@ -72,7 +72,7 @@ extern list_t *resolve_ctls_from_dns_srv(void)
 
 	res.ndots = 2;
 
-	if ((len = res_nsearch(&res, SRV_RECORD, C_IN, T_SRV,
+	if ((len = res_nsearch(&res, SRV_RECORD, ns_c_in, ns_t_srv,
 			       answer, sizeof(answer))) < 0) {
 		error("%s: res_nsearch error: %s",
 		      __func__, hstrerror(h_errno));
@@ -96,7 +96,7 @@ extern list_t *resolve_ctls_from_dns_srv(void)
 			continue;
 		}
 
-		if (ns_rr_type(rr) != T_SRV)
+		if (ns_rr_type(rr) != ns_t_srv)
 			continue;
 
 		ctl = xmalloc(sizeof(*ctl));

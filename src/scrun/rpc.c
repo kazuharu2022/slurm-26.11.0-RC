@@ -65,8 +65,7 @@ extern int send_rpc(slurm_msg_t *msg, slurm_msg_t **ptr_resp, const char *id,
 	xassert(!msg->pcon);
 
 	if ((fd == -1) &&
-	    (rc = slurm_open_unix_stream(state.anchor_socket, SOCK_CLOEXEC,
-					 &fd))) {
+	    (rc = slurm_open_unix_stream(state.anchor_socket, 0, &fd))) {
 		debug("Failed to set up socket %s: %s",
 		      sock, slurm_strerror(rc));
 		goto cleanup;

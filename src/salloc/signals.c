@@ -34,7 +34,6 @@
 \*****************************************************************************/
 
 #include <signal.h>
-#include <sys/eventfd.h>
 
 #include "src/common/fd.h"
 #include "src/common/read_config.h"
@@ -46,6 +45,7 @@ pthread_mutex_t salloc_destroy_sig_lock = PTHREAD_MUTEX_INITIALIZER;
 int salloc_destroy_sig = 0;
 
 int salloc_sig_eventfd = -1;
+static int salloc_sig_eventfd_write = -1;
 
 #define SALLOC_SIGNALS \
 	X(SIGHUP, sighup) \
@@ -75,7 +75,7 @@ static void _on_signal(int signo)
 	 */
 	xassert(salloc_sig_eventfd != -1);
 
-	safe_write(salloc_sig_eventfd, &val, sizeof(uint64_t));
+	safe_write(salloc_sig_eventfd_write, &val, sizeof(uint64_t));
 	write_rc = SLURM_SUCCESS;
 rwfail:
 	if (write_rc != SLURM_SUCCESS)
@@ -124,10 +124,9 @@ SALLOC_SIGNALS
 
 extern void salloc_sig_init(void)
 {
-	if ((salloc_sig_eventfd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)) ==
-	    -1) {
-		fatal("Could not create eventfd for salloc signal handling: %m");
-	}
+	if (fd_event_create(&salloc_sig_eventfd,
+			    &salloc_sig_eventfd_write) < 0)
+		fatal("Could not create event channel for salloc signal handling: %m");
 
 #define X(sig, str) conmgr_add_work_signal(sig, _on_##str, NULL);
 	SALLOC_SIGNALS

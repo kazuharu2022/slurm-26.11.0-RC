@@ -1,0 +1,15 @@
+Checked independently after the driver completed on 2026-09-09 JST.
+
+Job 48: job and batch step COMPLETED, ExitCode=0:0
+Job 49: job and batch step COMPLETED, ExitCode=0:0
+squeue -j 48,49: header only
+PC-210: State=IDLE CPUAlloc=0 AllocMem=0 AllocTRES=
+SlurmdStartTime=2026-09-09T19:02:46
+pidfile=85145
+running_slurmd_pid=85145
+job48_or_job49_residual_processes=(none)
+
+PF post-state was captured by the root driver before exit:
+Status=Disabled
+references=none
+test-anchor-rules=(empty)

@@ -1,0 +1,9 @@
+Jobs 36-38: no rows in squeue
+
+NodeName=PC-210
+CPUAlloc=0
+State=IDLE
+AllocTRES=(empty)
+LastBusyTime=2026-09-09T17:47:08
+
+Mac process match for smd007 or slurmstepd: none

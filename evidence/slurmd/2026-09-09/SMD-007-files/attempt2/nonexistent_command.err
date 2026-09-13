@@ -1,0 +1,2 @@
+[2026-09-09T17:55:51.343] error: execve(): /tmp/slurm-smd007-20260909T175550/command-that-does-not-exist: No such file or directory
+srun: error: PC-210: task 0: Exited with exit code 2

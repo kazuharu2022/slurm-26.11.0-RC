@@ -1,0 +1,12 @@
+/tmp/slurm-smd001-fixed/smd007_launch_failure_driver.sh
+run_dir=/tmp/slurm-smd007-20260909T175550
+submitted case=nonexistent_command job_id=39
+finished job_id=39 wait_seconds=1
+case=nonexistent_command srun_rc=2
+submitted case=not_executable job_id=40
+finished job_id=40 wait_seconds=2
+case=not_executable srun_rc=13
+submitted case=missing_chdir job_id=41
+finished job_id=41 wait_seconds=3
+case=missing_chdir srun_rc=0
+error case=missing_chdir did not execute in /tmp fallback

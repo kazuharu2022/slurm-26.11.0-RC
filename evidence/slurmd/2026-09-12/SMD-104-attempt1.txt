@@ -1,0 +1,76 @@
+SMD-104 Attempt 1 raw evidence summary
+run_dir=/tmp/slurm-smd104-20260912T001759
+job_id=451
+driver_result=HARNESS_FALSE_NEGATIVE_BATCH_SPECIAL_STEP_ID
+
+[driver-terminal]
+run_dir=/tmp/slurm-smd104-20260912T001759 long_length=8192 long_sha256=51f7ed92a6a6d6480a3d4b7334f4aea3944b63c87a4ddfa69a613b3193eebbab client_node_addr=192.168.10.128
+submitted batch_job=451
+job_gone job_id=451 wait_seconds=1
+error: batch environment output mismatch
+recovery: no production configuration was changed; inspect run_dir=/tmp/slurm-smd104-20260912T001759
+
+[batch-451.out]
+mode=batch
+job_id=451
+step_id=-5
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+home=/Users/testuser
+path=/opt/slurm/26.11.0/bin:/usr/bin:/bin
+lang=ja_JP.UTF-8
+lc_all=ja_JP.UTF-8
+short=smd104-short-value
+unicode=環境伝播-確認
+empty_state=SET_EMPTY
+long_length=8192
+long_sha256=51f7ed92a6a6d6480a3d4b7334f4aea3944b63c87a4ddfa69a613b3193eebbab
+unset_state=ABSENT
+parent_only_state=ABSENT
+cwd=/private/tmp
+SMD104_PAYLOAD_PASS mode=batch
+
+[batch-451.err]
+(empty)
+
+[batch-accounting]
+451|testuser|COMPLETED|0:0|PC-210
+451.batch||COMPLETED|0:0|PC-210
+
+[output-metadata]
+/tmp/slurm-smd104-20260912T001759/output/batch-451.out 3001:3001:644 446
+/tmp/slurm-smd104-20260912T001759/output/batch-451.err 3001:3001:644 0
+
+[preflight]
+Slurmctld(primary) at ubuntu2504 is UP
+node_state=IDLE
+CPUAlloc=0
+AllocMem=0
+slurmd_start=2026-09-11T23:11:50
+client_node_addr=192.168.10.128
+client_parse=PASS
+
+[input-hash-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+0284ffb9011ef080a2f1ad0887131d0be3a38a857ba0b3abbb5f1298031b51bf  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd104_environment_payload.sh
+
+[independent-readback-after]
+production_config_sha256=9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2
+payload_sha256=0284ffb9011ef080a2f1ad0887131d0be3a38a857ba0b3abbb5f1298031b51bf
+pidfile=94504
+controller_node_queue_readback=NOT_AVAILABLE_FROM_CODEX_OBSERVER
+process_list_readback=NOT_AVAILABLE_FROM_CODEX_OBSERVER
+
+[source-analysis]
+SLURM_BATCH_SCRIPT=0xfffffffb=4294967291 unsigned=-5 signed
+src/common/env.c setup_env formats SLURM_STEP_ID with %d.
+doc/man/man5/slurm.conf.5 documents batch special ID as 4294967291.
+The format was retained when commit 87077e7c7d832b35753d2305bb34d6ee221ddcbd
+changed env_t from a signed stepid field to slurm_step_id_t in May 2026.
+Official master still used %d when checked on 2026-09-12.
+
+[scope]
+The controlled batch environment passed every SMD-104 value assertion except
+the harness-only batch step label expectation. Direct srun and final resource
+cleanup checks were not reached, so SMD-104 is not PASS.

@@ -1,0 +1,3 @@
+# macOS Metal does not expose the Apple GPU as a Unix device node.
+# /dev/null is a Slurm allocation placeholder, not a GPU isolation boundary.
+NodeName=PC-210 Name=gpu Type=apple File=/dev/null

@@ -1,0 +1,4 @@
+PC-210:etc root# sudo env SMD113_LAUNCHD_RECOVERY_CONFIRMED=YES /bin/sh \
+>   /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd113_launchd_precondition_recover.sh
+run_dir=/tmp/slurm-smd113-launchd-recovery-20260912T100630 mode=LAUNCHD_PRECONDITION_RECOVERY
+SMD113_LAUNCHD_PRECONDITION_ALREADY_READY pid=94504 start=2026-09-11T23:11:50 run_dir=/tmp/slurm-smd113-launchd-recovery-20260912T100630

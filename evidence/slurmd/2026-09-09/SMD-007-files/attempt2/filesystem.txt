@@ -1,0 +1,4 @@
+lrwxr-xr-x@ 1 root  wheel  11 May 21 17:57 /tmp -> private/tmp
+/private/tmp
+
+The first line is `ls -ld /tmp`. The second line is `(cd /tmp && /bin/pwd -P)`.

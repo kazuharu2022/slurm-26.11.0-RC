@@ -1,0 +1,65 @@
+SMD-126 Phase B configured runtime job and step contexts
+date=2026-09-11T20:53:30+0900
+classification=PASS_PHASE_B
+run_dir=/tmp/slurm-smd126-runtime-20260911T205330
+
+[driver-output]
+run_dir=/tmp/slurm-smd126-runtime-20260911T205330
+step_srun_rc=0
+job_gone job_id=380 wait_seconds=0
+step_runtime=PASS job_id=380 tasks=2 mpi=none identity=3001:3001
+submitted gres_job=381
+job_gone job_id=381 wait_seconds=1
+gres_runtime=PASS job_id=381 resource=gpu:apple:1 job_gpus=0 identity=3001:3001
+SMD126_PHASE_B_COMPLETE step_job=380 gres_job=381 loader_errors=0 slurmd_pid=75048 run_dir=/tmp/slurm-smd126-runtime-20260911T205330
+
+[step-stdout]
+record=step job_id=380 step_id=0 procid=0 localid=0 uid=3001 gid=3001 node=PC-210.local
+record=step job_id=380 step_id=0 procid=1 localid=1 uid=3001 gid=3001 node=PC-210.local
+
+[step-accounting]
+380|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,mem=256M,node=1
+380.0||COMPLETED|0:0|PC-210|cpu=2,mem=256M,node=1
+
+[gres-accounting]
+381|testuser|COMPLETED|0:0|PC-210|billing=1,cpu=1,mem=256M,node=1
+381.batch||COMPLETED|0:0|PC-210|cpu=1,mem=256M,node=1
+
+[worker-log-delta]
+[2026-09-11T20:53:30.698] launch task StepId=380.0 request from UID:3001 GID:3001 HOST:192.168.10.128 PORT:53361
+[2026-09-11T20:53:30.761] [380.0] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T20:53:31.377] [380.0] done with step
+[2026-09-11T20:53:31.864] Launching batch JobId=381 SLUID=sCT1M2851N9E00 for UID 3001
+[2026-09-11T20:53:31.928] [381.batch] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-11T20:53:32.262] [381.batch] done with step
+
+[cross-check]
+controller_before=UP
+node_before=IDLE CPUAlloc:0 AllocMem:0 Gres:gpu:apple:1
+node_after=IDLE CPUAlloc:0 AllocMem:0 Gres:gpu:apple:1
+slurmd_pid_before_after=75048
+srun_stderr_bytes=0
+step_sacct_stderr_bytes=0
+gres_sacct_stderr_bytes=0
+loader_errors=0
+slurmstepd_before=0
+slurmstepd_after=0
+residual_test_processes=0
+production_config_sha256=a820719e43f0f31acb2be8bceb87c279d79b330dd8e4b817a88adafba6022167
+client_config_sha256=0173a9abacc4035a74da0516e992f2cfeebb0bbfd114db6a34ceff1569bbaa8d
+
+[separate-observation-for-SMD-203]
+requested_gres=gpu:apple:1
+payload_SLURM_JOB_GPUS=0
+sacct_AllocTRES_contains_gres_gpu=NO
+classification=OBSERVED_ACCOUNTING_GAP_REQUIRES_SMD203
+
+[evidence-boundary]
+mpi_none_step_runtime=PASS
+gres_allocation_runtime=PASS
+pmi2_pmix_runtime=NOT_RUN
+gpu_exclusivity_performance_isolation=NOT_RUN
+all_installed_plugin_runtime_contexts=NOT_RUN
+
+driver_sha256=6cc9b21b9ff9d55f740067c5d9438c407b2db7624678d934fbb49de902760d3b
+result=PASS_PHASE_B

@@ -1,0 +1,89 @@
+SMD-105 final evidence
+run_dir=/tmp/slurm-smd105-20260912T003041
+jobs=454,455,456
+slurmd_pid=94504
+result=PASS
+
+[case=inherited022]
+mode=inherited
+requested_umask=022
+actual_umask=0022
+normalized_umask=022
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+slurm_stdout=owner=3001:3001 mode=644 size=423
+slurm_stderr=owner=3001:3001 mode=644 size=0
+created_file=owner=3001:3001 mode=644 size=19
+created_dir=owner=3001:3001 mode=755 size=96
+nested_file=owner=3001:3001 mode=644 size=18
+payload_marker=SMD105_PAYLOAD_PASS case=inherited022 umask=022
+accounting_job=454|testuser|COMPLETED|0:0|PC-210
+accounting_batch=454.batch||COMPLETED|0:0|PC-210
+
+[case=explicit027]
+mode=explicit
+requested_umask=027
+actual_umask=0027
+normalized_umask=027
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+slurm_stdout=owner=3001:3001 mode=640 size=418
+slurm_stderr=owner=3001:3001 mode=640 size=0
+created_file=owner=3001:3001 mode=640 size=19
+created_dir=owner=3001:3001 mode=750 size=96
+nested_file=owner=3001:3001 mode=640 size=18
+payload_marker=SMD105_PAYLOAD_PASS case=explicit027 umask=027
+accounting_job=455|testuser|COMPLETED|0:0|PC-210
+accounting_batch=455.batch||COMPLETED|0:0|PC-210
+
+[case=explicit077]
+mode=explicit
+requested_umask=077
+actual_umask=0077
+normalized_umask=077
+actual_user=testuser
+actual_uid=3001
+actual_gid=3001
+slurm_stdout=owner=3001:3001 mode=600 size=418
+slurm_stderr=owner=3001:3001 mode=600 size=0
+created_file=owner=3001:3001 mode=600 size=19
+created_dir=owner=3001:3001 mode=700 size=96
+nested_file=owner=3001:3001 mode=600 size=18
+payload_marker=SMD105_PAYLOAD_PASS case=explicit077 umask=077
+accounting_job=456|testuser|COMPLETED|0:0|PC-210
+accounting_batch=456.batch||COMPLETED|0:0|PC-210
+
+[input-hashes-before]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+37bafc64d89d6eda2f3716453157493a66d279d93e04b3d396fcc1b9d4c4c8f2  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd105_umask_payload.sh
+
+[input-hashes-after]
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+37bafc64d89d6eda2f3716453157493a66d279d93e04b3d396fcc1b9d4c4c8f2  /Users/REDACTED_USER/dev/slurm.26-05/contribs/macos-tests/smd105_umask_payload.sh
+inputs.diff_size=0
+
+[node-before]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T23:11:50
+
+[node-final]
+State=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+SlurmdStartTime=2026-09-11T23:11:50
+
+[cleanup]
+queue=empty
+slurmstepd_before=none
+slurmstepd_final=none
+residual_processes=none
+slurmd_pid_unchanged=94504
+
+[terminal]
+SMD105_UMASK_COMPLETE jobs=454,455,456 slurmd_pid=94504 cases=3 production_unchanged=PASS run_dir=/tmp/slurm-smd105-20260912T003041

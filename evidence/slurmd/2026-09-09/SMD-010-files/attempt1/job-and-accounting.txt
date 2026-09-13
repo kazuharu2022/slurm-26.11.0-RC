@@ -1,0 +1,27 @@
+[job-marker]
+batch_pid=89630
+child_pid=89632
+start_epoch=1788950042
+complete
+
+[job-stdout]
+ready batch_pid=89630 child_pid=89632 job_id=48
+workload_complete batch_pid=89630 child_pid=89632 rc=0 epoch=1788950050
+
+[job-stderr]
+(empty)
+
+[target-accounting]
+JobID|JobName|User|State|ReqTRES|AllocTRES|Submit|Start|End|Elapsed|ExitCode|NodeList
+48|smd010-outage|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=18,cpu=18,mem=1G,node=1|2026-09-09T19:34:01|2026-09-09T19:34:01|2026-09-09T19:34:16|00:00:15|0:0|PC-210
+48.batch|batch||COMPLETED||cpu=18,mem=1G,node=1|2026-09-09T19:34:01|2026-09-09T19:34:01|2026-09-09T19:34:16|00:00:15|0:0|PC-210
+
+[post-smoke-accounting]
+49|smd010-post-smoke|testuser|COMPLETED|billing=1,cpu=1,mem=1G,node=1|billing=1,cpu=1,mem=1G,node=1|2026-09-09T19:34:17|2026-09-09T19:34:20|2026-09-09T19:34:20|00:00:00|0:0|PC-210
+49.batch|batch||COMPLETED||cpu=1,mem=1G,node=1|2026-09-09T19:34:20|2026-09-09T19:34:20|2026-09-09T19:34:20|00:00:00|0:0|PC-210
+
+[post-smoke-stdout]
+PC-210.local
+
+[post-smoke-stderr]
+(empty)

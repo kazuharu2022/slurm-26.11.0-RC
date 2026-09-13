@@ -1,0 +1,42 @@
+[2026-09-09T18:24:36.805] debug:  Log file re-opened
+[2026-09-09T18:24:36.805] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-09T18:24:36.810] debug:  _plugrack_foreach: serializer plugin type:serializer/json path:/opt/slurm/26.11.0/lib/slurm/serializer_json.so
+[2026-09-09T18:24:36.810] debug:  _plugrack_foreach: serializer plugin type:serializer/url-encoded path:/opt/slurm/26.11.0/lib/slurm/serializer_url_encoded.so
+[2026-09-09T18:24:36.810] debug:  auth/slurm: init: running as daemon
+[2026-09-09T18:24:36.810] debug:  auth/slurm: init_internal: loading key: `/opt/slurm/26.11.0/etc/slurm.key`
+[2026-09-09T18:24:36.811] debug:  atomic_log_features: _Atomic enabled: bool=lock-free char=lock-free char16=lock-free char32=lock-free wchar=lock-free short=lock-free int=lock-free long=lock-free llong=lock-free pointer=lock-free char8=N/A
+[2026-09-09T18:24:36.811] debug:  auth/slurm: init: loaded: internal=true, use_client_ids=false
+[2026-09-09T18:24:36.811] debug:  hash/k12: init: init: KangarooTwelve hash plugin loaded
+[2026-09-09T18:24:36.812] debug:  tls/none: init: tls/none loaded
+[2026-09-09T18:24:36.812] warning: Running with local config file despite slurmctld having been setup for configless operation
+[2026-09-09T18:24:36.812] debug2: hwloc_topology_init
+[2026-09-09T18:24:36.812] debug2: hwloc_topology_load
+[2026-09-09T18:24:36.812] debug2: _check_full_access: got full access to the cpuset topology
+[2026-09-09T18:24:36.812] debug:  CPUs:18 Boards:1 Sockets:1 CoresPerSocket:18 ThreadsPerCore:1
+[2026-09-09T18:24:36.813] debug:  gres/gpu: init: loaded
+[2026-09-09T18:24:36.813] debug:  gpu/generic: init: init: GPU Generic plugin loaded
+[2026-09-09T18:24:36.813] Gres Name=gpu Type=apple Count=1 Flags=HAS_FILE,HAS_TYPE,ENV_NVML,ENV_RSMI,ENV_ONEAPI,ENV_OPENCL,ENV_DEFAULT
+[2026-09-09T18:24:36.813] debug:  gpu/generic: fini: fini: unloading GPU Generic plugin
+[2026-09-09T18:24:36.813] debug:  conf_parse: stat(/opt/slurm/26.11.0/etc/topology.yaml) failed: No such file or directory
+[2026-09-09T18:24:36.814] topology/flat: init: topology Flat plugin loaded
+[2026-09-09T18:24:36.814] CPU frequency setting not configured for this node
+[2026-09-09T18:24:36.814] error: _core_spec_init: not supported on macOS
+[2026-09-09T18:24:36.814] debug:  Resource spec: Reserved system memory limit not configured for this node
+[2026-09-09T18:24:36.815] debug:  spank: opening plugin stack /opt/slurm/26.11.0/etc/plugstack.conf
+[2026-09-09T18:24:36.815] compress/none: init: Null compression plugin loaded
+[2026-09-09T18:24:36.815] warning: Core limit is only 0 KB
+[2026-09-09T18:24:36.815] slurmd version 26.11.0-0rc1 started
+[2026-09-09T18:24:36.815] debug2: No acct_gather.conf file (/opt/slurm/26.11.0/etc/acct_gather.conf)
+[2026-09-09T18:24:36.816] debug:  MPI: Loading all types
+[2026-09-09T18:24:36.817] debug2: No mpi.conf file (/opt/slurm/26.11.0/etc/mpi.conf)
+[2026-09-09T18:24:36.818] debug:  job_mem_limit_init: disabled
+[2026-09-09T18:24:36.818] debug:  job_mem_limit_init: enabled
+[2026-09-09T18:24:36.818] slurmd started on Wed, 09 Sep 2026 18:24:36 +0900
+[2026-09-09T18:24:36.819] debug:  Couldn't find the specified plugin name for http_parser/llhttp_parser looking at all files
+[2026-09-09T18:24:36.819] debug:  cannot find http_parser plugin for http_parser/llhttp_parser
+[2026-09-09T18:24:36.819] debug:  Couldn't find the specified plugin name for http_parser/libhttp_parser looking at all files
+[2026-09-09T18:24:36.820] debug:  cannot find http_parser plugin for http_parser/libhttp_parser
+[2026-09-09T18:24:36.820] error: cannot create http_parser context for http_parser/llhttp_parser, http_parser/libhttp_parser
+[2026-09-09T18:24:36.820] debug:  Listening for HTTP requests disabled: Unable to load http_parser plugin: Unspecified error
+[2026-09-09T18:24:36.820] CPUs=18 Boards=1 Sockets=1 Cores=18 Threads=1 Memory=131072 TmpDisk=3809885 Uptime=2801973 CPUSpecList=(null) FeaturesAvail=(null) FeaturesActive=(null)
+[2026-09-09T18:24:36.834] debug:  _handle_node_reg_resp: slurmctld sent back 8 TRES.
