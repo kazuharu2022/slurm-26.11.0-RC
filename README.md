@@ -1,5 +1,32 @@
 # Slurm Workload Manager
 
+## このフォークについて（Apple Metal GPU対応PoC）
+
+このフォークで加えた修正は、Slurm 26.11.0-0rc1をベースに、Apple
+Silicon搭載macOSノードでApple Metal GPUワークロードをSlurmから扱えるように
+するための実験的な修正です。主な対象はmacOS上の`slurmd` / `slurmstepd`と
+クライアント経路で、コントローラの`slurmctld`および`slurmdbd`はUbuntu上で
+動作させています。SchedMD公式のmacOS対応版ではありません。
+
+Apple GPUをGRESとして要求したジョブの排他スケジューリング、解放、accounting、
+MLX/Metalによる計算、反復実行などは実機で確認しています。ただし、この検証は
+完全ではなく、本フォークをLinux版と同等のproduction-ready実装とは位置付けて
+いません。特に次の制約・未検証事項があります。
+
+- macOSにはLinux cgroup相当のCPU・メモリ・デバイス強制隔離がありません。
+- GPU GRESの`File=/dev/null`は台数管理用のplaceholderであり、Metalデバイスを
+  Slurm外のプロセスから隔離するものではありません。
+- UID/GID不一致時のfail-closed動作、TLSの実運用経路、clean sourceからの再現、
+  Linux側の完全な回帰試験などは未完了です。
+- `PASS_STAGING`や個別フェーズの成功は、production構成全体の成功を意味しません。
+
+テスト結果は成功例だけでなく、失敗、復旧、未実施項目も含めて保存しています。
+
+- [macOS移植の修正内容・実測結果・制約](doc/slurm_macos_porting_change_summary.md)
+- [61項目のテスト計画・判定・実行履歴](doc/slurmd_macos_unverified_test_list.md)
+- [テストごとの記録と生ログ](evidence/slurmd/)
+- [公開候補文書のEvidence品質レビュー](evidence/slurmd/2026-09-12/article-quality-review.md)
+
 This is the Slurm Workload Manager. Slurm is an open-source cluster
 resource management and job scheduling system that strives to be simple,
 scalable, portable, fault-tolerant, and interconnect agnostic. Slurm
