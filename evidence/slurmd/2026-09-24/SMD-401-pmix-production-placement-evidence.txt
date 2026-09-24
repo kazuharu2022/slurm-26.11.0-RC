@@ -1,0 +1,99 @@
+# SMD-401 PMIx 6.1.0 production plugin placement evidence
+
+local_date=2026-09-24
+host=PC-210
+production_prefix=/opt/slurm/26.11.0
+scope=plugin placement and client-side plugin discovery only
+
+[authorization boundary]
+authorized=production placement of mpi_pmix_v6.so and mpi_pmix.so
+daemon_restart=NO
+job_submission=NO
+PMIx job runtime=NOT_RUN
+
+[before]
+mpi_pmix_v6.so=ABSENT
+mpi_pmix.so=ABSENT
+candidate architecture=Mach-O 64-bit bundle arm64
+candidate sha256=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+candidate PMIx library name=libpmix.2.dylib
+candidate Linux PMIx library name=ABSENT
+
+[failed direct sudo attempt]
+command result=sudo: a password is required
+production change=NO
+recovery=macOS administrator authentication was used after user approval
+
+[installer result]
+SMD401_PMIX_PRODUCTION_INSTALL_COMPLETE
+production_plugin_sha256=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+generic_pmix=LISTED
+pmix_v6=LISTED
+daemon_restart=NO
+job_submission=NO
+run_dir=/private/tmp/slurm-smd401-pmix-production-install.aX4Sef
+
+[installed paths]
+/opt/slurm/26.11.0/lib/slurm/mpi_pmix_v6.so
+  owner=root group=wheel mode=0755 size=178272
+  sha256=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+  file=Mach-O 64-bit bundle arm64
+/opt/slurm/26.11.0/lib/slurm/mpi_pmix.so
+  owner=root group=wheel
+  symlink=./mpi_pmix_v6.so
+
+[installer srun --mpi=list]
+stderr_bytes=0
+MPI plugin types are...
+    none
+    cray_shasta
+    pmix
+    pmi2
+specific pmix plugin versions available: pmix_v6
+
+[independent srun --mpi=list readback]
+stderr_bytes=0
+MPI plugin types are...
+    none
+    cray_shasta
+    pmix
+    pmi2
+specific pmix plugin versions available: pmix_v6
+
+[daemon identity]
+slurmd_pid_before=70710
+slurmd_pid_after=70710
+slurmd_pid_current=70710
+before_after=MATCH
+
+[unchanged production inputs]
+srun sha256 before=0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9
+srun sha256 after=0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9
+slurm.conf sha256 before=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+slurm.conf sha256 after=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+
+[evidence access correction]
+The root-run installer initially created its run directory with mode 0700.
+The first non-root evidence readback therefore failed with permission denied.
+The exact temporary run directory was changed to a+rX after authentication.
+The installer was corrected to make future success and failure evidence readable.
+No production Slurm file was changed by this evidence-access correction.
+
+[fixture hashes]
+6c1a0b3f1c079dfc7ffeb94ac10338b8e5e1182c12f6a07a67ad1c26fb7375de
+  contribs/macos-tests/smd401_pmix_production_install.sh
+d00180895f02db64c50e6fdc9a2cc3ce87a8cc462c22714bd29047747d4061f3
+  src/plugins/mpi/pmix/mpi_pmix.c
+
+[classification]
+production_plugin_placement=PASS
+production_client_plugin_discovery=PASS
+PMIx job runtime=NOT_RUN
+external MPI implementation=NOT_RUN
+SMD-401=PARTIAL_PASS_PMI2
+PMIx phase=PRODUCTION_PLUGIN_PLACEMENT_PASS_AWAITING_JOB_RUNTIME_APPROVAL
+
+[next approval boundary]
+PMIx_Init/Fence job submission, success/cancel accounting, process and resource
+cleanup, final node/queue/PID readback, and rollback or retention decision are
+not authorized or executed by this phase.

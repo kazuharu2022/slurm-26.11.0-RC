@@ -63,6 +63,7 @@
 #include "src/common/stepd_api.h"
 #include "src/common/stepd_proxy.h"
 #include "src/common/threadpool.h"
+#include "src/common/uid.h"
 #include "src/common/workerpool.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
@@ -644,6 +645,33 @@ static void _main_thread_init(void)
  */
 static int _validate_step(void)
 {
+#ifdef __APPLE__
+	uid_t local_uid = SLURM_AUTH_NOBODY;
+	gid_t local_gid = (gid_t) -1;
+
+	/*
+	 * Darwin permits seteuid()/setegid() with numeric IDs that have no local
+	 * account.  Do not launch a credential under an unmapped or differently
+	 * mapped local identity.  This check is intentionally macOS-only so the
+	 * Linux nss_slurm path can continue to provide identities from the job
+	 * credential when compute nodes do not have local passwd entries.
+	 */
+	if (!step->user_name ||
+	    (uid_from_string(step->user_name, &local_uid) != SLURM_SUCCESS)) {
+		error("Refusing to launch %ps: credential user %s has no local macOS identity",
+		      &step->step_id, step->user_name ? step->user_name : "(null)");
+		return SLURM_ERROR;
+	}
+
+	local_gid = gid_from_uid(local_uid);
+	if ((local_uid != step->uid) || (local_gid != step->gid)) {
+		error("Refusing to launch %ps: credential identity %s(%u:%u) does not match local macOS identity (%u:%u)",
+		      &step->step_id, step->user_name, step->uid, step->gid,
+		      local_uid, local_gid);
+		return SLURM_ERROR;
+	}
+#endif
+
 	/*
 	 * --wait-for-children is only supported by the cgroup proctrack plugin.
 	 */

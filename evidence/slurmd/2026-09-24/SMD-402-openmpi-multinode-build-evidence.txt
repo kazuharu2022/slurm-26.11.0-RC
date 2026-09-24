@@ -1,0 +1,173 @@
+# SMD-402 Open MPI multi-node extension — isolated dual-architecture build
+
+- date: 2026-09-24 12:32–12:48 JST
+- classification: `ISOLATED_DUAL_ARCH_BUILD_PASS / AWAITING_MULTINODE_RUNTIME_APPROVAL`
+- base SMD-402 shell runtime: `PASS`（変更なし）
+- production install/config change: none
+- daemon restart/reconfigure: none
+- Slurm job submission: none
+- MPI application runtime: not executed
+
+## 承認範囲
+
+明示承認されたPhase 1だけを実施した。公式Open MPI 5.0.11 sourceを固定SHAで取得し、
+Mac arm64とUbuntu x86_64へarchitecture-nativeにbuildする。変更先は両hostの
+`/tmp/smd402-openmpi-5.0.11`だけとし、production prefix、Slurm config、daemon、jobには
+触れない。multi-node runtimeはPhase 2として別承認に残す。
+
+## 固定入力
+
+```text
+archive=openmpi-5.0.11.tar.bz2
+URL=https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.11.tar.bz2
+expected_SHA256=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+actual_SHA256_mac=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+actual_SHA256_ubuntu=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+logical_prefix=/tmp/smd402-openmpi-5.0.11/install
+probe_source_SHA256=79d5286b762c0c12c7e2e14c241621bfa95946bdac22060547f96aebe0c67680
+attempt2_executed_builder_SHA256=cafbeb800e762a9c090b093f4671f500980aab70a842fa4ba0477e8f14ff7625
+current_builder_SHA256=0551b7667e4b8a92d36a1edf871661c06fc82e3aaa313bf5ed757f431765a8ee
+```
+
+current builderはAttempt 2後の独立readbackで判明した`pmix_info`/`prte_info`の情報表示方法を
+反映した。build/configure動作はAttempt 2実行版から変更せず、空出力だった`--version`を通常の
+情報表示へ置き換え、PMIx/PRRTE exact version validatorを追加した。
+
+## 共通configure
+
+両hostの`ompi_info --all`から次の同一command lineを読み戻した。
+
+```text
+--prefix=/tmp/smd402-openmpi-5.0.11/install
+--with-hwloc=internal
+--with-libevent=internal
+--with-pmix=internal
+--with-prrte=internal
+--without-munge
+--enable-mpi-fortran=no
+--disable-oshmem
+```
+
+Open MPI 5.0.11、同梱PMIx 5.0.11rc1（repo revision v5.0.11）、PRRTE 3.0.14は
+両hostで一致した。PMIxの`Unreleased developer copy`表示は公式Open MPI 5.0.11 tarballに
+同梱されたsource自身のversion文字列であり、両buildで同一である。hwloc sourceは2.7.1、
+Libevent sourceは2.1.12-stable-ompi。`Heterogeneous support: no`も両hostで同じである。
+
+## Attempt 1 — build成功 / validator false negative / optional dependency差分
+
+初版は両hostでdownload、SHA検証、configure、compile、install、probe build、version/linkage
+取得まで完了した。その後のvalidatorが実出力`mpirun (Open MPI) 5.0.11`に対し括弧を含まない
+文字列を要求したため、両hostとも`mpirun version mismatch`で停止した。これはbuild failureでは
+なくvalidator false negativeである。
+
+独立linkage readbackではUbuntuだけがsystem `libmunge.so.2`を自動検出し、MacにはMUNGE依存が
+なかった。mixed OS runtimeの交絡要因になるため、Attempt 1をPASSに昇格しなかった。
+
+Attempt 1は削除せず次へ保持した。
+
+```text
+Mac=/tmp/smd402-openmpi-5.0.11-attempt1-validator-munge 621M
+Ubuntu=/tmp/smd402-openmpi-5.0.11-attempt1-validator-munge 602M
+```
+
+## Attempt 2 — PASS
+
+validatorを実出力に合わせ、両hostへ`--without-munge`を追加して同じlogical prefixを再buildした。
+両scriptは次の完了markerを返した。
+
+```text
+SMD402_OPENMPI_ISOLATED_BUILD_COMPLETE
+Mac: host=PC-210.local os=Darwin architecture=arm64 version=5.0.11
+Ubuntu: host=ubuntu2504 os=Linux architecture=x86_64 version=5.0.11
+archive_sha256=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+prefix=/tmp/smd402-openmpi-5.0.11/install
+production=UNCHANGED_BY_BUILD_SCRIPT
+```
+
+### Native artifacts
+
+```text
+Mac mpirun: Mach-O 64-bit executable arm64
+Mac probe: Mach-O 64-bit executable arm64
+Ubuntu mpirun: ELF 64-bit LSB PIE executable x86-64
+Ubuntu probe: ELF 64-bit LSB PIE executable x86-64
+```
+
+critical artifact SHA-256はarchitectureごとに次となった。native binaryはarchitectureとOSが
+異なるためhash一致を要求しない。入力source、version、configure、logical pathの一致を要求する。
+
+```text
+Mac mpirun=dadc7d4b2e34618b8874d37467ed17f60031daecf3c408687bed118660dc8028
+Mac libmpi.40.dylib=1b315f34e7f7cffa46184a3a317b8ed4d726f585937326643d9f69538f34917d
+Mac libpmix.2.dylib=51486ccc1cd714caba4fb1adc8615eea6d257f8be4a8e8f3e12ddefc9473660b
+Mac probe=729013548cb1ac3bf524a765ba74a75c044bcd06768ec7bc7f1bec5b32da26cf
+Ubuntu mpirun=3107df430fbed933f555510a4d972497c0a4bb6bb57134d59e0d356bff038c6d
+Ubuntu libmpi.so.40=cca982eb7b4cd7f82b6da66d45853fd3c35a8680a0bf96aee9685b312607697f
+Ubuntu libpmix.so.2=23c9680c5e7a589eb7f4291acd8509c485b43351a651f5d4d57a36241a9ad0d6
+Ubuntu probe=1bcee4f3c229138ad53b9fa3ce17e0e6bfbcbb1382157349b83ed732d3284efd
+```
+
+Macの`mpirun`、`prted`、`libmpi`、`libpmix`は`/tmp` prefix内のPMIx、Libevent、hwlocへ
+linkした。Ubuntuも同じlogical prefix内のELF libraryへlinkした。両側とも`libmunge`と
+Mac Homebrew prefixへのlinkageは0件だった。
+
+prefix/bin/probeは両hostでmode 0755、全親directoryは0755。Ubuntuでは
+`sudo -n -u testuser test -x`が`mpirun`とprobeの双方でPASSした。Macはmodeと全親directoryの
+other execute/readを確認した。実際のSlurm taskとしてのtestuser実行はPhase 2で測る。
+
+### warning / failure retention
+
+全build/install commandはexit 0、probe compile stderrは両hostとも0 bytesだった。
+
+```text
+Mac configure.err: 89 lines, warning lines 19, error/fatal lines 0
+Mac make.err: 71 lines, warning lines 17, error/fatal lines 0
+Mac install.err: 6 lines, warning lines 6, error/fatal lines 0
+Ubuntu configure.err: 89 lines, warning lines 19, error/fatal lines 0
+Ubuntu make.err: 386 lines, warning lines 18, error/fatal lines 0
+Ubuntu install.err: 12 lines, warning lines 12, error/fatal lines 0
+```
+
+主なwarningは同梱Libevent/hwlocのcompiler warning、GNU arの`u`無視、Makefileの
+`check-recursive` recipe上書き、install時libtool relinkである。exit 0、artifact/linkage/version
+readback PASSと分離して残す。warning 0とは扱わない。
+
+Attempt 2の隔離領域はMac 621M、Ubuntu 602M。Attempt 1と合わせて約2.4 GiBを両host合計で
+保持している。削除は本Phaseに含めず、runtime Evidence確定後のcleanup候補とする。
+
+## Production不変と最終状態
+
+### Mac
+
+```text
+slurm.conf=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+slurmd=a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+mpi_pmix_v6.so=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+launchd state=running pid=41674 last_exit=0
+```
+
+全hashとPIDはbuild前後で一致した。
+
+### Ubuntu
+
+```text
+slurm.conf=1e6c257b82aa82e507eb710a3e37690ffcfd7b402cb2b33fde53ed9bb1651c68
+slurmd=2c445fdf614b0554aa76f7b0df272ec6c0ea8af456736b3fa66a28a41847ed14
+slurmctld=834e8968209e0a989cf4bbdb917d14a5f0ae41b0db253aeb3ad7b9b458972c70
+slurmctld MainPID=197928 active
+slurmd MainPID=198005 active
+```
+
+全hash、PID、active stateはbuild前後で一致した。
+
+最終readbackではcontroller UP、PC-210/ubuntuともIDLE、CPUAlloc/AllocMem 0、AllocTRES空、
+queue空、isolated `mpirun`/`prted`/probe残留process 0、Ubuntuの5 services activeだった。
+
+## 判定と停止条件
+
+Phase 1を`ISOLATED_DUAL_ARCH_BUILD_PASS`とする。これは両architectureで同じ公式source、version、
+required support library構成、logical prefixからnative artifactを作成できたことのPASSである。
+
+MPI rank間通信、Slurm allocation内`mpirun`、1 rank/node、testuser実行、success/cancel、accounting、
+両host process/resource回収は未測定であり、SMD-402 Open MPI extension全体のruntime PASSではない。
+次はPhase 2 runtimeの明示承認待ちとする。

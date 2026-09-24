@@ -1,0 +1,82 @@
+SMD-407 macOS TLS client diagnosis
+date=2026-09-22
+scope=no jobs; Ubuntu temporary TLS cutover; Mac client-only probe; Mac daemon untouched on client failure; restore both hosts to tls/none
+
+[preflight]
+ubuntu_slurm_conf_sha256=56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f
+ubuntu_slurmdbd_conf_sha256=698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29
+ubuntu_tls_runtime_state=ABSENT
+ubuntu_effective_tls=tls/none
+ubuntu_services=enabled,active
+nodes=PC-210:idle:0/18,ubuntu:idle:0/8
+queue=EMPTY
+mac_slurm_conf_sha256=9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2
+mac_slurmd_pid=47839
+
+[diagnostic driver]
+path=contribs/macos-tests/smd407_macos_tls_diagnose.sh
+sha256=e77b8fc20972b2c482c172b8dc4ee17cd8086563f29ff7dbcd2c5c1f49b1d997
+syntax=/bin/sh -n PASS
+job_commands=ABSENT
+
+[harness preflight failure retained]
+error: missing command=/bin/find
+classification=HARNESS_PATH_ERROR_BEFORE_NETWORK_CONFIG_DAEMON_OR_JOB_ACTION
+correction=/usr/bin/find
+
+[Ubuntu TLS apply]
+mode=apply run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260922T223454
+node_idle phase=tls node=ubuntu wait_seconds=0
+SMD407_UBUNTU_TLS_APPLY_COMPLETE tls=tls/s2n disable_http=PASS services=ACTIVE ubuntu=IDLE mac_transition=EXPECTED state=/usr/local/slurm/26.11.0/.smd407-ubuntu-tls-runtime.env run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260922T223454
+
+[Mac non-root client probe]
+run_dir=/tmp/slurm-smd407-mac-tls-diagnose-client-20260922T223558
+client_ping_rc=1
+client_ping_stdout_bytes=0
+client_ping_stderr:
+: error: run_command: (null) can not be executed (/dev/fd/3) Permission denied
+: error: certgen/script: '/dev/fd/3' returned rc 127. stdout+stderr from script:
+Run command failed - configuration error
+: error: certgen/script: Unable to generate private key
+: error: Failed to generate self signed certificate and private key
+: error: Could not load self-signed TLS certificate
+: fatal: failed to initialize tls plugin
+
+[Mac client inputs]
+openssl_version=LibreSSL 3.3.6
+openssl_sha256=517827f877751b6d7abebe404a296fa8e82425c63694a73ab06db35e6d9a8362
+tls_s2n_sha256=f1b17c47b94c6ea3a86478a4f35493b30dff1f2d0941a45490e63381dd23cfa3
+certgen_script_sha256=d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1
+libs2n_sha256=b0d957ad211cdeaaa996795b04c2dbe3238575b1b37f17719758b75c434c894a
+ca_cert_sha256=81cd8e34b97651d29c7b2ec03958bc0931fefff84319cccd4a1a9154dd855f6a
+client_config=DebugFlags:Power,TLS;CommunicationParameters:disable_http;CertgenType:certgen/script;TLSType:tls/s2n
+
+[classification]
+client_failure_boundary=certgen/script internal key-generation script execution
+confirmed_error=Darwin mkstemp fallback left the generated script mode non-executable; run_command access(R_OK|X_OK) rejected /dev/fd/3 with EACCES before openssl ran
+controller_tls_handshake=NOT_REACHED
+mac_daemon_tls_switch=SKIPPED_BY_GATE
+jobs=NOT_SUBMITTED
+status=FAIL_CERTGEN_TEMP_SCRIPT_NOT_EXECUTABLE_MACOS_RECOVERED
+
+[Ubuntu restore]
+mode=restore run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260922T223633
+node_idle phase=restored node=ubuntu wait_seconds=0
+node_idle phase=restored node=PC-210 wait_seconds=4
+SMD407_UBUNTU_TLS_RESTORE_COMPLETE tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY production_restored=PASS inactive_artifacts=RETAINED run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260922T223633 apply_run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260922T223454
+
+[final readback]
+ubuntu_slurm_conf_sha256=56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f
+ubuntu_slurmdbd_conf_sha256=698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29
+ubuntu_slurmdbd_pidfile=/run/slurmdbd/slurmdbd.pid
+ubuntu_slurmdbd_pid=95567
+ubuntu_tls_runtime_state=ABSENT
+ubuntu_effective_tls=tls/none
+ubuntu_services=enabled,active
+nodes=PC-210:idle:0/18,ubuntu:idle:0/8
+queue=EMPTY
+mac_slurm_conf_sha256=9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2
+mac_slurmd_pid=47839
+mac_launchd_state=running
+mac_slurmd_last_exit_code=0
+controller=UP

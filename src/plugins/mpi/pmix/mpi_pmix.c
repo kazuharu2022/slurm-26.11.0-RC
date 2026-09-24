@@ -115,7 +115,11 @@ static void *_libpmix_open(void)
 #ifdef PMIXP_LIBPATH
 	xstrfmtcat(full_path, "%s/", PMIXP_LIBPATH);
 #endif
+#if defined(__APPLE__)
+	xstrfmtcat(full_path, "libpmix.2.dylib");
+#else
 	xstrfmtcat(full_path, "libpmix.so.2");
+#endif
 
 	lib_plug = dlopen(full_path, RTLD_LAZY | RTLD_GLOBAL);
 	xfree(full_path);

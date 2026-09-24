@@ -4,12 +4,16 @@
 - Slurm: `26.11.0-0rc1`
 - controller/database: Ubuntu 24.04 / x86-64上の `slurmctld`・`slurmdbd`
 - 作成日: 2026-09-09
-- 現在の進捗: SMD-001～SMD-007とSMD-012～SMD-013は`PASS_STAGING`、
-  SMD-008～SMD-011とSMD-014は`PASS`。SMD-014はproduction takeover、clean restart、
+- 現在の進捗: SMD-001～SMD-016は全て`PASS`。SMD-001～SMD-007とSMD-012～SMD-013も
+  2026-09-23にproduction構成で再検証した。SMD-014はproduction takeover、clean restart、
   KeepAlive restart、実機reboot後のRunAtLoad、post-reboot Job 63、資源解放まで成功。
   SMD-015はidle時とjob実行中のsleep/wakeを完了し`PASS`。SMD-016は24時間・288 jobの
-  連続運転を完走し`PASS`。SMD-101も`PASS`。SMD-102はUID/GID不一致でpayloadが実行されたため
-  `BLOCKED_SECURITY_SKIPPED`とし、修正を保留。node hook系のSMD-120は`PASS`、SMD-121は
+  連続運転を完走し`PASS`。SMD-101も`PASS`。SMD-102は2026-09-22にmacOS限定のlocal
+  identity照合をproduction candidateへ反映し、不一致Job 620のpayload未実行・明確な拒否logと、
+  一致Job 621の正常完了を確認して`PASS`。さらに固定HEADのclean rebuild/staging、本番readback、
+  不一致Job 622、一致Job 623を再確認した。Ubuntu分離buildも成功したが、`make check`で実行された
+  testは1件だけであり、広範なLinux runtime regressionとcommit provenanceはrelease作業として
+  未完了。node hook系のSMD-120は`PASS`、SMD-121は
   Prolog非0終了とtimeoutの両Phaseを完了し、SMD-121も`PASS`。SMD-122もEpilog非0終了と
   timeoutの両Phaseを完了し`PASS`。SMD-123は初回のshort-name解決failureをdriver専用
   numeric NodeAddrで分離し、2-taskのTaskProlog/TaskEpilogを完了して`PASS`。SMD-124は
@@ -68,7 +72,23 @@
   SMD-113 Phase Aは64 MiB隔離volumeで`dd`/`mkdir`のENOSPC、容量解放後の回復、
   detach・残留0・production不変を確認してPASS。Phase Bは隔離spoolのENOSPC、payload未実行、
   DRAIN、production launchd復帰、後続Job、資源・process・volume残留0まで確認してPASS。
-  DHCP/name-resolutionの恒久対策とApple GPU使用量accountingは別項目として残る。
+  SMD-301はJobs 671〜674でCPU bind指定がrequest metadataに留まり、macOSのstrict affinity
+  API不在、Mach affinity readback非対応、bind成功表示0件を確認して`PASS_EXPECTED_UNSUPPORTED`。
+  SMD-303は非root隔離候補で`proctrack/cgroup`、`task/cgroup`、`cgroup/v2` device制約を
+  個別に選択し、3経路すべてがplugin/context名を明示して非0終了、no-op起動なし、
+  production不変を確認して`PASS_EXPECTED_UNSUPPORTED`。
+  SMD-304はJob 675でCPU 2.029384秒、RSS 133,600 KiB、read/write各32 MiBを実際に
+  消費した一方、`jobacct_gather/none`の終了後CPU値が0、RSS/VM/I/O/TRESが空になることを
+  確認して`PASS_EXPECTED_UNSUPPORTED`。live `sstat AveCPU`は未取得sentinelを
+  `213503982334-14:25:51`と表示する別不具合も特定した。
+  SMD-305は`caffeinate -is`でsleep交絡を除去したJobs 680〜682で、`--core-spec=1`が
+  明示的にignoreされ、CPU frequency要求はstep metadataにだけ残ることを確認した。
+  全job/step完了、node `IDLE`、production hash不変により`PASS_EXPECTED_UNSUPPORTED`。
+  SMD-401はPMI2、PMIx 6.1.0、Open MPI 5.0.11の単一node runtimeに加え、SMD-402の
+  Open MPI mixed-architecture通信とJob 719のPMIx v6 2-node direct Put/Get/Fenceまで完了した。
+  Job 710の失敗とJob 719の成功差からMac側`NodeName=ubuntu`のaddress解決不足を原因と確定し、
+  一時`/etc/hosts` aliasは試験後にbyte完全復元した。恒久的なSlurm NodeAddr同期とApple GPU
+  使用量accountingは別項目として残る。
 
 ## 目的と判定ラベル
 
@@ -118,19 +138,19 @@ PoCを継続運用する前に、最初に確認する。
 
 | ID | 未検証機能 | 試験方法 | 成功条件 | 状態 |
 |---|---|---|---|---|
-| SMD-001 | 非対話 `srun` | `srun -p debug -N1 -n1 /bin/hostname` | PC-210が出力され、job/step終了後にprocessが残らない | `PASS_STAGING` |
-| SMD-002 | 対話PTY | `srun -p debug --pty /bin/bash` で入力、terminal resize、Ctrl-C、`exit` | 入出力とsignalが機能し、終了時に端末設定が復元される | `PASS_STAGING` |
-| SMD-003 | stdout/stderr/exit code | jobからstdout/stderrへ別々に書き、0、1、255で終了 | outputと`sacct ExitCode`が一致する | `PASS_STAGING` |
-| SMD-004 | signal配送 | sleep jobへTERM、通常cancel、強制KILLを個別に実施 | 対象jobだけが終了し、signalとstateが記録される | `PASS_STAGING` |
-| SMD-005 | process tree終了 | child、grandchild、background processを起動してcancel | allocation内の全processが消え、他jobは維持される | `PASS_STAGING` |
-| SMD-006 | time limit | 短い `--time` のjobを超過させる | processとstepが終了し、状態が`TIMEOUT`になる | `PASS_STAGING` |
-| SMD-007 | launch failure cleanup | 存在しないcommand、実行権限なし、存在しない`--chdir`を試す | 原因別errorまたは規定fallbackとなり、step/GRESが残らない | `PASS_STAGING` |
+| SMD-001 | 非対話 `srun` | `srun -p debug -N1 -n1 /bin/hostname` | PC-210が出力され、job/step終了後にprocessが残らない | `PASS` |
+| SMD-002 | 対話PTY | `srun -p debug --pty /bin/bash` で入力、terminal resize、Ctrl-C、`exit` | 入出力とsignalが機能し、終了時に端末設定が復元される | `PASS` |
+| SMD-003 | stdout/stderr/exit code | jobからstdout/stderrへ別々に書き、0、1、255で終了 | outputと`sacct ExitCode`が一致する | `PASS` |
+| SMD-004 | signal配送 | sleep jobへTERM、通常cancel、強制KILLを個別に実施 | 対象jobだけが終了し、signalとstateが記録される | `PASS` |
+| SMD-005 | process tree終了 | child、grandchild、background processを起動してcancel | allocation内の全processが消え、他jobは維持される | `PASS` |
+| SMD-006 | time limit | 短い `--time` のjobを超過させる | processとstepが終了し、状態が`TIMEOUT`になる | `PASS` |
+| SMD-007 | launch failure cleanup | 存在しないcommand、実行権限なし、存在しない`--chdir`を試す | 原因別errorまたは規定fallbackとなり、step/GRESが残らない | `PASS` |
 | SMD-008 | idle時のslurmd restart | jobがない状態でdaemonをstop/start | nodeが自動再登録され、再びjobを実行できる | `PASS` |
 | SMD-009 | job中のslurmd異常終了 | 専用test job中にdaemonを異常終了し、再起動 | jobの継続・失敗を記録でき、未追跡processとspool破損がない | `PASS` |
 | SMD-010 | controller通信断 | job中とidle時に6817通信を一時遮断して復旧 | daemonが停止せず、復旧後に再登録する | `PASS` |
 | SMD-011 | controller restart | slurmctldを再起動し、既存jobと新規jobを確認 | 既存jobの扱いが一貫し、新規受付が回復する | `PASS` |
-| SMD-012 | local config再読込 | `SlurmdLogFile`を一時変更し、`scontrol reconfigure`後に元へ戻す | PID維持で両設定を反映し、local config復元、後続job成功、残留なし | `PASS_STAGING` |
-| SMD-013 | spool/SACK recovery | clean stop後の再起動と、隔離test spoolでstale stateを再現 | credential stateとSACK socketが安全に再作成される | `PASS_STAGING` |
+| SMD-012 | local config再読込 | `SlurmdLogFile`を一時変更し、`scontrol reconfigure`後に元へ戻す | PID維持で両設定を反映し、local config復元、後続job成功、残留なし | `PASS` |
+| SMD-013 | spool/SACK recovery | clean stop後の再起動と、隔離test spoolでstale stateを再現 | credential stateとSACK socketが安全に再作成される | `PASS` |
 | SMD-014 | launchd常駐化 | prefixとNodeNameを修正したplistをsystem domainへ登録 | boot後起動、stop/restart、log、PID、異常時再起動が正常 | `PASS` |
 | SMD-015 | sleep/wake | idle時とtest job中にMacをsleep/wake | wake後に再登録し、jobの状態と残留processを説明できる | `PASS` |
 | SMD-016 | 長時間連続運転 | 24時間以上、定期的に短いjobを投入 | crash、FD増加、memory増加、登録断がない | `PASS` |
@@ -144,7 +164,7 @@ partitionではなく専用test partitionで1項目ずつ実施し、失敗し�
 | ID | 未検証機能 | 試験方法 | 成功条件 | 状態 |
 |---|---|---|---|---|
 | SMD-101 | 複数user | UID、primary GID、試験専用supplementary groupを一致させた2 userでjob投入 | 各jobが正しいidentityとfile ownershipで実行される | `PASS` |
-| SMD-102 | UID/GID不一致時のfail behavior | 隔離test userでhead/workerのIDを意図的に不一致にする | 誤userで実行せず、原因が明確に記録される | `BLOCKED_SECURITY_SKIPPED` |
+| SMD-102 | UID/GID不一致時のfail behavior | 隔離test userでhead/workerのIDを意図的に不一致にする | 誤userで実行せず、原因が明確に記録される | `PASS` |
 | SMD-103 | HOME/workdir | user HOME、`/tmp`、空白・日本語を含むpath、access denied pathで実行 | 許可pathは指定cwdで成功し、EACCES pathは無許可利用せず規定の`/tmp` fallbackとなる | `PASS` |
 | SMD-104 | environment伝播 | locale、PATH、custom variable、空文字、unset、8 KiB値、Unicodeをbatch/direct `srun`で比較 | 許可リストの値が両経路で一致し、非許可変数と秘密情報をlogへ出さない | `PASS` |
 | SMD-105 | umask/file mode | 継承0022、明示0027/0077でoutputとjob生成file/directoryを確認 | ownerが3001:3001で、file 0644/0640/0600、directory 0755/0750/0700となる | `PASS` |
@@ -200,11 +220,11 @@ Slurm外processやGRESなしjobを含むGPU device isolationの証明にはな�
 
 | ID | 対象 | 期待する確認 | 状態 |
 |---|---|---|---|
-| SMD-301 | `task/affinity` | CPU pinningを有効化できず、実processを拘束したと誤表示しない | `EXPECTED_UNSUPPORTED` |
+| SMD-301 | `task/affinity` | CPU pinningを有効化できず、実processを拘束したと誤表示しない | `PASS_EXPECTED_UNSUPPORTED` |
 | SMD-302 | memory limit | `--mem` 値だけでprocess memoryがkernel強制されないことを記録する | `PASS_EXPECTED_UNSUPPORTED` |
-| SMD-303 | cgroup device/process隔離 | cgroup pluginを選択すると明確に非対応となり、no-op成功しない | `EXPECTED_UNSUPPORTED` |
-| SMD-304 | job accounting metrics | `jobacct_gather/none` ではRSS、CPU、I/O実測値が得られない | `EXPECTED_UNSUPPORTED` |
-| SMD-305 | core specialization/CPU frequency | startup warningだけでdaemon/jobが不整合状態にならない | `EXPECTED_UNSUPPORTED` |
+| SMD-303 | cgroup device/process隔離 | cgroup pluginを選択すると明確に非対応となり、no-op成功しない | `PASS_EXPECTED_UNSUPPORTED` |
+| SMD-304 | job accounting metrics | `jobacct_gather/none` ではRSS、CPU、I/O実測値が得られない | `PASS_EXPECTED_UNSUPPORTED` |
+| SMD-305 | core specialization/CPU frequency | startup warningだけでdaemon/jobが不整合状態にならない | `PASS_EXPECTED_UNSUPPORTED` |
 | SMD-306 | `/proc` 非存在 | OOM/process scan経路に未guardの `/proc` accessがないかstress確認 | `PASS` |
 
 Slurm公式の[cgroup解説](https://slurm.schedmd.com/cgroups.html)にある
@@ -215,13 +235,13 @@ Slurm公式の[cgroup解説](https://slurm.schedmd.com/cgroups.html)にある
 
 | ID | 未検証機能 | 事前条件・試験 | 成功条件 | 状態 |
 |---|---|---|---|---|
-| SMD-401 | PMI2/PMIx/MPI | 同梱PMI2を先行試験し、PMIx/外部MPIはarm64実装導入後に分離試験 | rank起動、KVS、終了、cancel、I/Oが正常 | `PARTIAL_PASS_PMI2` |
+| SMD-401 | PMI2/PMIx/MPI | 同梱PMI2を先行試験し、PMIx/外部MPIはarm64実装導入後に分離試験 | rank起動、KVS、終了、cancel、I/Oが正常 | `PASS` |
 | SMD-402 | mixed-architecture multi-node job | x86-64 Ubuntuとarm64 Macで同一job stepを構成 | binary/ABI前提を明記し、rankが正しく通信する | `PASS` |
-| SMD-403 | `scrun` / OCI container | 公式例が要求するMUNGEとruntime、`oci.conf`を先に設計 | container lifecycleとstdioがSlurm jobへ追従する | `PREREQUISITE_MISSING_SCRUN_MUNGE_RUNTIME` |
+| SMD-403 | `scrun` / OCI container | native runtime、`oci.conf`、`scrun`ではLinux+Lua+MUNGE前提を先に確認 | container lifecycleとstdioがSlurm jobへ追従する | `BLOCKED_SAFE_PRECONDITION / NATIVE_MACOS_OCI_RUNTIME_UNAVAILABLE` |
 | SMD-404 | configless | local `-f` を外し、`--conf-server=ubuntu2504:6817` で起動 | config、GRES、hook更新が一貫して配布される | `PASS` |
 | SMD-405 | backup controller failover | backup slurmctldを用意しprimaryを停止 | slurmdが再登録しjob受付が回復する | `PREREQUISITE_MISSING_BACKUP_CONTROLLER` |
 | SMD-406 | IPv6 | head/worker双方をIPv6で名前解決・listen | 登録、job、accountingがIPv4同様に完了する | `PASS` |
-| SMD-407 | TLS plugin | `tls/s2n`を両hostで隔離buildし、inactive install後に協調切替と復旧を試験 | Mac切替直後のcontroller ping失敗でjob投入前に停止。両hostを`tls/none`、services active、nodes IDLE、queue emptyへ復旧 | `STOPPED_AFTER_TLS_CONTROLLER_PING_FAILURE_RECOVERED` |
+| SMD-407 | TLS plugin | `tls/s2n`を両hostで隔離buildし、inactive install後に協調切替と復旧を試験 | 初版certgen候補は`/dev/fd/6`継承失敗後にrollback。FD依存を除いた`/bin/sh -c`再修正版を両hostへbackup付きで再導入。Mac直接client 5/5、daemon登録、CPU Job 634、direct srun 635、Apple GPU 636、arm64/x86-64 mixed 637、全accounting `COMPLETED 0:0`、平文・未信頼CA負例、両host復旧をPASS。active TLS artifact/stateはroot-only archiveへ保全後に削除し、最終tls/none Jobs 638/639も`COMPLETED 0:0`。最終services active、nodes IDLE、queue empty | `PASS_TLS_RUNTIME_REVISED_CERTGEN / CLEANUP_COMPLETE` |
 | SMD-408 | dynamic node | `slurmd -Z --conf=...` を隔離node名で試す | 登録・削除・再登録が安全に完了する | `PREREQUISITE_MISSING_DYNAMIC_CAPACITY_AND_ISOLATED_IDENTITY` |
 | SMD-409 | power save/reboot | macOS用resume/suspend/reboot方法を設計してtest nodeで実施 | node stateとjob受付が自動回復する | `PREREQUISITE_MISSING_POWER_CONTROL` |
 | SMD-410 | version upgrade/rollback | 同一config/stateで次RC・正式版へ更新し、旧版へ戻す | state破損なく登録・job・cancelが動作する | `PREREQUISITE_MISSING_DISTINCT_TARGET_VERSION` |
@@ -231,8 +251,13 @@ configlessの配布範囲と優先順位は
 [`MPI Users Guide`](https://slurm.schedmd.com/mpi_guide.html)、OCI連携は
 [`Containers Guide`](https://slurm.schedmd.com/containers.html)を基準にする。
 
-SMD-403は、今回のbuildが `--without-munge` であり、公式のPodman/`scrun` 例が
-`AuthType=auth/munge` を前提とするため、現構成のままでは開始しない。
+SMD-403のlive preflightでは、`scrun`がsource上でLinux buildかつLua有効時だけbuild対象となり、
+Mac productionには`scrun`、MUNGE、Lua、native OCI runtime、`oci.conf`がないことを確認した。
+Docker DesktopはLinux VM engineであり、Mac `slurmstepd`が直接呼ぶnative runtimeではない。
+公式Podman/Dockerと`scrun`の統合例は`AuthType=auth/munge`を前提とする。一方、direct
+`srun --container`経路全体がMUNGE必須という意味ではないため、従来の表現を訂正した。
+Ubuntu-only direct OCI試験は別設計として可能性があるが、macOS worker検証にはならない。
+詳細は[SMD-403 preflight](../evidence/slurmd/2026-09-24/SMD-403.md)を参照する。
 
 `pam_slurm_adopt` は公式に `task/cgroup` と `proctrack/cgroup` を必要とするため、
 現在のmacOS構成では検証候補ではなく **前提不成立** とする。X11、sview、
@@ -382,6 +407,8 @@ P0でcrash、credential不整合、別user実行、残留process、spool破損�
 | 2026-09-11（SMD-102 macOS retry Attempt 2） | SMD-102 UID/GID不一致 | `READY_TO_RETRY` | `pwpolicy -disableuser`とHOME作成は進み、current identityに`com.apple.access_disabled`、HOME `3202:3202:700`、Mac上の3201未使用を確認。一方、終了0だった`dscl ... IsHidden 1`の直後readbackが空で安全停止しjob未投入。Attempt 3は既存loginwindow preferenceを上書きせず`HiddenUsersList`へ対象名だけ追加し、実readbackで判定する。認証は既に禁止済みなら再適用しない。HOME・反対側ID検証も維持。script=`0e558a…3962`、構文・gate確認済み | [SMD-102 Attempt 2](../evidence/slurmd/2026-09-11/SMD-102.md#macos-provisioning-retry-attempt-2) |
 | 2026-09-11（SMD-102 macOS retry Attempt 3） | SMD-102 UID/GID不一致 | `READY_TO_RUN` | Mac側は`smdmismatch=3202:3202`、HOME `3202:3202:700`、`com.apple.access_disabled`、`pwpolicy`認証禁止、`HiddenUsersList` readback、3201未使用まで完了marker付きで確認。Ubuntu `3201:3201`と合わせprovisioningは両nodeでPASS。Ubuntuの3201 userから1件だけ`srun`し、固有marker、実UID/GID、stderr、sacct、資源回収を採取するdriverを作成。driverは観測結果をfail-open／error review待ちに分類し、自動PASSしない。hash=`48a73c…a67a` | [SMD-102 provisioning PASSと本体driver](../evidence/slurmd/2026-09-11/SMD-102.md#macos-provisioning-retry-attempt-3--pass) |
 | 2026-09-11（SMD-102 Job 357） | SMD-102 UID/GID不一致 | `BLOCKED_SECURITY_SKIPPED` | controller `3201:3201`、worker local同名user `3202:3202`の不一致でもpayloadがPC-210上のraw numeric `3201:3201`として実行された。識別用exit 86、job/step `FAILED 86:0`、最終IDLE・割当ゼロを確認。security成功条件はFAIL。ユーザー指示により修正・再試験を保留し、未buildのsource案は除去、accountと失敗Evidenceは保持してSMD-120へ移行 | [SMD-102 FAIL_OPEN Evidence](../evidence/slurmd/2026-09-11/SMD-102.md#本体試験結果--fail_open--security-blocker) |
+| 2026-09-22（SMD-102 Jobs 620/621） | SMD-102 UID/GID不一致修正 | `PASS` | macOS限定でcredential userをlocal Directory Serviceへ再解決し、UID/primary GID不一致をpayload前に拒否するproduction candidateを無停止配置。Job 620はpayload markerなし、step `FAILED`、root logでcredential `3201:3201`とlocal `3202:3202`の明確な不一致を確認。Job 621は`testuser=3001:3001`、親/step `COMPLETED 0:0`。最終IDLE・割当0・queue空、slurmd PID 47839維持。途中のDOWNはMacの実スリープ17:56:59～18:14:44に対応し、Full Wake後に再起動なしで復帰。clean-source rebuild、Linux regression、commit provenanceはrelease作業として残る | [SMD-102 remediation Evidence](../evidence/slurmd/2026-09-11/SMD-102.md#2026-09-22-fail-closed修正とproduction-runtime再試験--pass) |
+| 2026-09-22（SMD-102 clean Jobs 622/623） | SMD-102 clean rebuild / Linux分離build | `PASS_RUNTIME / PASS_BUILD_LIMITED_CHECK` | 固定HEAD `1e20bb…a15a7`の新規treeへmacOS限定1 file修正を適用し、Mac全体configure/build、316 file stagingを完了。stageとproductionはSHA-256 `0aca5627…64e`で一致。Job 622はpayload未実行・step FAILED・root identity log一致、Job 623は親/step COMPLETED。PID 47839不変、最終IDLE・割当0・queue空。Ubuntu x86-64分離treeもconfigure/build/check成功、Darwin guard文字列なし。ただし実行testは`log-test` 1件、7 suiteはTOTAL 0で、production Linux install/restart/job runtimeは未実施。source修正も未commit | [SMD-102 clean再検証](../evidence/slurmd/2026-09-11/SMD-102.md#固定revisionからのclean-rebuildと再試験--jobs-622623) |
 | 2026-09-11（SMD-102スキップ後） | SMD-120 Prolog/Epilog正常系 | `READY_TO_RUN` | source・同梱guideから、node Prologは最初のstep直前、Epilogはallocation解放時にslurmd/rootで動く経路を確認。root専用logへ限定metadataだけを記録するhook、2秒payload、production configの一時適用・byte完全復元、post-restore smoke、accounting・資源回収までを自動検証するdriverを作成。全scriptの`sh -n`、gate exit 64、standalone書式確認PASS。実機jobは未投入 | [SMD-120試験設計](../evidence/slurmd/2026-09-11/SMD-120.md) |
 | 2026-09-11 12:31 JST | SMD-120 Prolog/Epilog正常系 Attempt 1 | `READY_TO_RUN` | 初版driverは既存`PrologEpilogTimeout=120`をhook競合と誤判定し、config変更・job投入前に安全停止。実際の`Prolog=`/`Epilog=`は未設定、event log 0 byte、backup/candidate/job Evidenceなし。修正版は既存共通timeout 120秒を変更せず、安全範囲1～300秒として検証し、Prolog/Epilogだけを一時追加する | [SMD-120 Attempt 1](../evidence/slurmd/2026-09-11/SMD-120.md#attempt-1--blocked_safe) |
 | 2026-09-11 12:41 JST | SMD-120 Prolog/Epilog正常系 Attempt 2 | `PASS` | Job 358でProlog/Epilog各1回、root `0:0`、`prolog→payload→epilog`、payload `3001:3001`をdriverが検証。job/batchは`COMPLETED 0:0`。configはSHA `a820719e…2167`一致・byte比較0で復元し、復元後Job 359も`COMPLETED 0:0`かつtest hook非実行。最終IDLE・CPU/memory割当ゼロ。既知macOS/http parser/EBADFログは機能を阻害せず | [SMD-120 PASS Evidence](../evidence/slurmd/2026-09-11/SMD-120.md#attempt-2--pass) |
@@ -600,7 +627,37 @@ P0でcrash、credential不整合、別user実行、残留process、spool破損�
 | 2026-09-12 17:40 JST | SMD-406 GRES IPv6 retest Ubuntu restore | `PASS_PHASE_UBUNTU_RESTORE / AWAITING_MAC_FINALIZE` | control script hash一致後、Mac local restore gateを満たしてrestore。Ubuntu original IPv4 config、temporary ULA削除、3 services ACTIVE、production復元、ubuntu即時・PC-210 3秒でIDLEの完了markerを確認。Mac ULA/runtime stateはfinalizeまで意図的に保持。復旧完了とSMD-406総合判定はMac finalizeとindependent readback待ち | [SMD-406 retest Ubuntu restore](../evidence/slurmd/2026-09-12/SMD-406.md#gres明示ipv6再試験-ubuntu-restore-pass) |
 | 2026-09-12 17:43 JST | SMD-406 GRES IPv6 retest Mac finalize | `RUNTIME_PASS / AWAITING_INDEPENDENT_READBACK` | driver hash一致後にfinalize。Mac ULA削除、final IPv4 smoke Job 618が1秒でqueueから消失、PC-210 IDLE、queue空、production復元、slurmd PID 86481の完了markerを取得。successful run stateによりclassification=`RUNTIME_PASS`。一連のphaseは完走したが、Jobs 615–618 accounting、Job 617 GRES、3 port packet、state/ULA非残留、launchd/plist/library/nodeの独立readback前なので総合PASSは保留 | [SMD-406 retest finalize](../evidence/slurmd/2026-09-12/SMD-406.md#gres明示ipv6再試験-mac-finalize-runtime_pass) |
 | 2026-09-12（dual-host independent readback） | SMD-406 IPv6 | `PASS` | Mac/Ubuntu両root shellで独立readback。Jobs 615 CPU、616 direct srun、617 GRES MLX、618 final IPv4 smokeはJob/stepとも`COMPLETED 0:0`、全stderr 0 bytes。Job 617はReqTRES/AllocTRESとbatch AllocTRESに`gres/gpu=1`、`gres/gpu:apple=1`を記録し、Apple M5 Max `Device(gpu, 0)`でpayload PASS。native IPv6 packetは6817=333、6818=68、6819=172、両ULA各573出現、capture 573、kernel drop 0。両hostのruntime state/ULAはABSENT、Ubuntu 3 service active、両node IDLE・割当0・queue空、Mac launchd PID 86481・IPv4 6818、production hash一致。過去failure/harness false negativeはEvidenceに保持 | [SMD-406 final readback](../evidence/slurmd/2026-09-12/SMD-406.md#gres明示ipv6再試験-independent-readback-pass) |
-SMD-001～SMD-007とSMD-012～SMD-013はstaging構成で完了し、SMD-008～SMD-011はproduction構成で完了した。
+| 2026-09-23 16:42–16:44 JST | SMD-001〜007 production再検証 | `PASS` | 両hostへ数値`NodeAddr=192.168.10.128`をbackup付きで反映後、Jobs 648〜661で非対話srun、PTY、exit 0/1/255、TERM/cancel/KILL、process tree、TIMEOUT、ENOENT/EACCES/chdir fallbackをproduction構成で完了。全会計は期待状態と一致し、PID 60321、artifact hash、IDLE・割当0・queue空を確認 | [SMD-001〜007 production再検証](../evidence/slurmd/2026-09-23/SMD-001-007-production-revalidation.md#production通し試験--pass) |
+| 2026-09-23 16:46 JST | SMD-012 production再検証 | `PASS` | PID 60321を維持してalternate logへ3秒、production logへ4秒で再構成。config完全復元、Job 662/batch=`COMPLETED 0:0`、最終IDLE・割当0・queue空。既知の非阻害EBADFも保持 | [SMD-012 production再検証](../evidence/slurmd/2026-09-23/SMD-012-013-production-revalidation.md#smd-012-local-config-reconfigure) |
+| 2026-09-23 16:56–18:04 JST | SMD-013 production再検証 | `PASS` | Attempt 1の`/tmp`正規化harness停止と自動復旧、認証待ち中のMac sleepによるNOT_RESPONDINGと本番launchd回復を保持。`caffeinate`付き最終runで隔離spoolの破損cred_state再保存、vestigial job purge、stale SACK二回置換、Jobs 663〜665成功、本番launchd PID 70710・spool・hash・IDLE・queue空を確認 | [SMD-013 production再検証](../evidence/slurmd/2026-09-23/SMD-012-013-production-revalidation.md#smd-013-production通し試験--pass) |
+| 2026-09-23 18:38–18:49 JST | SMD-301 `task/affinity` negative | `PASS_EXPECTED_UNSUPPORTED` | 初回Job 666でbind request metadataだけがpayloadへ渡ることを確認。SDK path喪失によるJob前停止と、0700親directoryによるJobs 667〜670の`FAILED 13:0`をharness failureとして保持した。修正版のJobs 671〜674ではcontrol、`map_cpu:0`、`map_cpu:1`、2-task `cores`を全件`COMPLETED 0:0`で実行。macOSのstrict affinity symbolは不在、Mach affinity readbackは`NOT_SUPPORTED(46)`、bind成功表示は0件。最終PID 70710、IDLE・queue空、production hash不変 | [SMD-301](../evidence/slurmd/2026-09-23/SMD-301.md) |
+| 2026-09-23 19:11 JST | SMD-303 cgroup device/process隔離 negative | `PASS_EXPECTED_UNSUPPORTED` | 非root・loopback・専用port/spoolの3候補を実行。`proctrack/cgroup`は`proctrack_cgroup.so`、`task/cgroup`は`task_cgroup.so`、`CgroupPlugin=cgroup/v2` + `ConstrainDevices=yes`は`cgroup_v2.so`の欠落とcontext生成失敗を明示して全てrc 1。candidate PID/listener残留0、no-op成功0。初回のroot PID `kill -0`権限誤判定は候補起動前のharness failureとして保持。最終PID 70710、IDLE・割当0・queue空、production 5 hash不変 | [SMD-303](../evidence/slurmd/2026-09-23/SMD-303.md) |
+| 2026-09-23 20:50–21:19 JST | SMD-304 job accounting metrics negative | `PASS_EXPECTED_UNSUPPORTED` | 初回はsleep/wake後の`DOWN+NOT_RESPONDING`を検知してjob前停止。承認済みSIGHUPだけでPID 70710のままIDLEへ復旧した。Job 675はCPU 2,029,384 us、RSS 133,600 KiB、read/write各33,554,432 byteを実測した一方、終了後CPUは0、RSS/VM/I/O/TRESは空。`CPUTimeRAW=22`はallocation時間。live `sstat AveCPU`の巨大値は`INFINITE64/1000`のsentinel表示とsource照合した。job/batchは`COMPLETED 0:0`、最終IDLE・割当0・queue空、production 5 hash不変 | [SMD-304](../evidence/slurmd/2026-09-23/SMD-304.md) |
+| 2026-09-23 21:40–21:58 JST | SMD-305 core specialization / CPU frequency negative | `PASS_EXPECTED_UNSUPPORTED` | Attempt 1のJob 676はmode 0711親directoryによるpayload未実行のharness failure。Attempt 2のJobs 677〜679は機能上完了したが、sleep交絡と起床後の`DOWN+NOT_RESPONDING`を保持し、承認済みSIGHUPでPID 70710のまま復旧した。`caffeinate -is`配下のcanonical Jobs 680〜682ではsleep 0、`--core-spec=1`は明示的にignoreされ`CoreSpec=*`、CPU frequencyはStep 682.0の`Governor=Performance`と環境metadataにだけ残り、全job/stepが`COMPLETED 0:0`。最終IDLE・割当0・queue空、production 5 hash不変 | [SMD-305](../evidence/slurmd/2026-09-23/SMD-305.md) |
+| 2026-09-23 22:13 JST | SMD-401 PMIx / 外部MPI再preflight | `PARTIAL_PASS_PMI2 / PREREQUISITE_MISSING` | Macのproduction `srun --mpi=list`は引き続きnone/cray_shasta/pmi2のみ。PMIx plugin、PMIx、Open MPI、MPICHのcommand・Homebrew prefix・pkg-config metadataは不在、configureもPMIx無効。固定sourceはLinux名`libpmix.so.2`を直接`dlopen()`するためDarwin互換性の隔離実測が必要。hwloc 2.14.0は存在するがlibevent/libevは不在。承認後に`192.168.10.180`をreadbackし、3 service active、PC-210/ubuntu IDLE、queue空、controller側もPMIx/MPI不在を確認。汎用`/usr/local/bin` clientはlibrary未検出/ABI不一致だが、版一致26.11.0 prefixは正常で、PATH hygieneを別保守項目へ分離。package/config/daemon/job変更なし | [SMD-401再preflight](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-23-pmix--外部mpi再preflight) |
+| 2026-09-23 22:37 JST以降 | SMD-401 PMIx 6.1.0隔離build / client load | `ISOLATED_BUILD_AND_CLIENT_LOAD_PASS / AWAITING_PRODUCTION_RUNTIME_APPROVAL` | ユーザー提示後のlive readbackでPMIx 6.1.0、libevent 2.1.13、hwloc 2.14.0のarm64 Homebrew実体を確認。未修正版は空のC preprocessorによるconfigure停止を`CPP=clang -E`で分離後、Linux名`libpmix.so.2`と実Darwin名`libpmix.2.dylib`の不一致を実測。Apple限定library名分岐を追加し、arm64 `mpi_pmix_v6.so`を隔離build。Linux名はload失敗、Darwin名はOpenPMIx 6.1.0 load成功。一時PluginDirのproduction `srun --mpi=list`はpmix/pmix_v6をstderr 0で列挙。既知libtool warning 39行と初回validator false negativeを保持。production変更・daemon restart・job投入なし。全体はPMI2だけruntime済みのため`PARTIAL_PASS_PMI2`を維持 | [SMD-401 PMIx隔離build](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-23-pmix-610隔離build--client-load) |
+| 2026-09-24 08:05 JST | SMD-401 PMIx production plugin配置 | `PRODUCTION_PLUGIN_PLACEMENT_PASS / AWAITING_JOB_RUNTIME_APPROVAL` | 配置前にPMIx plugin 2 path不在を確認。直接sudoはpassword要求で無変更停止後、macOS管理者認証でcandidateをroot:wheel mode 0755の`mpi_pmix_v6.so`として配置し、generic linkを作成。candidate/production SHA一致、arm64、Darwin library名を確認した。installer内・独立`--mpi=list`はpmix/pmix_v6をstderr 0で列挙。slurmd PIDは前後・現在70710、srun/slurm.conf hash不変、restart/job投入なし。一時証跡mode 0700による初回readback failureを保持し、証跡readabilityを修正。全体はruntime未実施のため`PARTIAL_PASS_PMI2`を維持 | [SMD-401 PMIx production配置](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-pmix-production-plugin配置) |
+| 2026-09-24 08:27–08:31 JST | SMD-401 PMIx runtime / daemon restart gate | `FAIL_NEEDS_DAEMON_RESTART / RECOVERED` | arm64 PMIx probeと正常終了/cancel driverを追加。zshのpkg-config flag分割失敗、testuserからのcwd不可視、`/bin/cd`誤指定の3つのbuild/harness境界を保持。Job 683で実runtimeへ進むとclient timeout、job=`FAILED 0:12`、step=`CANCELLED 0:12`。slurmdは配置前から起動中で、logはplugin_id 108をdaemon側で解決不能と記録。通常/KILL cancel後に残ったJob専用stepd PID 40859だけをTERM/KILLし、queue 0、IDLE、割当0、stepd 0へ復旧。slurmd PID 70710は維持。driverへdaemon/plugin時刻guardを追加。restartは別承認境界で未実施 | [SMD-401 PMIx runtime attempt](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-pmix-runtime-attempt--daemon-restart-gate) |
+| 2026-09-24 08:46–08:48 JST | SMD-401 PMIx restart後runtime | `PARTIAL_PASS_PMI2_PMIX` | 承認後に`system/org.schedmd.slurmd`だけを再起動しPID 70710→41674、新StartTime、IDLE再登録、PMIx load error 0、production hash不変を確認。Job 684は2 taskが同一namespaceでFence後に値42を取得し、job/step=`COMPLETED 0:0`、stderr 0。Job 685はrank 0/1のInit/Fence・PID 41855/41856・UID/GID 3001を確認後にcancelし、job=`CANCELLED by 0`、step=`CANCELLED 0:15`、両PID消滅。最終IDLE・割当0・queue/stepd/残留process 0、PID 41674・production inputs不変。外部MPIとmulti-node PMIx/MPIは未実施 | [SMD-401 PMIx final](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-pmix-runtime-final--pass) |
+| 2026-09-24 09:00 JST | SMD-401 外部MPI導入前preflight | `PREFLIGHT_PASS / AWAITING_MAC_OPENMPI_INSTALL_APPROVAL` | 両hostとも外部MPI未導入。MacはPMIx 6.1.0とpmix_v6、Ubuntu Slurmはpmi2のみ。Homebrew Open MPI 5.0.11は既存PMIx/libevent/hwlocと整合するため次候補とした。Ubuntu APTのOpen MPI 4.1.6との混在は公式互換保証外で、multi-nodeは別設計が必要。uvでは扱えないnative toolchainのため、Mac限定Homebrew導入を明示承認待ち。install/job/daemon/config変更なし | [SMD-401 external MPI preflight](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-外部mpi導入前preflight) |
+| 2026-09-24 09:05 JST | SMD-401 Open MPI導入 / linkage | `MAC_OPENMPI_INSTALL_AND_LINKAGE_PASS / AWAITING_APPLICATION_RUNTIME_APPROVAL` | 承認範囲でMacだけへOpen MPI 5.0.11、PRRTE 4.1.0_1ほかを導入。arm64、wrapper、外部PMIx 6.1.0/libevent/hwloc共通path、linkage test exit 0を確認。xz 5.8.4追加、hwlocは事前upgrade表示に反して2.14.0のまま。存在しない`prte_info`、診断によるdeveloper mode自動有効化、sandboxed pgrep失敗を保持し、mode復元とlaunchctl独立確認を完了。最終PID 41674、PC-210 IDLE・割当0、queue空、plugin hash不変。compile/job/daemon/config/Ubuntu変更なし | [SMD-401 Open MPI install](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-open-mpi-5011導入--linkage-readback) |
+| 2026-09-24 09:12–09:21 JST | SMD-401 Open MPI single-node runtime | `PARTIAL_PASS_PMI2_PMIX_OPENMPI_SRUN` | arm64 C probeでbroadcast 42、all-reduce 1、2 rank ring通信を検証。sandbox内PRRTE bind拒否、process validatorのawk自己誤検出によるjob前停止を保持して修正。最終runはローカル対照PASS、Job 686=`COMPLETED 0:0`、Job 687は通信後PID 45171/45172を確認してcancelしjob=`CANCELLED by 0`、step=`CANCELLED 0:15`、両PID消滅。最終IDLE・割当0・queue/stepd/MPI/PRRTE残留0、PID 41674・全input hash不変。mpirun-in-allocationとmulti-nodeは未測定 | [SMD-401 Open MPI runtime](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-open-mpi-single-node-runtime) |
+| 2026-09-24 09:34–11:58 JST | SMD-401 Open MPI `mpirun` in allocation | `FUNCTIONAL_PASS / CANONICAL_RETEST_BLOCKED_NODE_NOT_RESPONDING` | `--ntasks=2` allocation内で`mpirun -n`を省略。Jobs 688/689は2 rank通信を完了して`COMPLETED 0:0`。Job 690も通信後PID 46362/46364を確認してcancelし、job=`CANCELLED by 0`、両PID消滅、残留process/queue 0。3 jobともchild step rowは0件。child step必須とcancel rc非0前提の2 harness false negativeを修正した。canonical Attempt 3はPC-210=`DOWN+NOT_RESPONDING`でjob前停止。双方向6817/6818は到達、launchd PID 41674はrunningだがcontroller connectionなし。根本原因未確定。承認範囲を守りSIGHUP/restart/RESUMEは未実施、復旧は別承認待ち | [SMD-401 mpirun allocation](../evidence/slurmd/2026-09-12/SMD-401.md#2026-09-24-open-mpi-mpirun-in-allocation) |
+| 2026-09-24 12:08–12:12 JST | SMD-401 Open MPI `mpirun` canonical final | `PASS_SINGLE_NODE_PMI2_PMIX_OPENMPI / MPIRUN_ALLOCATION_ONLY_ACCOUNTING` | 別承認のSIGHUPは初回`sudo -n`認証切れで未送信、認証後の1回だけ成功。PID 41674を維持してPC-210がIDLEへ復帰し、restart/RESUME/config変更なし。Job 691は2 rank通信後`COMPLETED 0:0`。Job 692は通信後PID 49253/49254を記録してcancelし`CANCELLED by 0`、client rc 0、両PID消滅。補正版driverは完了markerを出し、success/cancelともchild step 0、最終IDLE・割当0・queue/stepd/MPI/PRRTE残留0、input hash不変、Ubuntu services activeを独立確認。multi-nodeはSMD-402、MPICHは未測定 | [SMD-401 mpirun final](../evidence/slurmd/2026-09-12/SMD-401.md#sighup復旧とcanonical-final-run--pass) |
+| 2026-09-24 12:24–12:25 JST | SMD-402 Open MPI multi-node extension preflight | `PREFLIGHT_PASS / AWAITING_DUAL_ARCH_ISOLATED_BUILD_APPROVAL` | 元のnative shell mixed-architecture SMD-402 PASSは維持。MacはOpen MPI 5.0.11、Ubuntuは未導入でAPT候補4.1.6のためversion混在を拒否。両hostはlittle-endian LP64で基本型size一致、ただしtrue data heterogeneityはknown-broken境界として範囲外。smd402 UP、両node IDLE・割当0、queue空、5 services active、公式5.0.11 tarball到達と容量を確認。次は同一SHA・同一`/tmp` prefix・bundled 4 support librariesで両architectureをisolated native buildする限定例外を承認待ち。production/config/daemon/job変更なし | [SMD-402 Open MPI preflight](../evidence/slurmd/2026-09-24/SMD-402-openmpi-multinode-preflight.txt) |
+| 2026-09-24 12:32–12:48 JST | SMD-402 Open MPI isolated dual-architecture build | `ISOLATED_DUAL_ARCH_BUILD_PASS / AWAITING_MULTINODE_RUNTIME_APPROVAL` | 固定SHAの公式5.0.11を同じ`/tmp` prefixへMac arm64/Ubuntu x86_64 native build。Attempt 1はversion validator false negativeとUbuntuのみのMUNGE自動検出でPASSにせず保持。Attempt 2は`--without-munge`と内部hwloc/libevent/PMIx/PRRTEへ統一し、Open MPI 5.0.11、PMIx 5.0.11rc1、PRRTE 3.0.14、native binary、isolated linkage、testuser権限を独立確認。build warningは保持、error/fatal 0、probe stderr 0。production hash/PID不変、両node IDLE・割当0、queue/MPI process残留0。Job/通信は未実施で別承認待ち | [SMD-402 Open MPI build](../evidence/slurmd/2026-09-24/SMD-402-openmpi-multinode-build-evidence.txt) |
+| 2026-09-24 13:11–13:27 JST | SMD-402 Open MPI mixed-architecture multi-node runtime | `PASS_MIXED_ARCH_OPENMPI_MULTINODE / ARCH_HETEROGENEOUS_DATA_LAYOUT_HOMOGENEOUS` | Job 693/694/695のSIGABRTを保持。GDB Job 696でMac PRRTEがApple endian macroを認識せず`unknown`を送信し、controllerのmulti-endian拒否error pathで二重解放する境界を確定。Mac isolated PRRTEだけを修正し`--hetero-nodes`を指定。Job 697はx86-64/arm64間2-rank Bcast/Allreduce/ringとjob/step COMPLETED、Job 698 cancel、Job 699両PID cleanupをPASS。両node IDLE・割当0、queue/process残留0、production hash/PID不変。hwlocとcancel warning、Mac log Permission deniedを保持。異endian/型sizeは未検証 | [SMD-402 Open MPI runtime](../evidence/slurmd/2026-09-24/SMD-402-openmpi-multinode-runtime-evidence.txt) |
+| 2026-09-24 13:38–13:48 JST | SMD-402 Open MPI full clean rebuild follow-up | `FULL_CLEAN_DUAL_ARCH_REBUILD_PASS / CLEAN_PREFIX_MULTINODE_RUNTIME_UNMEASURED` | 固定SHAの公式5.0.11を新規treeへ展開し、Mac arm64/Ubuntu x86_64で修正版driverのclean buildを再現。Mac限定endian patch、bundled hwloc/libevent/PMIx/PRRTE、MUNGE無効、native/isolated linkage、artifact hash、各host内2-rank Bcast/Allreduce/ringをPASS。Mac Attempt 1のsandbox DNS failureと初回probe引数漏れを保持。production/既存runtime hash、daemon PID不変、両node IDLE・queue/process残留0。成功base名が異なるため新clean成果物のmulti-node再試験は未測定、既存runtime PASSは維持 | [SMD-402 clean rebuild](../evidence/slurmd/2026-09-24/SMD-402-openmpi-clean-rebuild-evidence.txt) |
+| 2026-09-24 13:52–14:02 JST | SMD-402 Open MPI temporary artifact cleanup | `CLEANUP_PASS / RAW_EVIDENCE_ARCHIVED` | Mac/UbuntuのSMD-402専用一時artifactをexact pathで棚卸し。削除前にbuild/失敗/runtime logsと実行入力を2 archiveへ保存し、gzip integrity、134/143 entries、SHA-256一致を確認。source/build/install treeとstaged/run files約3.6 GiBを削除し、両host候補/process 0件をreadback。両node IDLE・queue空、Ubuntu 5 services active、daemon PID・production hash不変。tree本体は直接復元不可だが固定source SHAとworkspace入力から再生成可能 | [SMD-402 cleanup](../evidence/slurmd/2026-09-24/SMD-402-openmpi-cleanup-evidence.txt) |
+| 2026-09-24 15:04–15:08 JST | SMD-403 `scrun` / OCI container preflight | `BLOCKED_SAFE_PRECONDITION / NATIVE_MACOS_OCI_RUNTIME_UNAVAILABLE` | Sourceは`HAVE_LUA && LINUX_BUILD`時だけ`scrun`をbuild。Mac productionはauth/slurm、MUNGE/Lua/scrun/oci.conf/native OCI runtime/Linux namespace interfaceが不在。Docker DesktopはLinux VM engineでnative runtimeではない。UbuntuはMUNGE/plugins、Docker/containerd/runc/Apptainerを持つがscrun/Lua dev/oci.conf/scrun.luaがなく、user namespace probeもPermission denied。direct OCIはMUNGE一般必須ではないと訂正。変更・Jobなし、両node IDLE、queue空、hash/PID不変。Ubuntu-only extensionは別試験 | [SMD-403 preflight](../evidence/slurmd/2026-09-24/SMD-403.md) |
+| 2026-09-24 15:30–16:08 JST | SMD-401 PMIx v6 multi-node direct-launch準備 | `ISOLATED_BUILD_PASS / AWAITING_PRODUCTION_RUNTIME_APPROVAL` | Ubuntu productionにPMIx pluginがない残件へ、host packageを追加せずCompose `ubuntu:24.04`内でPMIx 6.1.0、x86-64 `mpi_pmix_v6.so`、probeをbuild。Attempt 1のmultiarch libevent検出、Attempt 2のLinux `PATH_MAX`、Attempt 3/4のvalidator、Attempt 5のmanifest path失敗を保持し、Attempt 6を完全PASS。Macも同じsourceのarm64 probeを作成。両architectureのPMIx 6.1.0 linkage、hash、一時PluginDir client loadを確認。本番変更・restart・Jobなし、両node IDLE、queue空。配置・Ubuntu slurmd再起動・正常/cancel・rollbackは明示承認待ち | [SMD-401 PMIx v6 multi-node](../evidence/slurmd/2026-09-24/SMD-401-pmix6-multinode.md) |
+| 2026-09-24 16:11–16:40 JST | SMD-401 PMIx v6 multi-node runtime Attempt 1 / exact-source再build | `RUNTIME_ATTEMPT_1_FAILED_RECOVERED / EXACT_SOURCE_CANDIDATE_READY / AWAITING_RETRY_APPROVAL` | 承認後にCompose candidateを一時配置しUbuntu slurmdだけ再起動。Job 700の両node probe preflightはPASSしたが、Job 701はMac rank 0だけPMIx Put/Get/Fenceを完了しUbuntu rankが起動前停止、job TIMEOUT。Ubuntu単独Job 702も同じ失敗、Mac単独Job 703はPASS。Job 704–707で`/bin/true`、stepd、core/kernel、slurmd threadを診断し全てcancel回収。candidate削除とUbuntu slurmd再起動でplugin不在、services active、両node IDLE・割当0、queue空、production hashとMac PID不変へrollback。production実体とslurmd/mpi_pmi2 hashが一致する元treeを複製してPMIxだけ追加し、config差は`HAVE_PMIX=1`のみ、candidate SHA=`1c4b8d44…668bb`、一時PluginDir load PASS。root causeは未確定、再配置・Ubuntu単独gate・2-node retry・再rollbackは別承認待ち | [SMD-401 PMIx v6 Attempt 1](../evidence/slurmd/2026-09-24/SMD-401-pmix6-multinode.md#production-runtime-attempt-1--fail) |
+| 2026-09-24 16:48–16:52 JST | SMD-401 PMIx v6 multi-node runtime Attempt 2 | `UBUNTU_PMIX_RUNTIME_PASS / MULTINODE_BLOCKED_NODE_NAME_RESOLUTION / RECOVERED / JOB_SCOPED_RETRY_READY` | exact-source candidateを一時配置しUbuntu slurmdだけ再起動。Job 708の2-node preflightとUbuntu単独PMIx Job 709はPASSし、Attempt 1のUbuntu runtime failure解消を確認。Job 710は両payload起動、Mac rank 0のPut/Get/Fence PASS後、Macで`getaddrinfo(ubuntu:6818)`が失敗しjob `FAILED 0:9`、step `CANCELLED 0:9`。対象Jobを回収し、candidate削除・Ubuntu slurmd再起動でplugin不在、3 services active、両node IDLE・割当0、queue空、production hashとMac PID不変へrollback。次候補はsystem configを変えず2-node Jobだけ`SLURM_PMIX_DIRECT_CONN=0`でSlurm protocolへ切替える方法。source確認とdriver修正まででruntime未実施、別承認待ち | [SMD-401 PMIx v6 Attempt 2](../evidence/slurmd/2026-09-24/SMD-401-pmix6-multinode.md#production-runtime-attempt-2--ubuntu-pass2-node-fail) |
+| 2026-09-24 16:58–17:05 JST | SMD-401 PMIx v6 job-scoped retry Attempts 3–4 | `JOB_SCOPED_RETRY_FAILED_RECOVERED / AWAITING_TEMPORARY_MAC_HOST_ALIAS_APPROVAL` | Attempt 3は2-node payload環境にも`SLURM_PMIX_DIRECT_CONN=0`が残るという不要なguardでrc 98となったharness false negative。guardだけを除いたAttempt 4も正常系が時間上限後rc 143となり、job-scoped値のremote stepd伝播とSlurm protocol経路のどちらが停止境界かは未確定。各Attempt後にcandidateをhash照合して削除しUbuntu slurmdだけ再起動。最終PID 1133509、plugin不在、3 services active、両node IDLE・割当0、queue空、production hash、control daemon PID、Mac PID 41674不変を独立確認。raw log exportは安全審査で拒否されたためremote run directoryに保持。次候補は既知failureを直接直すMac `/etc/hosts`一時aliasで、system-wide変更の別承認待ち | [SMD-401 PMIx v6 Attempts 3–4](../evidence/slurmd/2026-09-24/SMD-401-pmix6-multinode.md#job-scoped-retry-attempt-3--harness_false_negative) |
+| 2026-09-24 17:12–17:13 JST | SMD-401 PMIx v6 temporary host alias retry Attempt 5 | `PASS_PMIX_V6_MULTINODE_DIRECT / TEMPORARY_NODE_NAME_ALIAS_REQUIRED / ROLLBACK_PASS` | Mac `/etc/hosts`をbackup後に`192.168.10.180 ubuntu`を一時追加し、名前解決と6818/TCPを確認。default direct connectionでJob 718 Ubuntu単独gate、Job 719 x86-64/arm64 2-rank Put/Get/Fence、Job 720通信後cancel、Job 721両node cleanupを全PASS。Attempt 2の失敗がaliasだけで解消したためroot causeをMac側Slurm NodeName解決不在と確定。candidate削除・Ubuntu slurmd 1134264→1134793、Mac hosts事前SHAへbyte復元。最終plugin不在、3 services active、両node IDLE・割当0、queue空、production hash、control daemon PID、Mac PID 41674不変。plugin/aliasはproductionへ保持せず、恒常運用化は別判断 | [SMD-401 PMIx v6 Attempt 5 PASS](../evidence/slurmd/2026-09-24/SMD-401-pmix6-multinode.md#temporary-mac-host-alias-retry-attempt-5--pass) |
+| 2026-09-24 17:17 JST | SMD-401 Mac local NodeAddr hardening preflight | `PREFLIGHT_PASS / AWAITING_PRODUCTION_CONFIG_SYNC_APPROVAL` | PMIx sourceはjob hostlistのNodeNameを`slurm_conf_get_addr()`へ渡す。Mac local configだけがUbuntu nodeのNodeAddr/NodeHostNameを欠き、controller側は`192.168.10.180`/`ubuntu2504`を保持。Ubuntu br0の`.180`はlifetime forever。system-wide hosts alias常設ではなく、MacのUbuntu node行をcontrollerと同一内容へ同期する候補を作成。現行config `70d5f437…16a0`、候補`62bcea15…f157`。backup付きinstall/rollbackとMac-only SIGHUP driverの構文、gate 64、diff check PASS。本番変更・signal・Jobなし。適用、reload、aliasなしPMIx再試験、失敗時rollbackは明示承認待ち | [SMD-401 NodeAddr hardening](../evidence/slurmd/2026-09-24/SMD-401-nodeaddr-hardening.md) |
+| 2026-09-24 17:35–17:36 JST | SMD-401 Mac local NodeAddr hardening runtime | `PASS / PRODUCTION_CONFIG_SYNC_RETAINED / TEMPORARY_PLUGIN_ROLLBACK_PASS` | Mac local Ubuntu node行をcontrollerと同期し、config SHAを`62bcea15…f157`へ更新。SIGHUP後もMac slurmd PID 41674を維持してIDLEへ復帰。`/etc/hosts`未変更のdefault direct connectionでJob 723 Ubuntu単独、Job 724 x86-64/arm64 Put/Get/Fence、Job 725通信後cancel、Job 726両PID cleanupを全PASS。Ubuntu一時pluginを撤去しslurmd 1136437→1136933。最終plugin不在、controller/DB PID不変、3 services active、両node IDLE・割当0、queue空、Mac hosts hash不変。Ubuntu pluginの恒久配置は別deployment判断 | [SMD-401 NodeAddr hardening PASS](../evidence/slurmd/2026-09-24/SMD-401-nodeaddr-hardening.md#production適用--pass) |
+SMD-001～SMD-007とSMD-012～SMD-013はstaging構成で完了後、2026-09-23にproduction構成でも完了した。
 SMD-012で発見したSACK replacement race修正と、macOSのunlimited `RLIMIT_NOFILE`で
 closeall fallbackが約21億FDを走査する問題の修正は、staging構成の実機で`PASS_STAGING`となった。
 補正版driverでは2回のlocal reconfigureが各4秒で完了し、PID維持、config完全復元、Job 56成功、
@@ -631,14 +688,31 @@ SMD-015はidle時とjob実行中の完全sleep/wakeをproduction構成で完了�
 2026-09-10 10:23:46 JSTから24時間、288件のjobを投入し、全job/batchの成功、同一slurmd PID、
 RSS/FD/thread閾値、error log、最終資源解放を確認して`PASS`となった。
 
+2026-09-23にSMD-001〜007のproduction再検証を開始した。Attempt 1はrootから`testuser`へ
+切り替えた後のcwd探索不能でJob ID発行前に停止し、全testuser経路を`/tmp`起点へ修正した。
+Attempt 2ではproduction `srun`がJob 640を割り当てたが、production configの`PC-210`行に
+明示的な`NodeAddr`がなく、Mac clientがstep送信先を解決できずJob 640=`FAILED 0:116`、
+Step 640.0=`CANCELLED 0:116`となった。終了後はPID 60321、両hostのconfig/artifact hash、
+node IDLE・割当0、queue空を維持した。その後、承認を得て両hostのproduction configへ
+`NodeAddr=192.168.10.128`をbackup付きで追加しreconfigureした。Jobs 648〜661の通し試験、
+SMD-012のPID維持reconfigureとJob 662、SMD-013の隔離spool/SACK回復とJobs 663〜665を完了し、
+9項目すべてを`PASS`へ昇格した。最終Mac launchd PID 70710、両hostのnode IDLE・割当0・queue空、
+Mac production artifactとUbuntu config hashを独立に読み戻した。詳細は
+[SMD-001〜007 Evidence](../evidence/slurmd/2026-09-23/SMD-001-007-production-revalidation.md)と
+[SMD-012〜013 Evidence](../evidence/slurmd/2026-09-23/SMD-012-013-production-revalidation.md)に保存した。
+
 ## パッチ化・記事Evidenceとして別途必要な確認
 
 上の表は `slurmd` の機能試験である。次は機能とは別に、patchの再現性と記事の
 根拠を確定するために必要になる。
 
-1. dirty worktreeからclean build/installし、binaryとsource revisionをhashで対応付ける。
-2. `origin/master` のclean worktreeにpatchを適用し、configure/buildを再現する。
+1. 固定HEADからclean build/installし、binaryとsource revisionをhashで対応付ける。SMD-102の
+   1 file修正では完了済み。全macOS移植patchを含む正規commit由来buildは未完了。
+2. `origin/master` のclean treeにpatchを適用し、configure/buildを再現する。SMD-102の
+   1 file修正では完了済み。patch series全体の適用性は未確認。
 3. Linuxでbuild/client smoke testを行い、Darwin分岐による回帰がないことを確認する。
+   SMD-102では分離configure/buildと限定`make check`まで完了したが、実行testは1件だけで、
+   production daemon/job runtimeは未実施。
 4. generated `configure` / `Makefile.in` が `autoreconf` で再生成可能か確認する。
 5. ヘッドノードで `uname -m`、`/etc/os-release`、`slurmctld -V`、`slurmdbd -V`
    の一次出力を保存する。
@@ -651,4 +725,25 @@ hook更新・local mode復旧、SMD-406は一時ULA上のbatch・`srun`・GPU・
 完了した。SMD-407は両hostで`s2n-tls`とpluginの隔離build、hermetic certificate test、
 inactive installまでは完了したが、runtimeはMac切替直後のcontroller pingで失敗した。
 jobは投入されず、MacとUbuntuを`tls/none`へ戻し、services active、両node IDLE、queue emptyを
-確認した。したがってSMD-407をPASSへ昇格しない。
+確認した。2026-09-22のread-only再診断では同時刻のcontroller logにPC-210のresponding/return-to-serviceが
+あり、Mac TLS daemon登録は成功、失敗境界はMac client `scontrol ping`へ狭まった。続くclient-only
+診断cutoverでstderrを永続保存し、組み込み`certgen/script`のDarwin `/dev/fd/N` direct-execが
+`EACCES`で拒否されるfailure boundaryを確定した。controller handshakeは未到達、Mac daemonは再切替せず
+Job未投入で、両hostを`tls/none`へ復旧した。2026-09-23にはfocused probeでfd mode 0500でも
+direct exec不可、`/bin/sh /dev/fd/N`は成功と確認し、内部scriptだけをshell経由にした。次に表面化した
+LibreSSL 3.3.6の`openssl req -new`要件も修正した。Mac arm64/Linux x86-64のclean build、内部client
+初期化、外部script正負は隔離PASSとなった。続いて両hostのproduction certgenをbackup付きで更新し、
+Ubuntu TLS active中にMac旧`tls/none` clientの拒否と修正版TLS clientのcontroller UPを一度確認した。
+しかし次のdaemon gateで`/dev/fd/6: Bad file descriptor`を再現し、`run_command()`がexec前にFD 3以上を
+閉じるため先行成功は非決定的だったと訂正した。不安定候補は両hostとも旧版へrollbackし、Ubuntuは
+`tls/none`、services active、両node IDLE、queue空である。FD依存を除いた`/bin/sh -c`再修正版はMac 15回、
+Linux 10回の隔離client初期化後、両hostへbackup付きで再導入した。installed pathはMac 10回、Linux 5回を
+連続PASSした。さらにUbuntu production stackを一時TLS化し、Mac直接clientで平文拒否とTLS controller UPを
+5/5回確認した。続くno-job診断では、一時`gres.conf`不足による変更前停止を修正後、Mac TLS daemonを
+controllerへ登録して`PC-210=IDLE`を確認し、両hostを`tls/none`へ復旧した。その後のbounded runtimeは
+cwd探索不能、両nodeの一時NodeAddr不足、`/private/tmp` fallback通知による4停止を保存して修正し、5回目で
+CPU Job 634、direct srun 635、Apple GPU 636、arm64/x86-64 mixed 637を全Job/step `COMPLETED 0:0`で完了した。
+平文・未信頼CA負例、production hash、retained state不変、Mac/Ubuntuの`tls/none`復旧、両node IDLE・割当0・
+queue空も確認した。SMD-407 runtimeはPASSへ昇格した。続いてroot-only archiveの複製・hash照合後、active
+TLS artifact/stateを削除し、Mac Job 638と両node mixed Job 639の最終`tls/none` smoke/accountingもPASSした。
+試験秘密鍵はarchive内に証跡として残るため再利用せず、将来TLS再有効化時に新規発行・rotationを行う。

@@ -2,9 +2,9 @@
 
 set -u
 
-srun_bin=/tmp/slurm-smd001-fixed/srun
-slurm_conf=/tmp/slurm-smd001-fixed/slurm.conf
-slurm_lib=/tmp/slurm-smd001-fixed
+srun_bin=${SMD_SRUN_BIN:-/tmp/slurm-smd001-fixed/srun}
+slurm_conf=${SMD_SLURM_CONF:-/tmp/slurm-smd001-fixed/slurm.conf}
+slurm_lib=${SMD_SLURM_LIB:-/tmp/slurm-smd001-fixed}
 run_stamp=$(/bin/date '+%Y%m%dT%H%M%S')
 run_dir="/tmp/slurm-smd003-${run_stamp}"
 
@@ -17,8 +17,7 @@ for expected_rc in 0 1 255; do
 	stderr_file="${run_dir}/exit-${expected_rc}.err"
 	rc_file="${run_dir}/exit-${expected_rc}.client-rc"
 
-	DYLD_LIBRARY_PATH="$slurm_lib" \
-	SLURM_CONF="$slurm_conf" \
+	DYLD_LIBRARY_PATH="$slurm_lib" SLURM_CONF="$slurm_conf" \
 		"$srun_bin" \
 		--partition=debug \
 		--nodes=1 \
@@ -27,7 +26,7 @@ for expected_rc in 0 1 255; do
 		--chdir=/tmp \
 		--job-name="smd003-exit-${expected_rc}" \
 		/bin/sh -c \
-		'code=$1; printf "stdout_marker=exit_%s\n" "$code"; printf "stderr_marker=exit_%s\n" "$code" >&2; exit "$code"' \
+		'code=$1; printf "job_id=%s\n" "$SLURM_JOB_ID"; printf "stdout_marker=exit_%s\n" "$code"; printf "stderr_marker=exit_%s\n" "$code" >&2; exit "$code"' \
 		sh "$expected_rc" >"$stdout_file" 2>"$stderr_file"
 	client_rc=$?
 

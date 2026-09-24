@@ -1,0 +1,169 @@
+SMD-305 core specialization / CPU frequency negative runtime evidence
+Date: 2026-09-23 JST
+
+[final fixtures]
+payload=contribs/macos-tests/smd305_metadata_payload.sh
+payload_sha256=e80b156241205244cebc7ae560a1e225930195987e6e18bdc60b0801b0981d88
+driver=contribs/macos-tests/smd305_core_cpufreq_driver.sh
+driver_sha256=c8ec2138a1c7cf2ff84129d02964bf077718cd062df06a4a9555320a2be2cc42
+canonical_run_dir=/private/tmp/slurm-smd305-20260923T215730.1AY62Z
+
+[environment]
+hardware=Apple M5 Max
+architecture=arm64
+macOS=26.5.1 build 25F80
+Slurm=26.11.0-0rc1
+Mac cpufreq sysfs path=/sys/devices/system/cpu/cpu0/cpufreq ABSENT
+
+[controller effective config]
+AllowSpecResourcesUsage = no
+CpuFreqDef              = Unknown
+CpuFreqGovernors        = OnDemand,Performance,UserSpace
+LaunchParameters        = (null)
+SelectType              = select/cons_tres
+TaskPlugin              = task/affinity
+TaskPluginParam         = (null type)
+
+[source and official contract]
+doc/html/core_spec.shtml:122-136:
+- core specialization requires select/cons_tres and task/cgroup.
+- a job core specialization option is cleared on other configurations.
+
+src/slurmd/slurmd/slurmd.c:3232-3236:
+- Apple _core_spec_init logs not supported on macOS and returns SLURM_SUCCESS.
+
+src/common/slurm_opt.c:5297-5301:
+- -S is ignored when AllowSpecResourcesUsage is No.
+
+src/slurmctld/job_mgr.c:8987-8992:
+- core_spec is set to NO_VAL16 unless CONF_FLAG_ASRU is enabled.
+
+src/common/cpu_frequency.c:63,297-300,436-481,1155-1162:
+- CPU frequency implementation uses /sys/devices/system/cpu/.
+- missing cpu0/cpufreq ends initialization before cpu_freq_count is populated.
+- task/affinity validation and frequency setter return when cpu_freq_count is 0.
+
+[startup behavior before canonical run]
+[2026-09-23T21:56:16.824] Caught SIGHUP. Triggering reconfigure.
+[2026-09-23T21:56:16.883] CPU frequency setting not configured for this node
+[2026-09-23T21:56:16.883] error: _core_spec_init: not supported on macOS
+[2026-09-23T21:56:16.883] slurmd version 26.11.0-0rc1 started
+[2026-09-23T21:56:16.886] slurmd started on Wed, 23 Sep 2026 21:56:16 +0900
+PID before/after SIGHUP=70710/70710
+node after SIGHUP=IDLE
+
+[attempt 1 harness failure]
+run_dir=/private/tmp/slurm-smd305-20260923T214019.hmZRfD
+job=676
+symptom=control marker did not appear within 60 seconds
+cause=job output and marker paths were placed under mode 0711 run directory
+payload_executed=NO
+accounting:
+676|S305_control_214030|FAILED|0:53|1|PC-210
+676.batch|batch|CANCELLED|0:53|1|PC-210
+recovery=node IDLE, CPUAlloc=0, AllocMem=0, queue empty
+fix=separate mode 0777 job-output directory
+
+[attempt 2 sleep-confounded functional pass]
+run_dir=/private/tmp/slurm-smd305-20260923T214503.e9TBB2
+jobs=677,678,679
+functional_result=all jobs/batches/step COMPLETED 0:0
+power events:
+2026-09-23 21:45:14 Maintenance Sleep 29 seconds
+2026-09-23 21:46:28 Maintenance Sleep 29 seconds
+2026-09-23 21:47:42 Sleep 301 seconds
+2026-09-23 21:52:43 Wake due to HID Activity
+controller consequence:
+PC-210 DOWN+NOT_RESPONDING at 2026-09-23T21:53:24
+slurmd PID=70710 remained alive
+controller and network remained reachable
+recovery=user sent SIGHUP to PID 70710 at 2026-09-23T21:56:16
+recovery result=PID unchanged, node IDLE
+fix=driver self-reexec under caffeinate -is
+
+[canonical driver marker]
+SMD305_RUNTIME_COMPLETE control_job=680 core_job=681 cpufreq_job=682 core_request=CLEARED cpu_freq_request=METADATA_ONLY jobs=COMPLETED node=IDLE queue=EMPTY launchd_pid=70710 production=UNCHANGED run_dir=/private/tmp/slurm-smd305-20260923T215730.1AY62Z
+
+[caffeinate evidence]
+2026-09-23 21:57:30 caffeinate PID 77519 created PreventSystemSleep
+2026-09-23 21:58:39 caffeinate PID 77519 released assertions on exit
+Sleep events during canonical run=0
+Permanent power-setting changes=0
+
+[control case]
+job=680
+live CoreSpec=*
+live NumCPUs=1
+live Exclusive=NO
+payload:
+SMD305_PAYLOAD case=control pid=77568 ppid=77567 uid=3001 gid=3001 job=680 step=-5 core_spec_env=UNSET cpu_freq_req=UNSET
+stderr_bytes=0
+
+[core specialization case]
+job=681
+submit stderr:
+sbatch: error: Ignoring -S since it's not allowed by configuration (AllowSpecResourcesUsage = No)
+live CoreSpec=*
+live NumCPUs=1
+live Exclusive=NO
+payload:
+SMD305_PAYLOAD case=core pid=77628 ppid=77627 uid=3001 gid=3001 job=681 step=-5 core_spec_env=UNSET cpu_freq_req=UNSET
+stderr_bytes=0
+
+[CPU frequency case]
+job=682
+step=682.0
+live step Governor=Performance
+payload:
+SMD305_PAYLOAD case=cpufreq pid=77661 ppid=77660 uid=3001 gid=3001 job=682 step=0 core_spec_env=UNSET cpu_freq_req=Performance
+stderr_bytes=0
+
+[canonical final sacct]
+fields=JobIDRaw,JobName,State,ExitCode,ElapsedRaw,AllocCPUS,ReqCPUFreqMin,ReqCPUFreqMax,ReqCPUFreqGov,AveCPUFreq,ReqTRES,AllocTRES
+680|S305_control_215741|COMPLETED|0:0|13|1|Unknown|Unknown|Unknown||billing=1,cpu=1,mem=128M,node=1|billing=1,cpu=1,mem=128M,node=1
+680.batch|batch|COMPLETED|0:0|13|1|0|0|0|0||cpu=1,mem=128M,node=1
+681|S305_core_215757|COMPLETED|0:0|12|1|Unknown|Unknown|Unknown||billing=1,cpu=1,mem=128M,node=1|billing=1,cpu=1,mem=128M,node=1
+681.batch|batch|COMPLETED|0:0|12|1|0|0|0|0||cpu=1,mem=128M,node=1
+682|S305_cpufreq_215810|COMPLETED|0:0|13|1|Unknown|Unknown|Unknown||billing=1,cpu=1,mem=128M,node=1|billing=1,cpu=1,mem=128M,node=1
+682.batch|batch|COMPLETED|0:0|13|1|0|0|0|0||cpu=1,mem=128M,node=1
+682.0|smd305_metadata_payload.sh|COMPLETED|0:0|13|1|Unknown|Unknown|Performance|0||cpu=1,mem=128M,node=1
+
+AveCPUFreq=0 is consistent with no collected frequency, but jobacct_gather/none
+also limits accounting. The metadata-only classification additionally relies on
+the absent sysfs path and the source early-return path.
+
+[canonical slurmd log delta]
+[2026-09-23T21:57:41.994] Launching batch JobId=680 SLUID=sCT1M375FS5M00 for UID 3001
+[2026-09-23T21:57:57.990] Launching batch JobId=681 SLUID=sCT1M375G8TF00 for UID 3001
+[2026-09-23T21:58:12.427] Launching batch JobId=682 SLUID=sCT1M375GNY300 for UID 3001
+[2026-09-23T21:58:12.847] launch task StepId=682.0 request from UID:3001 GID:3001 HOST:192.168.10.128 PORT:52187
+
+[production hashes before and after canonical run]
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  /opt/slurm/26.11.0/sbin/slurmd
+0aca56272a232fc1ba594fef1bcfddeb32e089313331e67f2fcf1eb7331f064e  /opt/slurm/26.11.0/sbin/slurmstepd
+deeb77e87cdcec950fd2f9d43b265655aec479d06d8a1ce900ba6d69c1db7d79  /opt/slurm/26.11.0/lib/slurm/task_affinity.so
+70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0  /opt/slurm/26.11.0/etc/slurm.conf
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+
+The before and after hash lists were byte-identical.
+
+[final independent readback]
+controller=UP
+node=PC-210
+state=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+queue=empty
+launchd=running
+slurmd_pid=70710
+slurmd_ppid=1
+Jobs 680,681,682 and every batch/step=COMPLETED 0:0
+production hashes=IDENTICAL
+
+[classification]
+PASS_EXPECTED_UNSUPPORTED
+
+Core specialization was explicitly cleared and CPU frequency remained request
+metadata only on this macOS worker. No core isolation or CPU frequency control
+was achieved or claimed.

@@ -1,0 +1,23 @@
+--- a/3rd-party/prrte/src/hwloc/hwloc_base_util.c
++++ b/3rd-party/prrte/src/hwloc/hwloc_base_util.c
+@@ -1672,12 +1672,19 @@ char *prte_hwloc_base_get_topo_signature(hwloc_topology_t topo)
+         arch = "unknown";
+     }
+ 
+-#ifdef __BYTE_ORDER
++#if defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && defined(__BIG_ENDIAN)
+ #    if __BYTE_ORDER == __LITTLE_ENDIAN
+     endian = "le";
+ #    else
+     endian = "be";
+ #    endif
++#elif defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
++    && defined(__ORDER_BIG_ENDIAN__)
++#    if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++    endian = "le";
++#    else
++    endian = "be";
++#    endif
+ #else
+     endian = "unknown";
+ #endif

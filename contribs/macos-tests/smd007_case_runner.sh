@@ -4,10 +4,16 @@ set -u
 
 case_name=$1
 run_dir=$2
-srun_bin=/tmp/slurm-smd001-fixed/srun
+srun_bin=${SMD_SRUN_BIN:-/tmp/slurm-smd001-fixed/srun}
+slurm_conf=${SMD_SLURM_CONF:-/tmp/slurm-smd001-fixed/slurm.conf}
+slurm_lib=${SMD_SLURM_LIB:-/tmp/slurm-smd001-fixed}
 
-export DYLD_LIBRARY_PATH=/tmp/slurm-smd001-fixed
-export SLURM_CONF=/tmp/slurm-smd001-fixed/slurm.conf
+export SLURM_CONF="$slurm_conf"
+if [ -n "$slurm_lib" ]; then
+	export DYLD_LIBRARY_PATH="$slurm_lib"
+else
+	unset DYLD_LIBRARY_PATH
+fi
 
 printf 'case_begin=%s job_id=%s job_gpus=%s\n' \
 	"$case_name" "${SLURM_JOB_ID:-unknown}" "${SLURM_JOB_GPUS:-not-set}"

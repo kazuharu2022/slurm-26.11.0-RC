@@ -2,16 +2,20 @@
 
 set -u
 
-slurm_bin=/opt/slurm/26.11.0/bin
-slurm_conf=/tmp/slurm-smd001-fixed/slurm.conf
-slurm_lib=/tmp/slurm-smd001-fixed
-stage_dir=/tmp/slurm-smd001-fixed
+slurm_bin=${SMD_SLURM_BIN:-/opt/slurm/26.11.0/bin}
+slurm_conf=${SMD_SLURM_CONF:-/tmp/slurm-smd001-fixed/slurm.conf}
+slurm_lib=${SMD_SLURM_LIB:-/tmp/slurm-smd001-fixed}
+stage_dir=${SMD_STAGE_DIR:-/tmp/slurm-smd001-fixed}
 run_stamp=$(/bin/date '+%Y%m%dT%H%M%S')
 run_dir="/tmp/slurm-smd006-${run_stamp}"
 job_id=""
 
-export DYLD_LIBRARY_PATH="$slurm_lib"
 export SLURM_CONF="$slurm_conf"
+if [ -n "$slurm_lib" ]; then
+	export DYLD_LIBRARY_PATH="$slurm_lib"
+else
+	unset DYLD_LIBRARY_PATH
+fi
 
 /bin/mkdir -m 0755 "$run_dir" || exit 1
 printf 'run_dir=%s\n' "$run_dir"

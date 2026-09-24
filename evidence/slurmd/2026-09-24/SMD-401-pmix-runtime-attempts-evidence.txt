@@ -1,0 +1,113 @@
+# SMD-401 PMIx production runtime attempts before daemon restart
+
+local_date=2026-09-24
+host=PC-210
+scope=2-task PMIx success/cancel runtime
+production_config_change=NO
+daemon_restart=NO
+
+[preflight]
+controller=UP
+node=PC-210 IDLE CPUAlloc=0 AllocMem=0 AllocTRES=empty
+queue=empty
+production_client_plugins=none,cray_shasta,pmix,pmi2
+production_client_pmix_version=pmix_v6
+slurmd_pid=70710
+slurmd_start=2026-09-23T21:56:16
+plugin_mtime=2026-09-24T08:05:39
+plugin_sha256=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+slurm.conf_sha256=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+srun_sha256=0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9
+
+[probe build]
+first preflight=FAIL_HARNESS
+failure=zsh did not split pkg-config flags, so pmix.h was not passed to clang
+correction=repeat with POSIX /bin/sh, matching the runtime driver
+corrected build=PASS
+architecture=Mach-O 64-bit executable arm64
+dependency=/opt/homebrew/opt/pmix/lib/libpmix.2.dylib
+probe_binary_sha256=37b09c8680be2dc27477fe463a52fb1486f054076b3cfb62487a560cf261b4e4
+
+[runtime attempt 1]
+run_dir=/private/tmp/slurm-smd401-pmix-runtime.20260924T082722.40435
+driver_sha256=2ddbd546aba27d53eef25ef8d305f297efee1b4be95fe80076744a93a49567f7
+result=FAIL_HARNESS_BEFORE_JOB
+stderr=srun: error: getcwd failed: Permission denied
+cause=administrator process retained a cwd not traversable by testuser
+job_allocated=NO
+correction=change to /private/tmp before invoking srun as testuser
+
+[runtime attempt 2]
+run_dir=/private/tmp/slurm-smd401-pmix-runtime.20260924T082845.40627
+driver_sha256=897bd1f6fe09a8111e51d7a504b11600a1d37450e8517f59c471d7a19c5db91f
+result=FAIL_HARNESS_BEFORE_JOB
+stderr=/bin/cd: No such file or directory
+cause=cd was incorrectly treated as an external command instead of a shell builtin
+job_allocated=NO
+correction=use the POSIX shell cd builtin
+
+[runtime attempt 3]
+run_dir=/private/tmp/slurm-smd401-pmix-runtime.20260924T082947.40796
+driver_sha256=f9e55a3d9df7cfea123af1d96c2e986e298508e27323f6b566edc8ac27ff75f0
+result=FAIL_RUNTIME_DAEMON_PLUGIN_SET_STALE
+job_id=683
+job_state=FAILED
+job_exit=0:12
+step_state=CANCELLED
+step_exit=0:12
+srun_rc=140
+srun_stderr=Socket timed out on send/recv operation
+
+[slurmd failure boundary]
+timestamp=2026-09-24T08:29:48.233
+message=mpi_conf_send_stepd: unable to resolve MPI plugin offset from plugin_id=108
+message_detail=job submitted against an MPI plugin not loaded by the running slurmd
+source=src/interfaces/mpi.c:634-636
+daemon_plugin_init=src/slurmd/slurmd/slurmd.c:525-526
+daemon_plugin_fini=src/slurmd/slurmd/slurmd.c:3010-3016
+inference=the running slurmd predates the PMIx plugin placement and needs restart
+
+[attempt 3 cleanup]
+initial_cleanup=scancel
+force_cleanup=scancel --signal=KILL 683
+residual=Job 683 COMPLETING and slurmstepd PID 40859
+bounded_manual_cleanup=TERM then KILL only PID 40859
+final_queue_rows=0
+final_node_state=IDLE
+final_CPUAlloc=0
+final_AllocTRES=empty
+final_slurmstepd_rows=0
+final_slurmd_pid=70710
+final_SlurmdStartTime=2026-09-23T21:56:16
+
+[current runtime driver guard]
+guard=stop before job if slurmd start time predates PMIx plugin mtime
+driver_sha256=6a81435ddf72b33107b7ab3c5775fb7639f57687389a39fcbfe454ce97b4fec9
+probe_source_sha256=d6a144ef571dc6bb728ef38a6f5210a37728feac82248fca1a649e2e52eb1b7b
+
+[launchd readback]
+label=system/org.schedmd.slurmd
+state=running
+pid=70710
+runs=1
+program=/opt/slurm/26.11.0/sbin/slurmd
+config=/opt/slurm/26.11.0/etc/slurm.conf
+
+[classification]
+PMIx production plugin placement=PASS
+PMIx production client discovery=PASS
+PMIx job runtime=FAIL_NEEDS_DAEMON_RESTART
+PMIx cancel runtime=NOT_RUN
+SMD-401=PARTIAL_PASS_PMI2
+next_gate=EXPLICIT_SLURMD_RESTART_APPROVAL
+
+[next approval boundary]
+Restarting system/org.schedmd.slurmd is not authorized by the job-runtime approval.
+After explicit approval: record pre-restart state, restart only this launchd service,
+wait for a new PID and PC-210 IDLE registration, verify pmix_v6 remains listed, then
+rerun the bounded success/cancel runtime and final cleanup checks.
+
+[subsequent resolution]
+The restart was explicitly approved and completed with new slurmd PID 41674.
+Jobs 684 and 685 then passed the bounded success and cancel runtime.
+See SMD-401-pmix-runtime-final-evidence.txt for the current classification.

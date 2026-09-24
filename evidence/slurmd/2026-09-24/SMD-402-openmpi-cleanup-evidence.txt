@@ -1,0 +1,151 @@
+# SMD-402 Open MPI temporary artifact cleanup Evidence
+
+日時: 2026-09-24 13:52–14:02 JST
+
+最終状態:
+
+```text
+CLEANUP_PASS / RAW_EVIDENCE_ARCHIVED
+```
+
+## 対象と境界
+
+SMD-402 Open MPI検証でMacとUbuntuの`/tmp`へ作成した、失敗試行、build/install、runtime run、
+gate出力、staged inputだけをcleanup対象とした。production Slurm、workspaceのsource/evidence、
+他試験の`/tmp`は対象外である。
+
+削除前に全対象を実体path、type、容量、更新時刻、owner/modeで列挙し、関連processが両hostとも
+0件であることを確認した。raw logsと実行入力は小容量archiveへ退避し、圧縮整合性、収録件数、
+SHA-256を確認してから削除した。
+
+## 削除前容量
+
+```text
+Mac build/install trees=620M + 620M + 4K + 627M
+Mac runtime/gate/staged auxiliary files=約120K
+Ubuntu build/install trees=602M + 602M + 604M
+Ubuntu runtime/gate/staged auxiliary files=約228K
+reclaimed total=約3.6 GiB
+```
+
+## 保存したraw evidence
+
+Mac archive:
+
+```text
+evidence/slurmd/2026-09-24/SMD-402-mac-raw-evidence-20260924T1348.tar.gz
+size=292K
+entries=134
+SHA-256=eee34e265b6e4d3f0902e47cbc9816e9f431738303476a04b56ed461ebae19ac
+gzip integrity=PASS
+```
+
+Ubuntu archive:
+
+```text
+evidence/slurmd/2026-09-24/SMD-402-ubuntu-raw-evidence-20260924T1348.tar.gz
+size=332K
+entries=143
+SHA-256=4dffbd0645c28e6bb632b11907cda88c00f17d192462c9b7d0a507884398c020
+remote/local SHA-256=一致
+gzip integrity=PASS
+```
+
+archiveには次を保存した。
+
+- 各build attemptの`logs/`
+- Mac clean download failure
+- runtime Attempt 1、Attempt 2、最終runのraw directory
+- Mac runtime Attempt 3のreadback copy
+- gate stdout/stderr
+- Ubuntuへstageして実行したbuild/runtime driver、probe、patch
+- driver差分確認に読み戻したUbuntu実行版build driver
+
+600M級のsource/build/install tree本体は保存していない。これらは固定archive SHA、workspaceの
+driver、probe、patch、保存済みbuild logsから再生成する対象である。
+
+## Macで削除したexact paths
+
+```text
+/private/tmp/smd402-build-gate.err
+/private/tmp/smd402-build-gate.out
+/private/tmp/smd402-clean-gate.err
+/private/tmp/smd402-clean-gate.out
+/private/tmp/smd402-clean-scope.err
+/private/tmp/smd402-clean-scope.out
+/private/tmp/smd402-final-gate.err
+/private/tmp/smd402-final-gate.out
+/private/tmp/smd402-gate-2.err
+/private/tmp/smd402-gate-2.out
+/private/tmp/smd402-gate.err
+/private/tmp/smd402-gate.out
+/private/tmp/smd402-openmpi-5.0.11
+/private/tmp/smd402-openmpi-5.0.11-attempt1-validator-munge
+/private/tmp/smd402-openmpi-5.0.11-clean
+/private/tmp/smd402-openmpi-5.0.11-clean-attempt2
+/private/tmp/smd402-openmpi-runtime-attempt3
+/private/tmp/smd402-runtime-gate.err
+/private/tmp/smd402-runtime-gate.out
+/private/tmp/smd402_openmpi_isolated_build.remote-executed.sh
+/private/tmp/smd402_openmpi_probe.static.o
+```
+
+## Ubuntuで削除したexact paths
+
+```text
+/tmp/slurm-smd402-openmpi-multinode-20260924T131130
+/tmp/slurm-smd402-openmpi-multinode-20260924T131753
+/tmp/slurm-smd402-openmpi-multinode-20260924T132638
+/tmp/smd402-build-gate.err
+/tmp/smd402-build-gate.out
+/tmp/smd402-openmpi-5.0.11
+/tmp/smd402-openmpi-5.0.11-attempt1-validator-munge
+/tmp/smd402-openmpi-5.0.11-clean
+/tmp/smd402-runtime-gate.err
+/tmp/smd402-runtime-gate.out
+/tmp/smd402_openmpi_isolated_build.sh
+/tmp/smd402_openmpi_multinode_runtime_driver.sh
+/tmp/smd402_openmpi_probe.c
+/tmp/smd402_prrte_macos_endian.patch
+/tmp/smd402-ubuntu-raw-evidence-20260924T1348.tar.gz
+```
+
+最後のUbuntu archiveはworkspaceへコピーし、local/remote SHA-256一致とlocal gzip integrityを
+確認した後に、remote一時copyだけを削除した。
+
+## 削除後readback
+
+```text
+Mac /private/tmp SMD-402 candidates=0
+Ubuntu /tmp SMD-402 candidates=0
+Mac related process=0
+Ubuntu related process=0
+PC-210=IDLE CPUAlloc=0 AllocMem=0 AllocTRES empty
+ubuntu=IDLE CPUAlloc=0 AllocMem=0 AllocTRES empty
+queue=empty
+Ubuntu services active=5/5
+Mac slurmd PID=41674
+Ubuntu slurmctld PID=197928
+Ubuntu slurmd PID=198005
+```
+
+production SHA-256はcleanup前の記録と一致した。
+
+```text
+Mac slurm.conf=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+Mac slurmd=a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+Mac mpi_pmix_v6.so=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+Ubuntu slurm.conf=1e6c257b82aa82e507eb710a3e37690ffcfd7b402cb2b33fde53ed9bb1651c68
+Ubuntu slurmd=2c445fdf614b0554aa76f7b0df272ec6c0ea8af456736b3fa66a28a41847ed14
+Ubuntu slurmctld=834e8968209e0a989cf4bbdb917d14a5f0ae41b0db253aeb3ad7b9b458972c70
+```
+
+## 回復可能性と判定
+
+削除したsource/build/install treeそのものはTrashへ移動しておらず、直接復元はできない。
+ただしraw logs、失敗ログ、runtime出力、実行入力は上記workspace archiveに保存した。build treeは
+固定SHAの公式archiveと保存済みdriver/patchから再生成できる。
+
+対象候補0件、archive整合性PASS、production/daemon/node/queue不変を確認したため、SMD-402の
+一時artifact cleanupを`CLEANUP_PASS / RAW_EVIDENCE_ARCHIVED`とする。既存のbuild/runtime判定は
+変更しない。

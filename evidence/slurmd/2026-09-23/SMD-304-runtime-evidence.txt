@@ -1,0 +1,140 @@
+SMD-304 job accounting metrics negative runtime evidence
+Date: 2026-09-23 JST
+
+[fixture]
+probe=contribs/macos-tests/smd304_jobacct_probe.c
+probe_sha256=2e7fe36f0be3872c50ea63baa0f2150e52c134bb8067002935a326185c6d05d4
+driver=contribs/macos-tests/smd304_jobacct_driver.sh
+driver_sha256=a3f1b2b6e0bf081b0b6e056de8719d1980d6084ef2f318caa418ab616bbf1ab5
+compiled_probe_sha256=c9fd75142d1cf8f497327c761e88c31d79f2efb76b5647e3b091e94bd8ce5306
+compiled_probe_format=Mach-O 64-bit executable arm64
+canonical_run_dir=/private/tmp/slurm-smd304-20260923T211858.jcELrM
+
+[initial safe stop]
+run_dir=/private/tmp/slurm-smd304-20260923T205007.uo5ljJ
+controller=UP
+node=PC-210
+state=DOWN+NOT_RESPONDING
+reason=Not responding [slurm@2026-09-23T19:26:42]
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+slurmd_pid=70710 alive
+result=STOPPED_BEFORE_BUILD_AND_JOB_SUBMISSION
+
+[approved SIGHUP-only recovery]
+user action: sudo kill -HUP 70710
+launchd restart: NOT_PERFORMED
+PID before/after: 70710/70710
+log:
+[2026-09-23T21:18:04.535] Caught SIGHUP. Triggering reconfigure.
+[2026-09-23T21:18:04.560] _read_slurm_cgroup_conf: No cgroup.conf file (/opt/slurm/26.11.0/etc/cgroup.conf), using defaults
+[2026-09-23T21:18:04.574] warning: Running with local config file despite slurmctld having been setup for configless operation
+[2026-09-23T21:18:04.578] CPU frequency setting not configured for this node
+[2026-09-23T21:18:04.578] error: _core_spec_init: not supported on macOS
+[2026-09-23T21:18:04.580] slurmd version 26.11.0-0rc1 started
+[2026-09-23T21:18:04.585] slurmd started on Wed, 23 Sep 2026 21:18:04 +0900
+[2026-09-23T21:18:04.587] error: cannot create http_parser context for http_parser/llhttp_parser, http_parser/libhttp_parser
+[2026-09-23T21:18:04.587] CPUs=18 Boards=1 Sockets=1 Cores=18 Threads=1 Memory=131072 TmpDisk=3811146 Uptime=1199383 CPUSpecList=(null) FeaturesAvail=(null) FeaturesActive=(null)
+controller SlurmdStartTime after recovery=2026-09-23T21:18:04
+node after recovery=IDLE
+
+[official accounting contract]
+doc/html/accounting.shtml:
+- JobAcctGatherType=jobacct_gather/none means no information collected.
+- sacct/sstat resource usage depends on both JobAcctGatherType and
+  AccountingStorageType being configured to collect and store it.
+
+[source contract]
+src/common/read_config.c:4189-4193:
+- a JobAcctGatherType containing none frees job_acct_gather_type.
+
+src/interfaces/jobacct_gather.c:525-527:
+- a null job_acct_gather_type selects PLUGIN_NOOP.
+
+installed inventory:
+jobacct_gather_linux.so PRESENT, Mach-O arm64
+jobacct_gather_cgroup.so ABSENT
+active config=JobAcctGatherType=jobacct_gather/none
+
+[canonical driver marker]
+SMD304_RUNTIME_COMPLETE job=675 payload_cpu_us=2029384 live_rss_kb=133600 payload_read_bytes=33554432 payload_write_bytes=33554432 state=COMPLETED node=IDLE queue=EMPTY launchd_pid=70710 production=UNCHANGED run_dir=/private/tmp/slurm-smd304-20260923T211858.jcELrM
+
+[submission]
+job_id=675
+job_name=S304_211904
+request=1 CPU, 256 MiB, 2 minute limit
+
+[payload self metrics]
+SMD304_SELF pid=75706 memory_bytes=134217728 write_bytes=33554432 read_bytes=33554432 user_us=1988733 system_us=40651 maxrss_raw=136773632 page_size=16384 checksum=17901499225522039648
+payload_cpu_us=1988733+40651=2029384
+stdout includes SMD304_SELF and SMD304_DONE
+stderr_bytes=0
+
+[live ps samples]
+fields=pid rss_kib vsz_kib cpu_percent user command
+75706 133600 435430192 25.2 testuser smd304_jobacct_probe
+75706 133600 435430192 0.1 testuser smd304_jobacct_probe
+75706 133600 435430192 0.0 testuser smd304_jobacct_probe
+
+[live sstat samples]
+fields=JobID,AveCPU,AveRSS,MaxRSS,MaxVMSize,MaxDiskRead,MaxDiskWrite,TRESUsageInAve,TRESUsageInMax,TRESUsageOutAve,TRESUsageOutMax
+675.batch|213503982334-14:25:51|||||||||
+SSTAT_RC=0
+675.batch|213503982334-14:25:51|||||||||
+SSTAT_RC=0
+675.batch|213503982334-14:25:51|||||||||
+SSTAT_RC=0
+
+[AveCPU sentinel diagnosis]
+slurm/slurm.h:106 defines INFINITE64 as 0xffffffffffffffff.
+src/common/slurmdb_defs.c:4379-4401 returns INFINITE64 when the TRES string or
+the requested TRES ID is absent.
+src/sstat/print.c:129-136 rejects NO_VAL64 but not INFINITE64, divides the
+returned value by CPU_TIME_ADJ=1000, then formats it as elapsed time.
+
+(2^64 - 1) / 1000 = 18446744073709551 seconds
+18446744073709551 seconds = 213503982334 days 14:25:51
+
+The observed AveCPU is therefore a rendered missing-value sentinel, not
+measured CPU usage.
+
+[final sacct]
+fields=JobIDRaw,JobName,State,ExitCode,ElapsedRaw,CPUTimeRAW,TotalCPU,UserCPU,SystemCPU,AveRSS,MaxRSS,MaxVMSize,MaxDiskRead,MaxDiskWrite,TRESUsageInAve,TRESUsageInMax,TRESUsageOutAve,TRESUsageOutMax,ReqMem,AllocTRES
+675|S304_211904|COMPLETED|0:0|22|22|00:00:00|00:00:00|00:00:00||||||||||256M|billing=1,cpu=1,mem=256M,node=1
+675.batch|batch|COMPLETED|0:0|22|22|00:00:00|00:00:00|00:00:00|||||||||||cpu=1,mem=256M,node=1
+
+CPUTimeRAW=22 is one allocated CPU multiplied by ElapsedRaw=22 seconds. It is
+not the payload's measured CPU usage of 2.029384 seconds.
+
+[production hashes before and after]
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  /opt/slurm/26.11.0/sbin/slurmd
+0aca56272a232fc1ba594fef1bcfddeb32e089313331e67f2fcf1eb7331f064e  /opt/slurm/26.11.0/sbin/slurmstepd
+d94da323173de0144c2bec2ef6d0da88f8e91f68e73ec2bd2dfc82adf3ef8af9  /opt/slurm/26.11.0/lib/slurm/jobacct_gather_linux.so
+70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0  /opt/slurm/26.11.0/etc/slurm.conf
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+
+The before and after hash lists were byte-identical.
+
+[job-time slurmd log delta]
+[2026-09-23T21:19:05.991] Launching batch JobId=675 SLUID=sCT1M37392NG00 for UID 3001
+
+[final independent readback]
+controller=UP
+node=PC-210
+state=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+queue=empty
+launchd=running
+slurmd_pid=70710
+slurmd_ppid=1
+
+[classification]
+PASS_EXPECTED_UNSUPPORTED
+
+Actual CPU, RSS, VM, and disk I/O usage was present but not collected by
+jobacct_gather/none. Basic completion, elapsed, requested resources, and
+allocated resources remained available. The live sstat AveCPU value is a
+separate missing-sentinel rendering defect and must not be treated as usage.

@@ -1,0 +1,219 @@
+# SMD-401 Open MPI `mpirun` in Slurm allocation evidence
+
+- date: 2026-09-24 JST
+- scope: PC-210 single-node allocation only
+- classification: `PASS_SINGLE_NODE_MPIRUN / ALLOCATION_ONLY_ACCOUNTING_OBSERVED`
+- production config change: none
+- daemon restart/reconfigure: none
+- package change: none
+- Ubuntu change: none
+
+## Research Question
+
+SlurmでPC-210だけに2 taskを割り当てた状態で、Open MPI 5.0.11の`mpirun`が
+明示的な`-n`なしにallocationのtask countを使い、2 rankのcollectiveとpoint-to-point
+通信を完了できるか。また通信後のallocation cancelで全rank、allocation、資源を
+回収できるか。
+
+`srun --mpi=pmix_v6` direct launchは別試験でPASS済み。本試験では`mpirun`経路を
+direct launchと混同せず、Slurm child step accountingの有無も実測する。
+
+## 仮説と固定条件
+
+- `salloc --nodes=1 --ntasks=2`内で`mpirun`を実行する。
+- `mpirun -n`は指定しない。
+- probeはbroadcast 42、all-reduce 1、ring 1001/1000を要求する。
+- success allocationは`COMPLETED 0:0`を要求する。
+- cancel allocationは通信完了後の両PID消滅、`CANCELLED`会計、資源回収を要求する。
+- child stepが存在しない場合は、その事実を失敗として隠さず記録する。
+
+実行PATHは次へ固定した。
+
+```text
+/opt/slurm/26.11.0/bin:/opt/homebrew/bin:/usr/bin:/bin
+```
+
+## 入力
+
+```text
+Open MPI 5.0.11
+PMIx 6.1.0
+PRRTE 4.1.0
+slurmd 26.11.0-0rc1
+probe SHA-256=bf0fbe8a72d580fa5046aacf9b6496286a825839b2157763558779eb9863bd81
+current driver SHA-256=fed592514fd5b987c698f7a90ad30d8c4c55c96d41ac754b2e568b2a4fc8611b
+```
+
+current driverはAttempt 1/2で発見したvalidator不整合を補正した版である。Attempt 2時点の
+driver SHA-256は`a3546f2c98e7a5d982cd9f42bf4fc756f93872ee5480641f2e2ffb894c4975c3`。
+probe、production config、PMIx plugin、Slurm client、Open MPI binary/libraryのhashは
+Attempt 2開始時と現在で一致した。driverだけが意図したtest harness修正で変化した。
+
+## Attempt 1 — 通信PASS、child step前提のvalidator停止
+
+```text
+run_dir=/private/tmp/slurm-smd401-openmpi-mpirun.20260924T093419.45856
+job_id=688
+rank_argument=omitted
+```
+
+Job 688は2 rankとも`size=2`、broadcast 42、all-reduce 1、ring値1001/1000、
+Open MPI 5.0.11を記録した。`salloc`はallocation grant、node ready、relinquishを記録し、
+jobは`COMPLETED 0:0`、ReqTRES/AllocTRESは`cpu=2,mem=256M,node=1`だった。
+
+一方、会計にはallocation rowだけがあり、child step rowは0件だった。初版driverは
+child stepを必須としたため、この時点で停止しcancel caseへ進まなかった。これは通信失敗ではなく、
+この経路の実測accounting shapeとvalidator前提の不一致である。
+
+## Attempt 2 — 正常終了とcancel動作PASS、client rc前提のvalidator停止
+
+```text
+run_dir=/private/tmp/slurm-smd401-openmpi-mpirun.20260924T093647.46271
+success_job=689
+cancel_job=690
+rank_argument=omitted
+success_step_count=0
+```
+
+Job 689も2 rankで全通信を完了し、allocationは`COMPLETED 0:0`となった。child step rowは
+再び0件だった。
+
+Job 690では通信完了後、次の2 processを同時生存で記録した。
+
+```text
+rank=0 pid=46362 uid=3001 gid=3001 bcast=42 allreduce=1 ring_value=1001
+rank=1 pid=46364 uid=3001 gid=3001 bcast=42 allreduce=1 ring_value=1000
+```
+
+対象allocationをcancelすると`salloc: Job allocation 690 has been revoked.`を出力した。
+controller会計はjob=`CANCELLED by 0|0:0`で、両PIDは消滅した。現在の独立process readbackでも
+対象PID、`mpirun`、PRRTE、probeの残留は0件、queueも0件である。
+
+この環境の`salloc`/`mpirun` clientはrevoke後もrc 0を返した。Attempt 2 driverはcancel client rcを
+非0と仮定していたため、製品側の通信・cancel・回収完了後にvalidatorだけが停止した。driverは
+client rcの値自体ではなく、revoke message、cancel accounting、PID消滅、資源回復を必須にするよう
+補正した。
+
+## Attempt 3 — canonical retestはjob前のnode preflightで停止
+
+```text
+run_dir=/private/tmp/slurm-smd401-openmpi-mpirun.20260924T115311.48189
+error: node is not IDLE
+job_count=0
+```
+
+Attempt 3開始時、controllerはPC-210を次の状態としていた。
+
+```text
+State=DOWN+NOT_RESPONDING
+CPUAlloc=0
+AllocMem=0
+AllocTRES=(empty)
+Reason=Not responding [slurm@2026-09-24T11:45:08]
+LastBusyTime=2026-09-24T11:38:28
+```
+
+queueは空で、slurmctld、slurmdbd、munge、mariadbはactiveだった。Mac側のlaunchdは
+`system/org.schedmd.slurmd`をrunningと報告し、PID 41674、last exit code 0だった。
+PIDとStartTimeはOpen MPI direct launch試験から不変である。
+
+通信経路のread-only probeは次の通り。
+
+- PC-210のen0は`192.168.10.128/24`、controllerへのpingは2/2成功。
+- PC-210からcontroller `192.168.10.180:6817`へTCP接続成功。
+- controllerからPC-210 `192.168.10.128:6818`へTCP接続成功。
+- controller自身はUP。
+- root `lsof`ではslurmdは`*:6818` LISTENだけを保持し、controllerへのTCP connectionはなかった。
+- 1秒のroot sampleではmain threadは`conmgr_run -> wait_for_watch`、timer threadは
+  `_timer_wait`、worker群はpollまたはcondition waitだった。crashやbusy loopは観測しなかった。
+- slurmd launchd stderrの最終新規行はJob 687の09:20:20で、11:45の非応答化に対応する
+  error行はなかった。
+
+双方向TCP到達性はあるがslurmdのcontroller heartbeat/registrationが失われている、という境界までは
+確認した。sleep/wake、timer/conmgr、別要因のどれが根本原因かは、このread-only観測だけでは未確定。
+既知の過去sleep/wake事例から現在原因を推定してPASS扱いにはしない。
+
+node復旧にはSIGHUP、launchd restart、controller RESUME等の状態変更が候補になる。本試験の承認範囲は
+config/daemon/controller変更なしだったため、Attempt 3ではいずれも実施しなかった。
+
+## Accounting readback
+
+Slurm 26.11.0の版一致clientで独立再読込した。
+
+```text
+688|smd401-ompi-mpirun-success-20260924T093419|testuser|COMPLETED|0:0|PC-210
+689|smd401-ompi-mpirun-success-20260924T093647|testuser|COMPLETED|0:0|PC-210
+690|smd401-ompi-mpirun-cancel-20260924T093647|testuser|CANCELLED by 0|0:0|PC-210
+```
+
+3 jobともReqTRES/AllocTRESは`billing=2,cpu=2,mem=256M,node=1`。688～690にはchild step rowがない。
+これは単一nodeの本`mpirun`経路での実測値であり、他構成の一般仕様とは断定しない。
+
+readbackの初回は汎用`/usr/local/bin` clientを使い、`libslurmfull.so`不在で起動できなかった。
+対応する`/usr/local/slurm/26.11.0/bin`とlibrary pathへ固定後、上記結果を得た。これはcontrollerや
+job failureではなくobserver PATH/ABIの不整合である。
+
+## SIGHUP復旧とcanonical final run
+
+ユーザーの別承認後、最小復旧としてslurmd PID 41674へSIGHUPを1回だけ送る計画とした。
+最初の`sudo -n`は認証期限切れで`sudo: a password is required`、rc 1となり、signalは未送信だった。
+管理者認証後の2回目だけがrc 0となり、ログは次を記録した。
+
+```text
+[2026-09-24T12:08:25.597] Caught SIGHUP. Triggering reconfigure.
+[2026-09-24T12:08:25.635] slurmd version 26.11.0-0rc1 started
+```
+
+PIDは41674のまま、controller上のPC-210はIDLE、CPUAlloc/AllocMem 0、AllocTRES空へ復帰した。
+launchd restart、controller RESUME、config変更は行っていない。SIGHUP後の
+`SlurmdStartTime`は`2026-09-24T12:08:25`へ更新された。
+
+復旧後、current driver SHA-256
+`fed592514fd5b987c698f7a90ad30d8c4c55c96d41ac754b2e568b2a4fc8611b`で
+canonical final runを実行した。
+
+```text
+run_dir=/private/tmp/slurm-smd401-openmpi-mpirun.20260924T120955.49164
+openmpi_mpirun_success=PASS job_id=691 tasks=2 communication=PASS
+openmpi_mpirun_cancel=PASS job_id=692 tasks=2 client_rc=0 cleanup=PASS
+SMD401_OPENMPI_SLURM_MPIRUN_COMPLETE success_job=691 cancel_job=692 tasks=2 success_steps=0 cancel_steps=0 rank_argument=omitted communication=PASS cancel_cleanup=PASS slurmd_pid=41674 production_inputs_unchanged=PASS
+```
+
+Job 691はrank 0/1、size 2、broadcast 42、all-reduce 1、ring値1001/1000を記録し、
+allocationは`COMPLETED 0:0`となった。Job 692も同じ通信を完了し、PID 49253/49254、
+UID/GID 3001:3001を同時生存で記録した後にcancelした。allocationは
+`CANCELLED by 0|0:0`、client rcは実測どおり0で、両PIDは消滅した。
+
+キャンセル直後の独立観測でdriverがまだ回収処理中の間だけ`salloc`、PRRTE、probeが見えたが、
+追加killは行っていない。driver完了時にはMPI/PRRTE/probe、slurmstepd、run directory参照process、
+queueの残留は全て0件だった。これは異常残留ではなくキャンセル収束中の一時状態だった。
+
+Jobs 691/692ともReqTRES/AllocTRESは`billing=2,cpu=2,mem=256M,node=1`で、child step rowは
+0件だった。最終PC-210はIDLE、CPUAlloc/AllocMem 0、AllocTRES空、queue 0、controller UP、
+Ubuntuのslurmctld/slurmdbd/munge/mariadbはactiveだった。launchdはrunning、PID 41674、
+last exit code 0。開始前後のproduction config、driver、probe、PMIx plugin、Slurm client、
+Open MPI binary/library hashは完全一致し、unexpected errorとslurmd log deltaは0 byteだった。
+
+最終文書の行番号を検索するobserver commandでは、検索patternのバッククォートをshellから
+保護し忘れ、ローカル`mpirun`を引数なしで1回起動した。`No executable was specified`で即時終了し、
+Slurm jobは発行されていない。これはruntime testのfailureではなく、最終readback commandの
+quoting不備として保持する。後続確認でMPI/PRRTE process 0、queue 0、PC-210 IDLEを再確認した。
+
+## 判定
+
+`mpirun` in allocationの単一node通信、allocation正常終了、通信後cancel、両PID消滅、
+最終資源回収、入力不変をcanonical final runで確認したため`PASS_SINGLE_NODE_MPIRUN`とする。
+Attempt 3の`DOWN+NOT_RESPONDING`は失敗履歴として残し、承認済みSIGHUP 1回でPIDを維持して
+復旧した事実と、根本原因が未確定であることを分離する。
+
+現状態は次の通り。
+
+```text
+PASS_SINGLE_NODE_MPIRUN
+ALLOCATION_ONLY_ACCOUNTING_OBSERVED
+MPIRUN_CHILD_STEP_ACCOUNTING_UNOBSERVED
+RECOVERY_BY_SINGLE_SIGHUP_WITH_PID_PRESERVED
+```
+
+この判定はPC-210単一nodeに限定する。multi-node/mixed-architecture Open MPI、MPICH、
+`mpirun`経路のSlurm child step accountingは確認済みとはしない。

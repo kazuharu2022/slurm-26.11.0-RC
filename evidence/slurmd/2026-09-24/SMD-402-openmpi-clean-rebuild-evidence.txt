@@ -1,0 +1,234 @@
+# SMD-402 Open MPI full clean rebuild Evidence
+
+日時: 2026-09-24 13:38–13:48 JST
+
+最終状態:
+
+```text
+FULL_CLEAN_DUAL_ARCH_REBUILD_PASS / CLEAN_PREFIX_MULTINODE_RUNTIME_UNMEASURED
+```
+
+既存の最終runtime判定:
+
+```text
+PASS_MIXED_ARCH_OPENMPI_MULTINODE / ARCH_HETEROGENEOUS_DATA_LAYOUT_HOMOGENEOUS
+```
+
+は変更しない。
+
+## 目的と境界
+
+前回runtime時のMac修正は既存isolated treeへのincremental rebuildだったため、修正版build
+driverを使い、公式archive取得、SHA-256検証、展開、configure、build、install、probe build、
+readbackをMac arm64とUbuntu x86_64の新規`/tmp`領域で再現する。
+
+このfollow-upではSlurm jobを投入せず、daemon、production config/binary、既存runtime PASS
+artifactを変更・再起動しない。各host内の2-rank local MPI通信までを確認する。
+
+## 事前確認とdriver gate
+
+- Mac/Ubuntuとも対象clean baseは実行前に不在
+- Mac `/tmp`: 3.0 TiB available
+- Ubuntu `/tmp`: 346 GiB available
+- PC-210/ubuntu: `IDLE`、CPUAlloc 0、AllocMem 0、AllocTRES空
+- 対象nodeのqueue: 空
+- Ubuntuの5 services: 全件active
+- 未承認gate: exit 64
+- 許可外base `/tmp/not-approved`: 拒否
+- `sh -n`: PASS
+- PRRTE patch dry-run: PASS
+
+build driverのbase allowlistは次だけに限定した。
+
+```text
+/tmp/smd402-openmpi-5.0.11
+/tmp/smd402-openmpi-5.0.11-clean
+/tmp/smd402-openmpi-5.0.11-clean-attempt2
+```
+
+実行入力:
+
+```text
+Open MPI archive=5.0.11
+archive SHA-256=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+probe SHA-256=79d5286b762c0c12c7e2e14c241621bfa95946bdac22060547f96aebe0c67680
+PRRTE macOS endian patch SHA-256=96202183be6e5ff469371dffa73e512baf5a3539e6aa7a3f06eff1cadd781566
+make jobs=4
+hwloc=internal
+libevent=internal
+PMIx=internal
+PRRTE=internal
+MUNGE=disabled
+Fortran MPI=disabled
+OSHMEM=disabled
+```
+
+Mac実行版driver SHA-256:
+
+```text
+113904332e98616a053bb0691780b34d8b72c2c354e57cc5ac51eb5b6f9805fc
+```
+
+Ubuntu実行版driver SHA-256:
+
+```text
+278be8c4f1e751801c1b48b74fe5c6d781f4911ad5b0c85ff05fa1448891c1ae
+```
+
+両driverの差分は、Mac Attempt 1を保持してAttempt 2へ進むために
+`/tmp/smd402-openmpi-5.0.11-clean-attempt2`をbase allowlistへ追加した1項目だけである。
+archive、configure、build、install、validatorの処理は同一である。
+
+## 失敗試行
+
+### Mac clean Attempt 1
+
+sandbox内から公式download hostを名前解決できず、archive download段階で停止した。
+
+```text
+base=/tmp/smd402-openmpi-5.0.11-clean
+error=archive download failed
+curl: (6) Could not resolve host: download.open-mpi.org
+```
+
+失敗領域は削除・上書きせず保持した。内容はdownload stdout/stderrだけで4 KiBである。
+
+### local probe command Attempt 1
+
+独立readbackの最初のlocal probeで必須の`success`引数を渡さなかった。Ubuntuはprobe仕様どおり
+exit 90、Macはそれに加えてsandboxのsocket bind制限で失敗した。build failureとは扱わない。
+正しい引数を指定し、通常のsocket権限で再実行した結果は後述のとおり両host PASSである。
+
+## clean build結果
+
+### Ubuntu x86_64
+
+```text
+base=/tmp/smd402-openmpi-5.0.11-clean
+download=2026-09-24 13:38:33 JST
+complete=2026-09-24 13:42:43 JST
+archive expected=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+archive actual=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+Open MPI=5.0.11
+PMIx=5.0.11rc1
+PRRTE=3.0.14
+architecture=x86_64 ELF
+tree size=604M
+```
+
+LinuxではmacOS endian patchを適用していない。linkageはclean prefix内のlibmpi、libprrte、
+libpmix、libevent、libhwlocを参照し、libmunge参照は0件だった。
+
+artifact SHA-256:
+
+```text
+mpirun=54cdda6d14c8004bb3189ba075dede41362d1e0557eb2ee04b7ff29e885df93d
+prted=6be8db18a005086e445e2bf60114af31a40be84517bfd2c69bed211cd012f717
+libprrte.so.3=d76b9eeb1cd4d26e87948c8f427c21d70ca894cecf0023c373e885d5de18e9cd
+libmpi.so.40=5bda1e4ee7d3ffbeb077392899b9c22c23627dab3e65295040da3b826f8b1849
+libpmix.so.2=8d0e51d6c2b1e820af7b1d8b95c764a35ce0dd623a16526fe0b3b304f93795b7
+probe=95b4171f7808c6b418258b8b10f02929c364781896e6e0828a4d7db4d6ba6152
+```
+
+正しい引数でのlocal 2-rank probe:
+
+```text
+rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=2001 machine=x86_64 endian=little
+rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=2000 machine=x86_64 endian=little
+exit=0
+```
+
+### Mac arm64
+
+```text
+base=/tmp/smd402-openmpi-5.0.11-clean-attempt2
+download=2026-09-24 13:39:39 JST
+complete=2026-09-24 13:44:50 JST
+archive expected=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+archive actual=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+Open MPI=5.0.11
+PMIx=5.0.11rc1
+PRRTE=3.0.14
+architecture=arm64 Mach-O
+tree size=628M
+```
+
+patch logは対象fileへの適用を記録し、展開後sourceは
+`__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__`分岐を含む。linkageはclean prefix内のlibmpi、
+libprrte、libpmix、libevent、libhwlocを参照し、libmunge/Homebrew参照は0件だった。
+
+artifact SHA-256:
+
+```text
+mpirun=21c75f1d47b68f1cab7d1d1e50f7e6c569101fbfb98d66ac05b59e8fb107f088
+prted=06bf59a815b4a57034f393ad29120d05ae248142978f66d4e17c81e652687c0c
+libprrte.3.dylib=427ff25361a1e3cdaf59d13b858cbd389c17889d9649c0671ddd59052431ac18
+libmpi.40.dylib=4b7141f92bbff9ddbd2986b17d927e8d8c5b3c0ad78067b9ca817b1b833ec4de
+libpmix.2.dylib=c8d240e406d834098ca6991590397f0eaec6df6eeeec4d88509090faa732f49a
+probe=173790107a4f418204bbdd62e5369efeddfb531e218e5e6b8385007b174e8af7
+```
+
+正しい引数でのlocal 2-rank probe:
+
+```text
+rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=2001 machine=arm64 endian=little
+rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=2000 machine=arm64 endian=little
+exit=0
+```
+
+## warningとerror集計
+
+compiler/configure warningは消さずに保持した。正規表現`warning:`による件数と
+`error:`/`fatal:`件数は次のとおり。
+
+```text
+Mac configure warnings=19 errors=0
+Mac make warnings=17 errors=0
+Mac install warnings=6 errors=0
+Mac probe-build warnings=0 errors=0
+Mac patch warnings=0 errors=0
+
+Ubuntu configure warnings=19 errors=0
+Ubuntu make warnings=18 errors=0
+Ubuntu install warnings=12 errors=0
+Ubuntu probe-build warnings=0 errors=0
+```
+
+Ubuntu local probeでは既知のnon-16-bit PCI domain warningを保持した。CPU/TCP通信は成功した。
+
+## 独立readback
+
+- 既存runtime PASS artifact 12件（両host各6件）のSHA-256: 前回記録と一致
+- Mac production `slurm.conf`、`slurmd`、`mpi_pmix_v6.so`: 前回SHA-256と一致
+- Ubuntu production `slurm.conf`、`slurmd`、`slurmctld`: 前回SHA-256と一致
+- Mac slurmd: launchd running、PID 41674で不変
+- Ubuntu slurmctld PID 197928、slurmd PID 198005: 不変
+- Ubuntu 5 services: 全件active
+- PC-210/ubuntu: IDLE、CPUAlloc 0、AllocMem 0、AllocTRES空
+- queue: 空
+- clean prefixのtarget MPI/PRRTE process: 両host 0件
+
+## 判定と未測定境界
+
+同じ公式archive SHA、同じconfigure、同じprobe、Mac限定の同じPRRTE patchから、完全に新しい
+source/build/install treeを両architectureで生成できた。version、native architecture、isolated
+linkage、artifact hash、各host内2-rank Bcast/Allreduce/ring通信を独立確認したため、full clean
+rebuildはPASSとする。
+
+失敗証跡を保持したため成功baseはUbuntuの`-clean`とMacの`-clean-attempt2`で異なる。この新しい
+2成果物を同一logical prefixへ揃えたmulti-node Slurm runtimeは未実施であり、本follow-upのPASSに
+含めない。既存logical prefixで実測済みのmixed-architecture runtime PASSは維持する。
+
+cleanup、production Open MPI配置、異endian/異なる基本型size、heterogeneous GPU collectiveは
+引き続き範囲外である。
+
+## その後のcleanup
+
+2026-09-24 14:02 JSTまでに、両hostのSMD-402専用`/tmp` artifactを削除した。削除前にbuild
+logs、失敗ログ、runtime raw logs、実行入力をworkspace archiveへ保存し、gzip integrity、収録件数、
+SHA-256を確認した。削除後は対象path/process 0件、両node IDLE、queue空、production hashとdaemon
+PID不変である。
+
+詳細は
+[`SMD-402-openmpi-cleanup-evidence.txt`](SMD-402-openmpi-cleanup-evidence.txt)
+を参照する。

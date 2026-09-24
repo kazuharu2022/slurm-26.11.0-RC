@@ -1,0 +1,144 @@
+SMD-401 PMIx v6 isolated macOS build and client-load evidence
+Date: 2026-09-23 JST
+
+[scope]
+Build and load a Slurm mpi/pmix_v6 candidate outside production.
+No production plugin placement, daemon restart, controller change, or job submission.
+
+[environment update after earlier preflight]
+Earlier preflight at approximately 22:13 JST observed PMIx, libevent, and their Homebrew
+prefixes as absent. The user later reported the following interactive-shell readback:
+  pmix_info (PMIx) 6.1.0
+  hwloc 2.14.0
+  libevent 2.1.13
+  pmix 6.1.0
+
+Codex live readback then independently confirmed:
+  /opt/homebrew/opt/pmix
+  /opt/homebrew/opt/libevent
+  /opt/homebrew/opt/hwloc
+  PMIx executable=Mach-O 64-bit arm64
+  PMIx library=/opt/homebrew/opt/pmix/lib/libpmix.2.dylib
+  PMIx library alias=/opt/homebrew/opt/pmix/lib/libpmix.dylib
+  libpmix.so.2=ABSENT
+  pkg-config pmix=6.1.0
+  pkg-config libevent=2.1.13-stable
+  pkg-config hwloc=2.14.0
+
+[before source]
+src/plugins/mpi/pmix/mpi_pmix.c opened libpmix.so.2 on every platform.
+The Homebrew Darwin PMIx installation provides libpmix.2.dylib, not libpmix.so.2.
+
+[unmodified isolated attempt 1]
+run_dir=/private/tmp/slurm-smd401-pmix-before.GGIT4A
+source=fixed HEAD 1e20bbab8b88a20446ea28b5418ed6a9013a15a7
+configure result=FAIL before make
+PMIx link test=PASS
+failure=PMIx version preprocessor invocation had no compiler command
+observed command prefix=-I/opt/homebrew/opt/pmix/include
+observed error=No such file or directory
+classification=configure harness/source macro path failure, not PMIx link failure
+
+[unmodified isolated attempt 2]
+run_dir=/private/tmp/slurm-smd401-pmix-cpp.K7duzk
+change=CPP='clang -E' supplied to configure
+configure result=PASS
+detected PMIx version=6
+plugin build result=PASS
+candidate=Mach-O 64-bit bundle arm64
+candidate sha256=c08486ce16989f9610ed94f39844ef78ce4bbe62f23c892af7dc71a34d49c2f0
+candidate string=libpmix.so.2
+result=buildable but unusable with the installed Darwin library name
+
+[source correction]
+src/plugins/mpi/pmix/mpi_pmix.c now selects:
+  Apple: libpmix.2.dylib
+  other platforms: libpmix.so.2
+Linux behavior is unchanged by the conditional.
+
+[corrected isolated attempt 1]
+run_dir=/private/tmp/slurm-smd401-pmix-isolated.A9DdVL
+configure=PASS
+plugin build=PASS
+candidate=Mach-O 64-bit bundle arm64
+Linux name load=EXPECTED_LOAD_FAILURE
+Darwin name load=PASS
+driver result=FAIL due validator expecting the exact string version=6.1.0
+actual version string=OpenPMIx 6.1.0 (PMIx Standard: 4.1, Stable ABI: 0.0, Provisional ABI: 0.0)
+classification=harness false negative after functional load success
+fix=match the official PMIx version-string prefix and retain the full observed string
+
+[corrected isolated canonical attempt]
+run_dir=/private/tmp/slurm-smd401-pmix-isolated.46zvZU
+marker:
+SMD401_PMIX_ISOLATED_BUILD_COMPLETE
+pmix_version=6.1.0
+architecture=arm64
+configure=PASS
+plugin_build=PASS
+linux_name=EXPECTED_LOAD_FAILURE
+darwin_name=LOAD_OK
+known_libtool_warnings=39
+production=UNCHANGED
+
+Darwin loader probe:
+result=LOAD_OK target=libpmix.2.dylib version=OpenPMIx 6.1.0 (PMIx Standard: 4.1, Stable ABI: 0.0, Provisional ABI: 0.0)
+
+Linux loader probe:
+result=LOAD_FAILED target=libpmix.so.2
+dyld searched the plugin rpath and system locations; the file was absent.
+
+candidate=/private/tmp/slurm-smd401-pmix-isolated.46zvZU/source/src/plugins/mpi/pmix/.libs/mpi_pmix_v6.so
+candidate sha256=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+candidate strings contains libpmix.2.dylib=YES
+candidate strings contains libpmix.so.2=NO
+
+The build emitted 39 known libtool lines of the form:
+  test: : integer expression expected
+No other make stderr was present. The candidate was created successfully, but these warnings
+remain a separate build-system issue and are not silently classified as clean stderr.
+
+[isolated production-client load probe]
+run_dir=/private/tmp/slurm-smd401-pmix-client.GOsjsT
+method=temporary slurm.conf plus temporary PluginDir before production PluginDir
+production srun=/opt/slurm/26.11.0/bin/srun
+job submission=NO
+production files changed=NO
+stderr bytes=0
+output:
+MPI plugin types are...
+  none
+  pmix
+  cray_shasta
+  pmi2
+specific pmix plugin versions available: pmix_v6
+
+marker:
+SMD401_PMIX_CLIENT_PROBE_COMPLETE
+generic_pmix=LISTED
+pmix_v6=LISTED
+job_submission=NO
+production=UNCHANGED
+
+[final fixture hashes]
+d00180895f02db64c50e6fdc9a2cc3ce87a8cc462c22714bd29047747d4061f3  src/plugins/mpi/pmix/mpi_pmix.c
+5cba2437d41a776c96ccad82c491062e8e6d6d8c8a7b01ebbdb76619ceb40dc8  contribs/macos-tests/smd401_pmix_dlopen_probe.c
+725ea8eee67c0554bd3d5f60e472daa77fcf07f1bf0e0dd60d86fdee31448d11  contribs/macos-tests/smd401_pmix_isolated_build.sh
+9fa43eab81f72a744ca921fff538ac2e43c68b2f6eca0c29797b640ab09ead74  contribs/macos-tests/smd401_pmix_isolated_client_probe.sh
+aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57  mpi_pmix_v6.so candidate
+b4cc6e0b8aa66058bd74b96f9257d960f43fa3e21953497bd9dda07948698a6d  pmix-dlopen-probe
+0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9  production srun
+70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0  production slurm.conf
+
+[classification]
+SMD-401=PARTIAL_PASS_PMI2
+PMIx isolated build=PASS_WITH_KNOWN_LIBTOOL_WARNINGS
+PMIx Darwin library load=PASS
+PMIx isolated production-client plugin load=PASS
+PMIx job runtime=NOT_RUN
+external MPI implementation=NOT_RUN
+
+[next approval boundary]
+Production placement of mpi_pmix_v6.so and mpi_pmix.so, PMIx_Init/Fence job runtime,
+accounting, cancel cleanup, final node/queue/process readback, and rollback are not authorized
+or executed by this phase.

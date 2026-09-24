@@ -1,0 +1,11 @@
+services:
+  builder:
+    image: local/smd401-pmix6-builder:20260924
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SMD401_PMIX6_BUILD_CONFIRMED: ${SMD401_PMIX6_BUILD_CONFIRMED:-NO}
+    volumes:
+      - ${SMD401_INPUT_DIR:-/tmp/smd401-pmix6-input}:/input:ro
+      - ${SMD401_OUTPUT_ROOT:-/tmp/smd401-pmix6}:/tmp/smd401-pmix6

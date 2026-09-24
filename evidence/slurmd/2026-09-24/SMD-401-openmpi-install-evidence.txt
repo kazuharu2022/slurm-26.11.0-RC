@@ -1,0 +1,124 @@
+SMD-401 Open MPI installation evidence
+Date: 2026-09-24 09:05 JST
+Scope: approved macOS-only native Open MPI installation and readback
+Job submission: not run
+MPI application compile/run: not run
+Slurm configuration/daemon changes: none
+Ubuntu changes: none
+
+Result
+======
+MAC_OPENMPI_INSTALL_AND_LINKAGE_PASS_AWAITING_APPLICATION_RUNTIME_APPROVAL
+
+Approved mutation
+=================
+Command:
+  /opt/homebrew/bin/brew install open-mpi
+
+Exit status: 0
+
+Installed formula and new dependencies reported by Homebrew:
+  open-mpi 5.0.11
+  prrte 4.1.0_1
+  gcc 16.2.0
+  gmp 6.3.0
+  isl 0.28
+  mpfr 4.2.2
+  libmpc 1.4.1
+
+Dependency change:
+  xz 5.8.4 was installed; the older 5.8.3 keg remains present.
+
+Homebrew output also fetched an hwloc 2.15.0 bottle and initially said hwloc
+would be upgraded. Independent post-install readback showed that the active and
+only installed hwloc keg remains 2.14.0. This discrepancy is retained as an
+observed package-manager detail; it is not described as an upgrade.
+
+Version and architecture readback
+=================================
+  mpirun --version: Open MPI 5.0.11
+  ompi_info --version: Open MPI 5.0.11
+  prte --version: PRRTE 4.1.0
+  pmix_info --version: PMIx 6.1.0
+  pkg-config ompi-c/ompi-cxx/ompi-fort: 5.0.11
+  pkg-config pmix: 6.1.0
+  mpicc: arm64 Mach-O
+  mpirun: arm64 Mach-O
+  libmpi.40.dylib: arm64 Mach-O
+
+Compiler wrapper readback
+=========================
+  mpicc compiler: clang
+  mpicxx compiler: clang++
+  mpifort compiler: gfortran
+  mpicc include: /opt/homebrew/Cellar/open-mpi/5.0.11/include
+  mpicc link: -L/opt/homebrew/Cellar/open-mpi/5.0.11/lib -lmpi
+
+External dependency linkage
+===========================
+ompi_info configure arguments include:
+  --with-hwloc=/opt/homebrew/opt/hwloc
+  --with-libevent=/opt/homebrew/opt/libevent
+  --with-pmix=/opt/homebrew/opt/pmix
+  --with-prrte=/opt/homebrew/opt/prrte
+
+libmpi.40.dylib directly names:
+  /opt/homebrew/opt/libevent/lib/libevent_core-2.1.7.dylib
+  /opt/homebrew/opt/libevent/lib/libevent_pthreads-2.1.7.dylib
+  /opt/homebrew/opt/hwloc/lib/libhwloc.15.dylib
+  /opt/homebrew/opt/pmix/lib/libpmix.2.dylib
+
+libprrte.3.dylib directly names the same libevent, hwloc, and PMIx opt paths.
+The PMIx dylib directly names the same libevent and hwloc opt paths.
+Homebrew linkage test exited 0.
+`brew missing open-mpi` also exited 0. Local formula metadata reported all five
+declared dependencies (gcc, hwloc, libevent, pmix, prrte) and all recursive
+runtime dependencies installed.
+
+Installed artifact SHA-256
+=========================
+  mpicc: f71ff17327215706b80122b8b6e3afb4ac9a70f4b6337847f74aabde8657ec6a
+  mpirun: 0d4e5f9bbcbcb5e528b656f7a7f53038228b78d9f3d20c1153344fdd1731cfbb
+  libmpi.40.dylib: a2c61a3988ca1606fc21b8ba232531926d157211fbe34e28c3b28f800df5fd0d
+
+Readback failures and recovery
+==============================
+1. The first PRRTE version readback called /opt/homebrew/bin/prte_info, which is
+   not installed by this Homebrew formula, and exited 127 after the Open MPI and
+   PMIx results had already succeeded. `brew list prrte` showed the provided
+   executable is `prte`; `prte --version` then returned PRRTE 4.1.0.
+2. `brew linkage --test open-mpi` warned that it automatically enabled Homebrew
+   developer mode. This was an unintended diagnostic side effect. It was
+   immediately reverted with `brew developer off`; subsequent `brew config`
+   did not report developer mode. MPI/Slurm artifacts were not changed by the
+   restoration.
+3. A sandboxed `pgrep` readback failed with `sysmon request failed` and could not
+   inspect processes. Independent `launchctl print system/org.schedmd.slurmd`
+   confirmed the managed daemon remains running at PID 41674 with exit code 0.
+4. A later sandboxed `brew info open-mpi` attempted to create its API cache and
+   printed `Operation not permitted`. It still returned the installed local
+   formula metadata; no elevated retry or package mutation was needed. The
+   independent `brew missing open-mpi` check exited 0.
+
+Slurm final readback
+====================
+- /opt/slurm/26.11.0/bin/srun --mpi=list still reports pmix/pmix_v6 and pmi2.
+- Production PMIx plugin SHA-256 remains:
+  aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+- launchd service system/org.schedmd.slurmd remains running at PID 41674.
+- Controller reports PC-210 IDLE, CPUAlloc=0, AllocMem=0, AllocTRES empty.
+- Queue is empty.
+- slurmctld, slurmdbd, and Ubuntu slurmd are active.
+
+Conclusion and stop boundary
+============================
+The approved installation and static/runtime-loader readback passed. Open MPI
+5.0.11 is linked to the same Homebrew PMIx 6.1.0, libevent, and hwloc opt paths
+used by the verified macOS Slurm PMIx stack. This proves installation and
+linkage only. It does not prove MPI_Init, MPI communication, Slurm direct launch,
+normal completion, cancellation, accounting, cleanup, or multi-node operation.
+
+The next phase must be separately approved: build a small arm64 C MPI probe in
+an isolated temporary directory, run a non-Slurm local two-rank control, then run
+a PC-210-only two-rank Slurm `--mpi=pmix_v6` experiment with normal and cancel
+paths. No Ubuntu installation or multi-node MPI belongs to that phase.

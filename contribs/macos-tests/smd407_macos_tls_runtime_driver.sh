@@ -4,8 +4,8 @@ set -u
 
 mode=${1:-}
 case "$mode" in
-run|finalize) ;;
-*) /usr/bin/printf 'usage: %s run|finalize\n' "$0" >&2; exit 64 ;;
+run|jobs|finalize) ;;
+*) /usr/bin/printf 'usage: %s run|jobs|finalize\n' "$0" >&2; exit 64 ;;
 esac
 if [ "${SMD407_TLS_RUNTIME_CHANGE_CONFIRMED:-}" != YES ]; then
 	/usr/bin/printf '%s\n' \
@@ -25,14 +25,25 @@ srun=${prefix}/bin/srun
 scancel=${prefix}/bin/scancel
 sacct=${prefix}/bin/sacct
 plugin=${prefix}/lib/slurm/tls_s2n.so
+certgen_plugin=${prefix}/lib/slurm/certgen_script.so
 s2n_prefix=${prefix}/lib/slurm-s2n-1.7.9
 ca=${prefix}/etc/ca_cert.pem
 slurmd_cert=${prefix}/etc/slurmd_cert.pem
 slurmd_key=${prefix}/etc/slurmd_cert_key.pem
 inactive_state=${prefix}/.smd407-mac-tls-inactive.env
 runtime_state=${prefix}/.smd407-mac-tls-runtime.env
+prior_job_runtime_state=${prefix}/.smd407-mac-tls-job-runtime.env
+prior_srun_runtime_state=${prefix}/.smd407-mac-tls-job-runtime-20260923T141041.env
+prior_mixed_runtime_state=${prefix}/.smd407-mac-tls-job-runtime-20260923T141746.env
+prior_mixed_chdir_runtime_state=${prefix}/.smd407-mac-tls-job-runtime-20260923T142205.env
 plugin_hash=f1b17c47b94c6ea3a86478a4f35493b30dff1f2d0941a45490e63381dd23cfa3
+certgen_plugin_hash=aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4
 libs2n_hash=b0d957ad211cdeaaa996795b04c2dbe3238575b1b37f17719758b75c434c894a
+retained_runtime_state_hash=fee2df1c8a9d6baf76eb3d294583b58609106ad885a6e45cb9f8bcf0349d3aa1
+prior_job_runtime_state_hash=33776ac4f884f8f5c98202350114814f0278c73edfb5c02d571aecb13da21b39
+prior_srun_runtime_state_hash=5b9b4271694261f1aee97f52fec97c2ca41681422a00ced9adf9b6686556b02f
+prior_mixed_runtime_state_hash=a6a7edbbbd97ab80cae0b5ab98b17332c95aa8da680bff192912d637ea283743
+prior_mixed_chdir_runtime_state_hash=d1e5a8552a7a29e9aa2c2e9da056ad8b4781c6c9a5964200b957f056e9ff2bb4
 service_target=system/org.schedmd.slurmd
 pid_file=/var/run/slurmd.pid
 mlx_job=${prefix}/share/macos-gpu-job/mlx_gpu_smoke.sbatch
@@ -40,6 +51,7 @@ test_user=testuser
 test_uid=3001
 test_gid=3001
 run_stamp=$(/bin/date '+%Y%m%dT%H%M%S')
+job_runtime_state=${prefix}/.smd407-mac-tls-job-runtime-${run_stamp}.env
 run_dir=/tmp/slurm-smd407-mac-tls-runtime-${mode}-${run_stamp}
 output_dir=${run_dir}/job-output
 success=0
@@ -50,6 +62,10 @@ cpu_job=
 srun_job=
 gpu_job=
 mixed_job=
+active_runtime_state=$runtime_state
+mac_addr=
+ubuntu_addr=192.168.10.180
+ubuntu_host=ubuntu2504
 
 fail()
 {
@@ -146,7 +162,24 @@ build_candidate()
 {
 	source_file=$1
 	target_file=$2
-	/usr/bin/awk -v prefix="$prefix" '
+	/usr/bin/awk -v prefix="$prefix" -v mac_addr="$mac_addr" \
+		-v ubuntu_addr="$ubuntu_addr" -v ubuntu_host="$ubuntu_host" '
+	/^[[:space:]]*NodeName=PC-210([[:space:]]|$)/ {
+		if ($0 ~ /[[:space:]]NodeAddr=/)
+			sub(/NodeAddr=[^[:space:]]+/, "NodeAddr=" mac_addr)
+		else
+			$0 = $0 " NodeAddr=" mac_addr
+	}
+	/^[[:space:]]*NodeName=ubuntu([[:space:]]|$)/ {
+		if ($0 ~ /[[:space:]]NodeAddr=/)
+			sub(/NodeAddr=[^[:space:]]+/, "NodeAddr=" ubuntu_addr)
+		else
+			$0 = $0 " NodeAddr=" ubuntu_addr
+		if ($0 ~ /[[:space:]]NodeHostName=/)
+			sub(/NodeHostName=[^[:space:]]+/, "NodeHostName=" ubuntu_host)
+		else
+			$0 = $0 " NodeHostName=" ubuntu_host
+	}
 	/^[[:space:]]*CommunicationParameters=/ {
 		if (tolower($0) !~ /disable_http/) $0 = $0 ",disable_http"
 		seen_communication = 1
@@ -290,10 +323,10 @@ write_runtime_state()
 		/usr/bin/printf 'srun_job=%s\n' "$srun_job"
 		/usr/bin/printf 'gpu_job=%s\n' "$gpu_job"
 		/usr/bin/printf 'mixed_job=%s\n' "$mixed_job"
-	} >"${runtime_state}.tmp" || return 1
-	/bin/chmod 0600 "${runtime_state}.tmp" || return 1
-	/usr/sbin/chown root:wheel "${runtime_state}.tmp" || return 1
-	/bin/mv -f "${runtime_state}.tmp" "$runtime_state" || return 1
+	} >"${active_runtime_state}.tmp" || return 1
+	/bin/chmod 0600 "${active_runtime_state}.tmp" || return 1
+	/usr/sbin/chown root:wheel "${active_runtime_state}.tmp" || return 1
+	/bin/mv -f "${active_runtime_state}.tmp" "$active_runtime_state" || return 1
 }
 
 cleanup_on_exit()
@@ -301,12 +334,12 @@ cleanup_on_exit()
 	rc=$?
 	trap - EXIT HUP INT TERM
 	cancel_active
-	if [ "$success" -ne 1 ] && [ "$mode" = run ]; then
+	if [ "$success" -ne 1 ] && { [ "$mode" = run ] || [ "$mode" = jobs ]; }; then
 		if [ "$config_installed" -eq 1 ]; then
 			if restore_local_config; then
 				write_runtime_state FAILED_LOCAL_TLS_NONE_RESTORED >/dev/null 2>&1 || true
 				/usr/bin/printf 'recovery: Mac local TLS-none config restored; Ubuntu TLS remains active; inspect run_dir=%s state=%s\n' \
-					"$run_dir" "$runtime_state" >&2
+					"$run_dir" "$active_runtime_state" >&2
 				/usr/bin/printf '%s\n' \
 					'NEXT_ON_UBUNTU_RECOVERY: run Ubuntu restore with SMD407_MAC_TLS_LOCAL_RESTORED=YES' >&2
 			else
@@ -316,7 +349,7 @@ cleanup_on_exit()
 		elif [ "$local_restored" -eq 1 ]; then
 			write_runtime_state FAILED_LOCAL_TLS_NONE_RESTORED >/dev/null 2>&1 || true
 			/usr/bin/printf 'recovery: Mac local TLS-none config is already restored; Ubuntu TLS remains active; inspect run_dir=%s state=%s\n' \
-				"$run_dir" "$runtime_state" >&2
+				"$run_dir" "$active_runtime_state" >&2
 			/usr/bin/printf '%s\n' \
 				'NEXT_ON_UBUNTU_RECOVERY: run Ubuntu restore with SMD407_MAC_TLS_LOCAL_RESTORED=YES' >&2
 		else
@@ -325,7 +358,7 @@ cleanup_on_exit()
 		fi
 	elif [ "$success" -ne 1 ]; then
 		/usr/bin/printf 'recovery: finalize did not complete; preserve state=%s run_dir=%s\n' \
-			"$runtime_state" "$run_dir" >&2
+			"$active_runtime_state" "$run_dir" >&2
 	fi
 	exit "$rc"
 }
@@ -336,7 +369,7 @@ trap cleanup_on_exit EXIT HUP INT TERM
 [ "$(/usr/bin/uname -s)" = Darwin ] || fail 'this driver is for macOS'
 [ "$(/bin/hostname -s)" = PC-210 ] || fail "unexpected host=$(/bin/hostname -s)"
 for required in "$slurm_conf" "$gres_conf" "$slurm_key" "$slurmd" "$scontrol" \
-	"$squeue" "$sbatch" "$srun" "$scancel" "$sacct" "$plugin" \
+	"$squeue" "$sbatch" "$srun" "$scancel" "$sacct" "$plugin" "$certgen_plugin" \
 	"$s2n_prefix/lib/libs2n.dylib" "$ca" "$slurmd_cert" "$slurmd_key" \
 	"$inactive_state" "$pid_file" "$mlx_job"; do
 	[ -e "$required" ] || fail "missing $required"
@@ -345,7 +378,7 @@ for command_path in /bin/cat /bin/chmod /bin/cp /bin/date /bin/hostname \
 	/bin/kill /bin/launchctl /bin/mkdir /bin/mv /bin/rm /bin/sleep \
 	/usr/bin/awk /usr/bin/cmp /usr/bin/env /usr/bin/grep /usr/bin/id \
 	/usr/bin/install /usr/bin/nc /usr/bin/shasum /usr/bin/stat /usr/bin/sudo \
-	/usr/bin/uname /usr/sbin/chown; do
+	/usr/bin/uname /usr/sbin/chown /usr/sbin/ipconfig; do
 	[ -x "$command_path" ] || fail "missing command=$command_path"
 done
 [ "$(/usr/bin/id -u "$test_user")" = "$test_uid" ] || fail 'testuser UID mismatch'
@@ -356,6 +389,8 @@ done
 	fail 'unexpected inactive state phase'
 [ "$(/usr/bin/shasum -a 256 "$plugin" | /usr/bin/awk '{print $1}')" = \
 	"$plugin_hash" ] || fail 'installed plugin hash mismatch'
+[ "$(/usr/bin/shasum -a 256 "$certgen_plugin" | /usr/bin/awk '{print $1}')" = \
+	"$certgen_plugin_hash" ] || fail 'installed certgen plugin hash mismatch'
 [ "$(/usr/bin/shasum -a 256 "$s2n_prefix/lib/libs2n.dylib" | /usr/bin/awk '{print $1}')" = \
 	"$libs2n_hash" ] || fail 'installed libs2n hash mismatch'
 umask 077
@@ -365,8 +400,48 @@ umask 077
 export SLURM_CONF="$slurm_conf"
 
 case "$mode" in
-run)
-	[ ! -e "$runtime_state" ] || fail "runtime state already exists=$runtime_state"
+run|jobs)
+	if [ "$mode" = jobs ]; then
+		active_runtime_state=$job_runtime_state
+		[ ! -e "$job_runtime_state" ] || fail "job runtime state already exists=$job_runtime_state"
+		[ -f "$prior_job_runtime_state" ] || fail "prior job runtime state is missing=$prior_job_runtime_state"
+		[ "$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$prior_job_runtime_state")" = root:wheel:600 ] || \
+			fail 'prior job runtime state metadata mismatch'
+		[ "$(state_value phase "$prior_job_runtime_state")" = FAILED_LOCAL_TLS_NONE_RESTORED ] || \
+			fail 'unexpected prior job runtime state phase'
+		[ "$(/usr/bin/shasum -a 256 "$prior_job_runtime_state" | /usr/bin/awk '{print $1}')" = \
+			"$prior_job_runtime_state_hash" ] || fail 'prior job runtime state hash mismatch'
+		[ -f "$prior_srun_runtime_state" ] || fail "prior srun runtime state is missing=$prior_srun_runtime_state"
+		[ "$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$prior_srun_runtime_state")" = root:wheel:600 ] || \
+			fail 'prior srun runtime state metadata mismatch'
+		[ "$(state_value phase "$prior_srun_runtime_state")" = FAILED_LOCAL_TLS_NONE_RESTORED ] || \
+			fail 'unexpected prior srun runtime state phase'
+		[ "$(/usr/bin/shasum -a 256 "$prior_srun_runtime_state" | /usr/bin/awk '{print $1}')" = \
+			"$prior_srun_runtime_state_hash" ] || fail 'prior srun runtime state hash mismatch'
+		[ -f "$prior_mixed_runtime_state" ] || fail "prior mixed runtime state is missing=$prior_mixed_runtime_state"
+		[ "$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$prior_mixed_runtime_state")" = root:wheel:600 ] || \
+			fail 'prior mixed runtime state metadata mismatch'
+		[ "$(state_value phase "$prior_mixed_runtime_state")" = FAILED_LOCAL_TLS_NONE_RESTORED ] || \
+			fail 'unexpected prior mixed runtime state phase'
+		[ "$(/usr/bin/shasum -a 256 "$prior_mixed_runtime_state" | /usr/bin/awk '{print $1}')" = \
+			"$prior_mixed_runtime_state_hash" ] || fail 'prior mixed runtime state hash mismatch'
+		[ -f "$prior_mixed_chdir_runtime_state" ] || fail "prior mixed chdir state is missing=$prior_mixed_chdir_runtime_state"
+		[ "$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$prior_mixed_chdir_runtime_state")" = root:wheel:600 ] || \
+			fail 'prior mixed chdir state metadata mismatch'
+		[ "$(state_value phase "$prior_mixed_chdir_runtime_state")" = FAILED_LOCAL_TLS_NONE_RESTORED ] || \
+			fail 'unexpected prior mixed chdir state phase'
+		[ "$(/usr/bin/shasum -a 256 "$prior_mixed_chdir_runtime_state" | /usr/bin/awk '{print $1}')" = \
+			"$prior_mixed_chdir_runtime_state_hash" ] || fail 'prior mixed chdir state hash mismatch'
+		[ -f "$runtime_state" ] || fail "retained runtime state is missing=$runtime_state"
+		[ "$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$runtime_state")" = root:wheel:600 ] || \
+			fail 'retained runtime state metadata mismatch'
+		[ "$(state_value phase "$runtime_state")" = FAILED_LOCAL_TLS_NONE_RESTORED ] || \
+			fail 'unexpected retained runtime state phase'
+		[ "$(/usr/bin/shasum -a 256 "$runtime_state" | /usr/bin/awk '{print $1}')" = \
+			"$retained_runtime_state_hash" ] || fail 'retained runtime state hash mismatch'
+	else
+		[ ! -e "$runtime_state" ] || fail "runtime state already exists=$runtime_state"
+	fi
 	initial_pid=$(managed_slurmd_pid) || fail 'slurmd launchd identity mismatch'
 	/usr/bin/nc -vz -w 3 192.168.10.180 6817 \
 		>"${run_dir}/controller-port.out" 2>"${run_dir}/controller-port.err" || \
@@ -375,12 +450,25 @@ run)
 		fail 'Mac production slurm.conf already has TLS keys'
 	fi
 	/bin/cp -p "$slurm_conf" "${run_dir}/slurm.conf.before" || fail 'cannot back up slurm.conf'
-	/usr/bin/shasum -a 256 "$slurm_conf" "$gres_conf" "$slurmd" "$plugin" \
+	/usr/bin/shasum -a 256 "$slurm_conf" "$gres_conf" "$slurmd" "$plugin" "$certgen_plugin" \
 		"$s2n_prefix/lib/libs2n.dylib" "$ca" "$slurmd_cert" "$slurmd_key" \
 		>"${run_dir}/production-before.sha256" || fail 'cannot hash production inputs'
+	if [ "$mode" = jobs ]; then
+		/usr/bin/shasum -a 256 "$runtime_state" "$prior_job_runtime_state" \
+			"$prior_srun_runtime_state" "$prior_mixed_runtime_state" \
+			"$prior_mixed_chdir_runtime_state" \
+			>"${run_dir}/retained-states-before.sha256" || \
+			fail 'cannot hash retained runtime states'
+	fi
+	mac_addr=$(/usr/sbin/ipconfig getifaddr en0) || fail 'cannot read en0 IPv4'
+	[ "$mac_addr" = 192.168.10.128 ] || fail "unexpected en0 IPv4=$mac_addr"
 	build_candidate "$slurm_conf" "${run_dir}/slurm.conf.tls" || fail 'cannot build TLS config'
 	/bin/cp "$gres_conf" "${run_dir}/gres.conf" || fail 'cannot stage candidate gres.conf'
 	/bin/chmod 0600 "${run_dir}/slurm.conf.tls" || fail 'cannot protect candidate config'
+	/usr/bin/grep -Eq '^NodeName=PC-210 .*NodeAddr=192\.168\.10\.128([[:space:]]|$)' \
+		"${run_dir}/slurm.conf.tls" || fail 'temporary Mac NodeAddr override missing'
+	/usr/bin/grep -Eq '^NodeName=ubuntu .*NodeAddr=192\.168\.10\.180 .*NodeHostName=ubuntu2504([[:space:]]|$)' \
+		"${run_dir}/slurm.conf.tls" || fail 'temporary Ubuntu address override missing'
 	SLURM_SACK_KEY="$slurm_key" "$slurmd" -G -f "${run_dir}/slurm.conf.tls" \
 		>"${run_dir}/candidate-G.out" 2>"${run_dir}/candidate-G.err" || \
 		fail 'TLS candidate slurmd -G failed'
@@ -397,6 +485,7 @@ run)
 	wait_node_idle tls ubuntu || fail 'Ubuntu is not IDLE with TLS'
 	"$squeue" -h -w ubuntu,PC-210 >"${run_dir}/queue-tls.txt" || fail 'cannot read TLS queue'
 	[ ! -s "${run_dir}/queue-tls.txt" ] || fail 'target queue is not empty'
+	cd /tmp || fail 'cannot enter accessible job submission directory'
 	/bin/mkdir "$output_dir" || fail 'cannot create job output directory'
 	/usr/sbin/chown "$test_uid:$test_gid" "$output_dir" || fail 'cannot chown job output directory'
 	/bin/chmod 0700 "$output_dir" || fail 'cannot protect job output directory'
@@ -447,7 +536,7 @@ run)
 	active_job=
 	/usr/bin/sudo -u "$test_user" -H /usr/bin/env SLURM_CONF="$slurm_conf" \
 		"$srun" --job-name=smd407-tls-mixed --partition=smd402 --nodes=2 --ntasks=2 \
-		--ntasks-per-node=1 --cpus-per-task=1 --mem=64M --time=00:01:00 --label \
+		--ntasks-per-node=1 --cpus-per-task=1 --mem=64M --time=00:01:00 --chdir=/tmp --label \
 		/bin/sh -c 'printf "%s|%s|%s\n" "$SLURM_JOB_ID" "$SLURM_PROCID" "$(/usr/bin/uname -m)"' \
 		>"${run_dir}/mixed.out" 2>"${run_dir}/mixed.err" || \
 		fail 'TLS mixed-architecture srun failed'
@@ -476,16 +565,26 @@ run)
 	fi
 	/usr/bin/printf 'tls_none_client_rc=%s\n' "$tls_none_rc" >"${run_dir}/tls-none-client.rc"
 	restore_local_config || fail 'cannot restore Mac TLS-none config'
-	/usr/bin/shasum -a 256 "$slurm_conf" "$gres_conf" "$slurmd" "$plugin" \
+	/usr/bin/shasum -a 256 "$slurm_conf" "$gres_conf" "$slurmd" "$plugin" "$certgen_plugin" \
 		"$s2n_prefix/lib/libs2n.dylib" "$ca" "$slurmd_cert" "$slurmd_key" \
 		>"${run_dir}/production-local-restored.sha256" || fail 'cannot hash local restored state'
 	/usr/bin/cmp -s "${run_dir}/production-before.sha256" \
 		"${run_dir}/production-local-restored.sha256" || fail 'Mac local production hash mismatch'
+	if [ "$mode" = jobs ]; then
+		/usr/bin/shasum -a 256 "$runtime_state" "$prior_job_runtime_state" \
+			"$prior_srun_runtime_state" "$prior_mixed_runtime_state" \
+			"$prior_mixed_chdir_runtime_state" \
+			>"${run_dir}/retained-states-after.sha256" || \
+			fail 'cannot rehash retained runtime states'
+		/usr/bin/cmp -s "${run_dir}/retained-states-before.sha256" \
+			"${run_dir}/retained-states-after.sha256" || fail 'retained runtime state changed'
+	fi
 	write_runtime_state TEST_COMPLETE_LOCAL_TLS_NONE_RESTORED || fail 'cannot write runtime state'
 	success=1
-	/usr/bin/printf 'SMD407_MAC_TLS_RUNTIME_COMPLETE cpu_job=%s srun_job=%s gpu_job=%s mixed_job=%s tls_none_rejected=PASS local_tls_none_restored=PASS slurmd_pid=%s state=%s run_dir=%s\n' \
+	/usr/bin/printf 'SMD407_MAC_TLS_RUNTIME_COMPLETE mode=%s cpu_job=%s srun_job=%s gpu_job=%s mixed_job=%s tls_none_rejected=PASS local_tls_none_restored=PASS slurmd_pid=%s state=%s retained_state=UNCHANGED run_dir=%s\n' \
+		"$mode" \
 		"$cpu_job" "$srun_job" "$gpu_job" "$mixed_job" "$(managed_slurmd_pid)" \
-		"$runtime_state" "$run_dir"
+		"$active_runtime_state" "$run_dir"
 	/usr/bin/printf '%s\n' 'NEXT_ON_UBUNTU: run verify, then restore before Mac finalize'
 	;;
 finalize)

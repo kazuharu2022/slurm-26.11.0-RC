@@ -1,0 +1,124 @@
+#!/usr/bin/expect -f
+
+set timeout 90
+match_max 200000
+
+if {$argc != 2} {
+	puts stderr "usage: smd002_production_pty.exp WRAPPER TRANSCRIPT"
+	exit 64
+}
+
+set wrapper [lindex $argv 0]
+set transcript [lindex $argv 1]
+log_file -noappend $transcript
+
+cd /tmp
+spawn -noecho /usr/bin/sudo -H -u testuser /bin/sh $wrapper
+set slave $spawn_out(slave,name)
+exec /bin/stty -f $slave rows 41 columns 89
+
+expect {
+	-re {SMD002_WRAPPER_READY\r?\n} {}
+	timeout { puts stderr "error: wrapper ready marker not observed"; exit 1 }
+}
+send -- "GO\r"
+
+expect {
+	-re {bash-[0-9.]+[$#] $} {}
+	timeout { puts stderr "error: initial remote prompt not observed"; exit 1 }
+	eof { puts stderr "error: srun ended before remote prompt"; exit 1 }
+}
+
+send -- {PS1='SMD002_PROMPT> '}
+send -- "\r"
+expect {
+	-exact "SMD002_PROMPT> " {}
+	timeout { puts stderr "error: deterministic prompt not observed"; exit 1 }
+}
+
+send -- {echo SMD002_STDIN_STDOUT=PASS}
+send -- "\r"
+expect -re {SMD002_STDIN_STDOUT=PASS\r?\n}
+expect -exact "SMD002_PROMPT> "
+
+send -- {echo SMD002_JOB_ID=$SLURM_JOB_ID}
+send -- "\r"
+expect {
+	-re {SMD002_JOB_ID=([0-9]+)\r?\n} {}
+	timeout { puts stderr "error: job id not observed"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+send -- {tty}
+send -- "\r"
+expect {
+	-re {/dev/tty[^\r\n]*\r?\n} {}
+	timeout { puts stderr "error: remote tty path not observed"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+send -- {stty size}
+send -- "\r"
+expect {
+	-re {41 89\r?\n} {}
+	timeout { puts stderr "error: initial 41x89 window size not observed"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+exec /bin/stty -f $slave rows 34 columns 100
+after 500
+send -- {stty size}
+send -- "\r"
+expect {
+	-re {34 100\r?\n} {}
+	timeout { puts stderr "error: resized 34x100 window not observed"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+send -- {sleep 30}
+send -- "\r"
+after 1000
+send -- "\003"
+expect {
+	-exact "SMD002_PROMPT> " {}
+	timeout { puts stderr "error: prompt did not return after Ctrl-C"; exit 1 }
+}
+send -- {echo SMD002_CTRL_C_RC=$?}
+send -- "\r"
+expect {
+	-re {SMD002_CTRL_C_RC=130\r?\n} {}
+	timeout { puts stderr "error: Ctrl-C status 130 not observed"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+exec /bin/stty -f $slave rows 41 columns 89
+after 500
+send -- {stty size}
+send -- "\r"
+expect {
+	-re {41 89\r?\n} {}
+	timeout { puts stderr "error: local window size was not restored to 41x89"; exit 1 }
+}
+expect -exact "SMD002_PROMPT> "
+
+send -- {exit 0}
+send -- "\r"
+expect {
+	-re {SMD002_SRUN_RC=0\r?\n} {}
+	timeout { puts stderr "error: srun rc 0 not observed"; exit 1 }
+}
+expect {
+	-re {SMD002_TTY_RESTORE=PASS\r?\n} {}
+	timeout { puts stderr "error: local tty restore PASS not observed"; exit 1 }
+}
+catch {expect eof}
+
+set wait_result [wait]
+set child_rc [lindex $wait_result 3]
+if {$child_rc != 0} {
+	puts stderr "error: wrapper exit rc=$child_rc"
+	exit $child_rc
+}
+
+puts "SMD002_EXPECT_COMPLETE transcript=$transcript"
+exit 0

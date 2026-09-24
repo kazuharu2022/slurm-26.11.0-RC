@@ -1,0 +1,180 @@
+SMD-401 Open MPI 5.0.11 single-node runtime evidence
+Date: 2026-09-24 09:12-09:21 JST
+Node: PC-210
+Architecture: arm64
+Test user: testuser (UID/GID 3001:3001)
+Open MPI: 5.0.11
+PMIx: 6.1.0
+Slurm: 26.11.0-0rc1
+Final result: PASS_OPENMPI_LOCAL_AND_SRUN_PMIX_V6_SINGLE_NODE
+
+Scope and hypothesis
+====================
+Question:
+  Can the installed arm64 Open MPI application exchange data with two ranks
+  locally and under the PC-210 Slurm PMIx v6 direct-launch path, and are MPI
+  tasks, steps, allocation resources, and processes recovered after cancel?
+
+Hypothesis:
+  Because Open MPI, the application, and the Slurm PMIx plugin all load the
+  verified Homebrew PMIx 6.1.0 stack, local PRRTE launch and Slurm
+  `srun --mpi=pmix_v6` launch should both complete broadcast, all-reduce, and
+  point-to-point exchange. Cancelling after those operations should remove both
+  task PIDs and release the allocation.
+
+Fixed conditions:
+  ranks=2
+  node=PC-210 only
+  cpus-per-task=1
+  memory=256M
+  bcast value=42
+  all-reduce input=rank; expected sum=1
+  ring send value=1000+rank
+  success time limit=1 minute
+  cancel time limit=2 minutes
+
+Out of scope:
+  Ubuntu package/configuration changes, multi-node MPI, daemon restart,
+  production configuration/plugin changes, and mpirun inside a Slurm
+  allocation.
+
+Artifacts
+=========
+Probe source:
+  contribs/macos-tests/smd401_openmpi_probe.c
+  SHA-256 bf0fbe8a72d580fa5046aacf9b6496286a825839b2157763558779eb9863bd81
+
+Runtime driver:
+  contribs/macos-tests/smd401_openmpi_runtime_driver.sh
+  final SHA-256 bc308084141e23376318173e3c2083fbdbb888db11e49eda80a03dd2eeb22a5b
+
+Successful run directory:
+  /private/tmp/slurm-smd401-openmpi-runtime.20260924T092019.45063
+
+The probe was built with Homebrew mpicc using strict C11 warnings. It is an
+arm64 Mach-O executable and directly loads:
+  /opt/homebrew/opt/open-mpi/lib/libmpi.40.dylib
+
+Harness and readback failures retained
+======================================
+1. A non-mutating `sudo -n true` check returned:
+     sudo: a password is required
+   Therefore the approved root driver used a visible macOS administrator
+   authentication dialog. No credential was captured or stored.
+2. `mpirun --help` did not display the searched timeout options. A follow-up
+   `mpirun --help all` was rejected as an unknown help topic. This did not run
+   an MPI process and the unsupported option was not used by the driver.
+3. The first local two-rank control was run inside the Codex sandbox. PRRTE
+   could not bind a listener and exited 213:
+     bind() failed for port 0: Operation not permitted (1)
+     No sockets were able to be opened on the available protocols
+   The same binary and arguments were rerun outside the network sandbox and
+   passed. This is classified as a sandbox restriction, not an Open MPI
+   product failure.
+4. A read-only dscl query for testuser returned eServerError. Independent
+   `id testuser` and the existing /Users/testuser directory confirmed
+   UID/GID 3001:3001 and the driver repeated the numeric ID checks as root.
+5. Root driver Attempt 1 stopped before local MPI or any Slurm job with:
+     error: MPI-related process exists before test
+   The captured process was the driver's own awk validator; its command line
+   contained the probe path passed as an awk variable. The validator was
+   corrected to inspect executable names from the ps `comm` field. Attempt 1
+   made no configuration/plugin/daemon change and submitted zero jobs.
+   Run directory:
+     /private/tmp/slurm-smd401-openmpi-runtime.20260924T091828.44868
+6. A local sandboxed squeue read immediately after Attempt 1 could not contact
+   the controller. The root driver's preceding controller/node reads had
+   succeeded outside the sandbox, and the final controller-side SSH readback
+   was successful. This failure is not used as controller-down evidence.
+7. A final source-only check used `mpicc -fsyntax-only` together with `-Werror`.
+   The wrapper-added `-lmpi` was then reported as an unused linker input. The
+   source had already passed strict linked builds and runtime. Replacing this
+   invalid validator combination with `mpicc -c` produced an arm64 Mach-O
+   object with all warnings enabled; shell syntax, line length, and
+   `git diff --check` also passed.
+
+Local control result
+====================
+The successful driver repeated the local control as testuser. Exit status was
+zero and stderr was 0 bytes.
+
+mpi_runtime=PASS launcher=local job_id=none rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=1000 processor=PC-210.local ompi=5.0.11
+mpi_runtime=PASS launcher=local job_id=none rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=1001 processor=PC-210.local ompi=5.0.11
+
+No mpirun, PRRTE, or probe process remained after the control.
+
+Slurm direct-launch success: Job 686
+====================================
+Command shape:
+  srun --partition=debug --nodes=1 --ntasks=2 --cpus-per-task=1 \
+    --mem=256M --time=00:01:00 --chdir=/private/tmp \
+    --mpi=pmix_v6 --kill-on-bad-exit=1 <probe> success
+
+stdout:
+  mpi_runtime=PASS launcher=slurm job_id=686 rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=1001 processor=PC-210.local ompi=5.0.11
+  mpi_runtime=PASS launcher=slurm job_id=686 rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=1000 processor=PC-210.local ompi=5.0.11
+
+stderr: 0 bytes
+
+Accounting, independently confirmed on the controller:
+  686|smd401-openmpi-success-20260924T092019|testuser|COMPLETED|0:0|PC-210|billing=2,cpu=2,mem=256M,node=1|billing=2,cpu=2,mem=256M,node=1
+  686.0|smd401-openmpi-success-20260924T092019||COMPLETED|0:0|PC-210||cpu=2,mem=256M,node=1
+
+Slurm direct-launch cancel: Job 687
+===================================
+Both ranks completed MPI_Init, broadcast, all-reduce, point-to-point exchange,
+and barriers before readiness was accepted.
+
+Rank 0 ready record:
+  job_id=687 rank=0 size=2 bcast=42 allreduce=1
+  ring_from=1 ring_value=1001 processor=PC-210.local
+  pid=45171 uid=3001 gid=3001
+
+Rank 1 ready record:
+  job_id=687 rank=1 size=2 bcast=42 allreduce=1
+  ring_from=0 ring_value=1000 processor=PC-210.local
+  pid=45172 uid=3001 gid=3001
+
+Both PIDs were simultaneously observed alive before scancel. The srun client
+returned 143. Expected cancellation stderr recorded signal 15 for tasks 0-1.
+
+Accounting, independently confirmed on the controller:
+  687|smd401-openmpi-cancel-20260924T092019|testuser|CANCELLED by 0|0:0|PC-210|billing=2,cpu=2,mem=256M,node=1|billing=2,cpu=2,mem=256M,node=1
+  687.0|smd401-openmpi-cancel-20260924T092019||CANCELLED|0:15|PC-210||cpu=2,mem=256M,node=1
+
+Independent macOS readback found neither PID 45171 nor 45172 and no
+slurmstepd process.
+
+Final state and invariants
+==========================
+- PC-210: IDLE
+- CPUAlloc=0
+- AllocMem=0
+- AllocTRES empty
+- queue empty
+- slurmctld/slurmdbd/Ubuntu slurmd active
+- macOS launchd slurmd running, PID 41674, last exit code 0
+- SlurmdStartTime unchanged: 2026-09-24T08:46:35
+- unexpected runtime error file: 0 bytes
+- residual run-directory process file: 0 bytes
+- MPI-related process file: 0 bytes
+- slurmstepd file: 0 bytes
+- success mpicc/srun/accounting stderr: 0 bytes
+- pre/post input hash files: byte-identical
+
+Production/configuration hashes retained:
+  slurm.conf 70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+  mpi_pmix_v6.so aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+  mpi_pmix.so aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+  srun 0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9
+  mpicc f71ff17327215706b80122b8b6e3afb4ac9a70f4b6337847f74aabde8657ec6a
+  mpirun 0d4e5f9bbcbcb5e528b656f7a7f53038228b78d9f3d20c1153344fdd1731cfbb
+  libmpi.40.dylib a2c61a3988ca1606fc21b8ba232531926d157211fbe34e28c3b28f800df5fd0d
+
+Conclusion and remaining scope
+==============================
+PASS for Open MPI 5.0.11 local two-rank communication and PC-210-only Slurm
+PMIx v6 direct launch, including normal completion, accounting, cancellation,
+and cleanup. This does not establish mpirun-inside-allocation behavior or any
+multi-node/mixed-architecture Open MPI compatibility. MPICH remains intentionally
+uninstalled and unmeasured.

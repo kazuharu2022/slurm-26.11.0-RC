@@ -1,0 +1,137 @@
+SMD-401 PMIx / external MPI read-only preflight
+Date: 2026-09-23 JST
+
+[scope]
+Phase PMI2 remains PASS from Jobs 579 and 580.
+This preflight only re-evaluates the missing PMIx and external MPI phases.
+No package installation, production file change, daemon restart, or job submission was performed.
+
+[local environment]
+hardware=Apple M5 Max
+architecture=arm64
+macOS=26.5.1 build 25F80
+Slurm=26.11.0-0rc1
+source_revision=1e20bbab8b88a20446ea28b5418ed6a9013a15a7
+
+[production Slurm MPI inventory]
+srun=/opt/slurm/26.11.0/bin/srun
+srun --mpi=list:
+  none
+  cray_shasta
+  pmi2
+PMIx plugin=ABSENT
+mpi_pmi2.so=Mach-O 64-bit bundle arm64
+mpi_pmi2.so dependencies=/usr/lib/libSystem.B.dylib only
+
+[external MPI and PMIx inventory]
+mpirun=ABSENT
+mpiexec=ABSENT
+mpicc=ABSENT
+ompi_info=ABSENT
+prte=ABSENT
+pmix_info=ABSENT
+/opt/homebrew/Cellar/open-mpi=ABSENT
+/opt/homebrew/Cellar/mpich=ABSENT
+/opt/homebrew/Cellar/pmix=ABSENT
+pkg-config pmix=ABSENT
+pkg-config ompi=ABSENT
+pkg-config mpi=ABSENT
+
+[build configuration]
+config.log warning=support for pmix is disabled by default
+HAVE_PMIX_TRUE=#
+HAVE_PMIX_FALSE=empty
+PMIX v2-v6 CPPFLAGS/LDFLAGS=empty
+installed PMIx plugin=ABSENT
+
+[fixed-source contract]
+doc/html/mpi_guide.shtml:108-124:
+- Slurm PMIx support requires configure --with-pmix=<PMIx installation path>.
+doc/html/mpi_guide.shtml:146-157:
+- a successful build should add pmix and versioned pmix plugins to srun --mpi=list.
+auxdir/x_ac_pmix.m4:28-66:
+- configure checks PMIx headers, lib directories, and a link against -lpmix.
+src/plugins/mpi/pmix/mpi_pmix.c:106-120:
+- the plugin constructs PMIXP_LIBPATH plus libpmix.so.2 and calls dlopen().
+
+[macOS compatibility risk]
+The fixed source explicitly opens the Linux shared-library name libpmix.so.2.
+No PMIx library is installed, so the expected Darwin library filename and whether a
+compatibility symlink is sufficient have not yet been measured. This is a build/runtime
+risk to test in an isolated prefix before any production plugin placement.
+
+[support-library preflight]
+Homebrew hwloc prefix=PRESENT
+hwloc pkg-config version=2.14.0
+Homebrew libevent prefix=ABSENT
+PMIx 5.x official build requirements include hwloc and either libevent or libev.
+Therefore a PMIx source build currently also lacks an event-library prerequisite.
+
+[preflight command failure retained]
+The first brew list --versions query invoked Homebrew API refresh despite being intended
+as a read-only package check. The sandbox denied the cache update and the command failed.
+No package was installed or changed. Direct Cellar/opt path checks and pkg-config checks
+were then used and all three target packages were confirmed absent.
+
+[controller access boundary]
+SSH to the user-provided address 198.168.10.180 timed out after 8 seconds.
+Repository evidence and active test drivers consistently identify the operational
+controller as 192.168.10.180, but that is a different address. Automation did not connect
+to the different address until the user explicitly approved it.
+
+[controller readback after explicit approval]
+ssh target=tera@192.168.10.180
+hostname=ubuntu2504
+architecture=x86_64
+OS=Ubuntu 24.04
+Slurm=/usr/local/slurm/26.11.0, 26.11.0-0rc1
+slurmctld=active/running
+slurmdbd=active/running
+slurmd=active/running
+controller=UP
+PC-210=IDLE, CPUAlloc=0/18, AllocMem=0, AllocTRES empty
+ubuntu=IDLE, CPUAlloc=0/8
+queue=empty
+MpiDefault=(null)
+PluginDir=/usr/local/slurm/26.11.0/lib/slurm
+srun --mpi=list=none,cray_shasta,pmi2
+PMIx plugin=ABSENT
+PMIx/Open MPI/MPICH commands=ABSENT
+PMIx/Open MPI/MPICH dpkg packages and pkg-config metadata=ABSENT
+
+[controller client-path failures retained]
+Attempt 1 used /usr/local/bin/scontrol from a non-interactive SSH shell. It stopped before
+cluster queries because libslurmfull.so was not found. Services were not affected.
+
+Attempt 2 added the 26.11.0 library path to the generic /usr/local/bin clients. Those
+binaries were from a different build and failed with symbol-size / undefined-symbol errors.
+Services were not affected.
+
+The matching /usr/local/slurm/26.11.0/bin clients contain a working runpath to the matching
+library and completed version, controller, node, queue, configuration, and plugin readback.
+This reveals a separate client PATH hygiene issue; it is not a PMIx runtime result and was
+not changed during this preflight.
+
+[classification]
+SMD-401=PARTIAL_PASS_PMI2
+PMIx phase pre-update=PREREQUISITE_MISSING_PMIX_EVENT_LIBRARY_AND_PLUGIN
+external MPI phase=PREREQUISITE_MISSING_MPI_IMPLEMENTATION
+controller refresh=PASS_READ_ONLY
+
+[post-preflight environment update]
+After this preflight, the user reported PMIx 6.1.0, libevent 2.1.13, and hwloc 2.14.0.
+Live readback confirmed all three arm64 Homebrew installations. The PMIx prerequisite is no
+longer missing. Isolated build and client plugin-load results are recorded in:
+SMD-401-pmix-isolated-build-evidence.txt
+Current PMIx phase=ISOLATED_BUILD_AND_CLIENT_LOAD_PASS_AWAITING_PRODUCTION_RUNTIME_APPROVAL
+
+[next safe boundary]
+1. Request a separate production-placement/runtime approval after isolated success.
+2. Keep external MPI implementation separate from the PMIx API/plugin runtime phase.
+3. Treat /usr/local/bin client-path repair as a separate controller maintenance task.
+
+[hashes]
+0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9  /opt/slurm/26.11.0/bin/srun
+5592b9348279211d55cac3e6aea3b9514e28b41d964db953c55532c7f4bdb0d1  /opt/slurm/26.11.0/lib/slurm/mpi_pmi2.so
+24dbe476330990059cb55e7d8901541c6b4e1614d2cf895d467924bdb2b9dc6b  config.status
+6f03888a38712827ef68bffdaec39beffa6f72ea66590b39a7afa8f61a8f8276  src/plugins/mpi/pmix/mpi_pmix.c

@@ -1,0 +1,1268 @@
+SMD-407 certgen/script portability fix - isolated evidence
+Date: 2026-09-23 JST
+Repository HEAD: 1e20bbab8b88a20446ea28b5418ed6a9013a15a7
+
+SCOPE
+- Modify and build the certgen/script candidate only.
+- Exercise client initialization with temporary configs and staged plugin trees.
+- Do not install the candidate into either production prefix.
+- Do not change production configuration, restart a daemon, or submit a job.
+- SMD-407 production runtime remains pending.
+
+SOURCE CHANGE
+- Embedded keygen/certgen scripts are passed to /bin/sh. Configured external
+  scripts retain direct-execution behavior.
+- Embedded certgen.sh uses `openssl req -new -x509`; the explicit `-new` is
+  required by macOS LibreSSL 3.3.6 and also works with OpenSSL 3.0.13/3.6.4.
+- _create_exec_script() returns immediately when dump_to_memfd() fails.
+
+SOURCE AND HARNESS HASHES
+146beee49e5a1af436438a55b47c1c54161e65c2aa25e00ed1a86c2953359e58  src/plugins/certgen/script/certgen_script.c
+087b59cf5cc7b039c1967f681fba02dd555a314463c85c6e656e7135c714efba  src/plugins/certgen/script/certgen.sh.txt
+fe851b247aa7d5e6b50d89981ae3c691108313bd679ac81b18a92f5e1f25677b  contribs/macos-tests/smd407_certgen_internal_script_portability.patch
+8dffdc8136d08831a6e2be3f4704eed5ee4bbcbc0c09a0dbb5bee6442e4d56ad  contribs/macos-tests/smd407_certgen_exec_probe.sh
+733aacdc7ea416adfc21bbde95917b078878a54abdd119a1cdb2b361bb9665a8  contribs/macos-tests/smd407_dev_fd_exec_probe.c
+6cfb1218c3e5c56fa692d9ebae7c5532bdab5c856cf9afa6a7a95adfb9e52201  contribs/macos-tests/smd407_ubuntu_certgen_client_probe.sh
+
+MAC BEFORE REPRODUCTION
+Installed certgen_script.so:
+d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1
+
+SMD407_CERTGEN_EXEC_PROBE_BEFORE_REPRODUCED expected_eacces=PASS production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-before-20260923T002723
+
+Observed stderr:
+: error: run_command: (null) can not be executed (/dev/fd/3) Permission denied
+: error: certgen/script: '/dev/fd/3' returned rc 127. stdout+stderr from script:
+: error: certgen/script: Unable to generate private key
+: error: Failed to generate self signed certificate and private key
+: fatal: failed to initialize tls plugin
+
+DARWIN /dev/fd EXECUTION PROBE
+The first C-probe compile stopped under -Werror because the snprintf result was
+compared as signed/unsigned. The fixture was corrected before execution.
+
+Probe source:
+733aacdc7ea416adfc21bbde95917b078878a54abdd119a1cdb2b361bb9665a8
+Probe binary:
+5f0bec19b69935968d571546ca75913e9c375988bf16e3be38dc72199efecc21
+
+direct_exec_errno=13 direct_exec_error=Permission denied
+SMD407_DEV_FD_SCRIPT_PASS
+path=/dev/fd/3 fd_mode=0500 path_mode=0400 access_rx_rc=-1 access_rx_errno=13 access_rx_error=Permission denied
+direct_exit=127
+shell_exit=0
+
+Interpretation: adding execute mode to the backing descriptor is insufficient
+on this Darwin host. `/dev/fd/N` remains non-executable as a path, while
+`/bin/sh /dev/fd/N` can read and execute the embedded script. The earlier
+"0600 lacks execute bit" statement was therefore too narrow.
+
+MAC OPENSSL COMPATIBILITY PROBE
+- /usr/bin/openssl: LibreSSL 3.3.6
+- `openssl req -x509 ...`: rc=1, Expecting: CERTIFICATE REQUEST
+- `openssl req -new -x509 ...`: rc=0
+- Homebrew OpenSSL 3.6.4 with `-new`: rc=0
+
+MAC CANDIDATE RESULTS
+Incremental candidate plugin:
+45855370e2b7bb61f12300294ed6c05cbef5de7f9c3e786092552f386b9b5298
+
+SMD407_CERTGEN_EXEC_PROBE_AFTER_PASS certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-after-20260923T002725
+SMD407_CERTGEN_EXEC_PROBE_PASS mode=external certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-external-20260923T002927
+SMD407_CERTGEN_EXEC_PROBE_NEGATIVE_PASS mode=external-nonexec expected_eacces=PASS production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-external-nonexec-20260923T002930
+
+The positive external-script case shows that configured executable scripts
+still use the direct-execution contract. The non-executable negative fixture
+still fails closed with EACCES.
+
+MAC CLEAN-SOURCE BUILD
+The first clean configure stopped because MUNGE was absent. No compile ran.
+The rerun used the conditions of the existing macOS build, including
+--without-munge, --without-readline, --disable-cgroupv2, --disable-x11,
+--disable-sview, and --disable-slurmrestd.
+
+Run directory: /tmp/slurm-smd407-certgen-mac-clean-fY5ebX
+Candidate plugin (Mach-O arm64):
+aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3
+
+The build exited 0. make stderr contained repeated libtool
+`test: : integer expression expected` warnings (621 bytes). Configure also
+reported optional dependency warnings. `make check` reported no tests.
+LibreSSL certificate generation passed with zero cert stderr.
+
+SMD407_CERTGEN_EXEC_PROBE_PASS mode=after certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-after-20260923T003929
+
+The local SACK route proves candidate certgen initialization and creation of a
+TLS client connection. It does not prove a direct TLS connection to the
+production controller because the active controller remained tls/none.
+
+UBUNTU ISOLATED BUILD
+Remote source HEAD: a44a5b8cd1704890c183b7dc44984ab1c2e7a519
+OpenSSL: 3.0.13
+
+The first isolation attempt copied an already configured source tree. Its
+absolute srcdir caused make to write certgen.sh.bino into the original source
+tree and then fail to find it in the copy. The installed plugin, configuration,
+and services were unchanged. The generated source-tree object was recovered by
+the exact objcopy section rename; independently generated expected and actual
+hashes both became:
+8eeae1f686bd8d1428156a79d4a2f6b492916bbd1edc13d670b6955d72296c4e
+The final section was .rodata, and remote git status retained only the two
+unrelated pre-existing untracked files.
+
+The corrected isolation used `git archive HEAD` and a new configure:
+Run directory: /tmp/slurm-smd407-certgen-linux-configured-0OYnRt
+
+SMD407_CERTGEN_LINUX_ISOLATED_BUILD_PASS production_unchanged=PASS services_pids_unchanged=PASS tls=tls/none queue=EMPTY run_dir=/tmp/slurm-smd407-certgen-linux-configured-0OYnRt
+
+Candidate plugin (ELF x86-64):
+373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45
+
+Build stderr and certificate-generation stderr were zero bytes. Configure
+reported optional dependency warnings. `make check` reported no tests; this is
+not a test-suite PASS. The embedded `openssl req -new -x509` generated a
+certificate under OpenSSL 3.0.13.
+
+UBUNTU ISOLATED CLIENT INITIALIZATION
+An initial inline SSH command had a local quoting error before sudo. A later
+independent hash-expression check also had an awk quoting error. Neither ran the
+probe or changed the host. The transferred script then passed /bin/sh syntax
+and exact SHA-256 verification before execution.
+
+SMD407_CERTGEN_LINUX_CLIENT_PROBE_PASS certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS services_pids_unchanged=PASS tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-certgen-linux-client-gNxWfB
+
+Candidate source and staged hashes:
+373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45  candidate
+373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45  staged
+
+Observed client output and selected stderr:
+Slurmctld(primary) at ubuntu2504 is UP
+scontrol: tls/s2n: tls_p_create_conn: TLS: tls/s2n: connection successfully created. fd:3->3. tls mode:client
+
+Production inputs before and after were identical:
+55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+slurmdbd/slurmctld/slurmd were active before and after. MainPID values were
+95567/95599/95667 before and after. Active TLSType was tls/none. Both ubuntu
+and PC-210 were IDLE with CPUAlloc=0 and AllocMem=0. Queue output was 0 bytes.
+
+FINAL READBACK
+Mac production inputs remained:
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+
+Mac launchd slurmd remained running at PID 47839. One Mac client readback
+temporarily reported controller DOWN while Ubuntu itself still reported UP with
+all services active. Immediate retry resolved ubuntu2504 to 192.168.10.180,
+connected to TCP/6817, and reported controller UP. PC-210 was IDLE with no CPU
+or memory allocation, and the target queue was empty. No daemon was restarted.
+
+VERDICT
+isolated_certgen_candidate=PASS_MAC_ARM64_AND_LINUX_X86_64
+embedded_script_shell_execution=PASS
+libressl_explicit_new=PASS
+external_executable_script_contract=PASS
+external_nonexecutable_negative=PASS
+production_install=NOT_PERFORMED
+production_tls_cutover=NOT_PERFORMED
+mac_tls_daemon_runtime=NOT_RETESTED
+job_and_accounting=NOT_TESTED
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Install the reviewed candidate into both production prefixes, perform the
+client-only TLS cutover first, and continue to daemon/job/accounting checks only
+after the client gate passes. That operation changes production files and
+restarts services, so it requires a separate explicit approval.
+
+PRODUCTION CERTGEN INSTALL AND CLIENT-ONLY TLS CUTOVER
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Install the reviewed certgen candidate into both production prefixes with a
+  root-only backup and automatic rollback on installer failure.
+- Temporarily restart the Ubuntu stack with tls/s2n.
+- Prove that a Mac tls/none client is rejected and the corrected Mac TLS client
+  reaches the controller.
+- Restore Ubuntu to tls/none immediately after the client test.
+- Do not switch or restart the Mac slurmd, submit a job, or test accounting.
+
+INSTALLER AND CONTROL HASHES
+12860264d6304c9c5b8d90110d1981e042ce51fab07f1d0700f5758a70786af2  contribs/macos-tests/smd407_macos_certgen_production_install.sh
+bd46d5bae7a3c6681b101ffeff6c4e71368552f0bccc1d6170df2e1462927c35  contribs/macos-tests/smd407_ubuntu_certgen_production_install.sh
+f9ae241511590488747907cefef079a2b68f0976200a74704097f7204b5c898e  contribs/macos-tests/smd407_macos_tls_diagnose.sh
+76513c568f727e452fcca5b712961cdf940c7cefeca5dbcbefb2eca13769df5b  contribs/macos-tests/smd407_ubuntu_tls_runtime_control.sh
+
+PRE-INSTALL STOP AND RECOVERY
+The first pre-install readback found PC-210 in DOWN+NOT_RESPONDING with
+CPUAlloc=0, AllocMem=0, and an empty queue. The controller reason was:
+
+Reason=Not responding [slurm@2026-09-23T00:56:36]
+
+Mac launchd still managed PID 47839, TCP/6818 was listening, Ubuntu resolved
+PC-210 to 192.168.10.128, and Ubuntu could connect to that port. A real Mac
+sleep occurred later at 09:09:52-09:14:34, so it did not explain the original
+00:56 transition. No production file had been changed. An administrative
+RESUME was issued with the queue empty; the state moved from
+IDLE+NOT_RESPONDING to IDLE in one second without restarting the Mac daemon.
+
+UBUNTU PRODUCTION INSTALL
+Preflight:
+SMD407_UBUNTU_CERTGEN_INSTALL_PREFLIGHT_PASS old=55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b candidate=373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45 tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-certgen-install-preflight-20260923T093815
+
+Install:
+SMD407_UBUNTU_CERTGEN_PRODUCTION_INSTALL_PASS old=55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b new=373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45 backup=/usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T093835 services_pids_unchanged=PASS tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-certgen-install-install-20260923T093835
+
+Backup metadata:
+root:root:700  /usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T093835
+slurm:slurm:755  certgen_script.so.before
+root:root:600  before.sha256
+root:root:600  install-state.env
+
+The installed path was reloaded through the temporary client probe:
+SMD407_CERTGEN_LINUX_CLIENT_PROBE_PASS certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS services_pids_unchanged=PASS tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-certgen-linux-client-qFIWFl
+
+MAC PRODUCTION INSTALL
+The first privileged preflight stopped before mutation because the retained
+root-only runtime state existed. It contained:
+
+runtime_run_dir=/tmp/slurm-smd407-mac-tls-runtime-run-20260912T232639
+phase=FAILED_LOCAL_TLS_NONE_RESTORED
+cpu_job=
+srun_job=
+gpu_job=
+mixed_job=
+
+The active config was the original tls/none hash, the Ubuntu runtime state was
+absent, and the retained state hash was
+fee2df1c8a9d6baf76eb3d294583b58609106ad885a6e45cb9f8bcf0349d3aa1.
+The installer was narrowed to accept only this exact recovered phase and to
+prove the state hash unchanged. The state was preserved, not deleted.
+
+Preflight:
+SMD407_MAC_CERTGEN_INSTALL_PREFLIGHT_PASS old=d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1 candidate=aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3 slurmd_pid=47839 tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-mac-certgen-install-preflight-20260923T094440
+
+Install:
+SMD407_MAC_CERTGEN_PRODUCTION_INSTALL_PASS old=d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1 new=aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3 backup=/opt/slurm/26.11.0/.smd407-certgen-backup-20260923T094440 slurmd_pid_unchanged=47839 tls=tls/none retained_runtime_state=fee2df1c8a9d6baf76eb3d294583b58609106ad885a6e45cb9f8bcf0349d3aa1 nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-mac-certgen-install-install-20260923T094440
+
+Backup metadata:
+root:slurm:700  /opt/slurm/26.11.0/.smd407-certgen-backup-20260923T094440
+root:wheel:755  certgen_script.so.before
+root:slurm:600  before.sha256
+root:slurm:600  install-state.env
+
+The installed path was reloaded through the temporary client probe:
+SMD407_CERTGEN_EXEC_PROBE_PASS mode=after certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-after-20260923T094519
+
+CLIENT-ONLY TLS CUTOVER
+Ubuntu apply:
+SMD407_UBUNTU_TLS_APPLY_COMPLETE tls=tls/s2n disable_http=PASS services=ACTIVE ubuntu=IDLE mac_transition=EXPECTED state=/usr/local/slurm/26.11.0/.smd407-ubuntu-tls-runtime.env run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T094619
+
+The active apply readback contained:
+CommunicationParameters = disable_http
+TLSType                 = tls/s2n
+
+Mac negative control:
+client_cleartext_ping_rc=1
+Slurmctld(primary) at ubuntu2504 is DOWN
+
+Mac corrected TLS client:
+client_ping_rc=0
+Slurmctld(primary) at ubuntu2504 is UP
+scontrol: tls/s2n: _negotiate: TLS: tls/s2n: cipher suite:TLS_AES_128_GCM_SHA256, {0x13,0x01}. fd:3->3.
+scontrol: tls/s2n: tls_p_create_conn: TLS: tls/s2n: connection successfully created. fd:3->3. tls mode:client
+
+SMD407_MAC_TLS_CLIENT_DIAG_PASS controller=UP certgen=PASS tls_connection=PASS tls_none_rejected=PASS no_job=PASS production_unchanged=PASS run_dir=/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T094639
+
+Mac client inputs before and after were byte-identical. The checked hashes
+included the corrected production certgen plugin
+aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3
+and production slurm.conf
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2.
+
+UBUNTU RESTORE AND FINAL READBACK
+SMD407_UBUNTU_TLS_RESTORE_COMPLETE tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY production_restored=PASS inactive_artifacts=RETAINED run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T094702 apply_run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T094619
+
+Restored production inputs:
+373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+
+Ubuntu TLS runtime state was absent. Active TLSType was tls/none. Ubuntu
+slurmdbd/slurmctld/slurmd were active with final PIDs 148468/148476/148575.
+Mac launchd slurmd remained PID 47839. Both nodes were IDLE with CPUAlloc=0
+and AllocMem=0; the target queue was empty.
+
+READBACK/HARNESS FAILURES RETAINED
+- The first non-root Ubuntu run-directory readback received Permission denied;
+  the same files were read successfully with sudo.
+- A sudo stat using a wildcard could not expand inside a root-only directory;
+  explicit paths passed.
+- The first AppleScript backup readback had an unmatched quote before the
+  privileged command ran; argv-based command passing succeeded.
+- The app terminal display was queued while sudo waited. That prompt was
+  cancelled without authentication; macOS Authorization Services was used
+  instead. Password contents were not read or stored.
+
+PRODUCTION CLIENT-ONLY VERDICT
+ubuntu_certgen_production_install=PASS
+mac_certgen_production_install=PASS
+ubuntu_tls_apply=PASS
+mac_tls_none_client=REJECTED
+mac_corrected_tls_client=PASS
+ubuntu_tls_restore=PASS
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+mac_daemon_tls_runtime=NOT_TESTED
+jobs_and_accounting=NOT_TESTED
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Temporarily switch the Mac slurmd to TLS, verify controller registration, and
+restore it before any job is submitted. Job and accounting validation remain a
+separate later gate.
+
+MAC DAEMON GATE ATTEMPT, FAILURE, AND RECOVERY
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Temporarily apply Ubuntu tls/s2n.
+- Run the Mac daemon diagnostic only through controller registration and IDLE.
+- Restore the Mac before any job, then restore Ubuntu.
+- Do not submit a job or test accounting.
+
+Ubuntu apply completed:
+SMD407_UBUNTU_TLS_APPLY_COMPLETE tls=tls/s2n disable_http=PASS services=ACTIVE ubuntu=IDLE mac_transition=EXPECTED state=/usr/local/slurm/26.11.0/.smd407-ubuntu-tls-runtime.env run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T095908
+
+The Mac driver stopped at its initial positive TLS client gate, before changing
+the Mac production config or restarting slurmd:
+run_dir=/tmp/slurm-smd407-mac-tls-diagnose-daemon-20260923T095940
+client_cleartext_ping_rc=1
+client_ping_rc=1
+
+Observed positive-client stderr:
+: error: certgen/script: '/dev/fd/6' returned rc 32256. stdout+stderr from script:
+/bin/sh: /dev/fd/6: Bad file descriptor
+: error: certgen/script: Unable to generate private key
+: error: Failed to generate self signed certificate and private key
+: error: Could not load self-signed TLS certificate
+: fatal: failed to initialize tls plugin
+
+Ubuntu was immediately restored:
+SMD407_UBUNTU_TLS_RESTORE_COMPLETE tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY production_restored=PASS inactive_artifacts=RETAINED run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T100008 apply_run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T095908
+
+ROOT CAUSE CORRECTION
+`run_command()` invokes `_run_command_child_pre_exec()`, which unconditionally
+closes every descriptor from 3 upward before executing the target. Therefore an
+embedded script path such as `/dev/fd/6` cannot be inherited by `/bin/sh`.
+The earlier `/bin/sh /dev/fd/3` successes depended on incidental descriptor
+reuse and did not prove a stable execution contract. The previous production
+client-only PASS is retained as observed history but is superseded as a
+non-deterministic false positive.
+
+PRODUCTION ROLLBACK
+No daemon was restarted. Both failed candidates were preserved inside the
+existing root-only backup directories before the known original plugins were
+atomically restored.
+
+Mac:
+SMD407_MAC_CERTGEN_PRODUCTION_ROLLBACK_PASS failed=aaa543b24d2b776b6493869d46bf56dda0afb3e27e1f0d5b0842b4555c1bafe3 restored=d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1 forensic=/opt/slurm/26.11.0/.smd407-certgen-backup-20260923T094440/certgen_script.so.failed-candidate-20260923T100934 slurmd_pid_unchanged=47839 tls=tls/none retained_runtime_state=fee2df1c8a9d6baf76eb3d294583b58609106ad885a6e45cb9f8bcf0349d3aa1 nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-mac-certgen-rollback-rollback-20260923T100934
+
+Ubuntu:
+SMD407_UBUNTU_CERTGEN_PRODUCTION_ROLLBACK_PASS failed=373b43142b029d828d752263209d8610393d97fad2c75e1752f306f960d9af45 restored=55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b forensic=/usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T093835/certgen_script.so.failed-candidate-20260923T101043 services_pids_unchanged=PASS tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-certgen-rollback-rollback-20260923T101043
+
+REVISED FIX
+Embedded compile-time scripts no longer use `dump_to_memfd()` or `/dev/fd/N`.
+They are supplied as the fixed command operand of `/bin/sh -c`; `certgen.sh`
+receives the generated private key as positional argument `$1`, not by command
+string interpolation. Configured external scripts retain direct execution.
+
+Source and harness hashes:
+6603e906f243d2a53fd8392879cc0c7f73239d0d49f6ee09dca9663d1c55586f  src/plugins/certgen/script/certgen_script.c
+087b59cf5cc7b039c1967f681fba02dd555a314463c85c6e656e7135c714efba  src/plugins/certgen/script/certgen.sh.txt
+3ff117ab11875b5d593a2bb67b3f1b91e0ebc0758b90ca549d5cf2c69394890b  contribs/macos-tests/smd407_certgen_internal_script_portability.patch
+1aceb8289a59282089ac75fbfbce28da936c78183fd0d749373d98b979b0ea79  contribs/macos-tests/smd407_dev_fd_exec_probe.c
+1b2db76416c3edd6089ea4f856860f4e363f66827f92eea6f71ca45f9d1d05d1  contribs/macos-tests/smd407_macos_certgen_production_rollback.sh
+efbecdab8c36c114022d2dbdc9a4e736e74e1c3529f7855a7688f4e535438ec5  contribs/macos-tests/smd407_ubuntu_certgen_production_rollback.sh
+
+The focused Darwin probe reproduced both contracts in one run:
+direct_exit=127
+shell_exit=0
+shell_closed_fd_exit=126
+shell_c_exit=0
+
+`shell_closed_fd` models Slurm closing the inherited descriptor and fails with
+`Bad file descriptor`; `shell_c` succeeds after the same close.
+
+MAC REVISED CANDIDATE
+Incremental candidate:
+184ae82a7a52ced643a086054bb26d6e74045491271d6cb2b08946301d81ab7e
+
+Ten consecutive embedded-script client probes passed. The configured external
+executable script passed and the configured non-executable script failed closed
+with the expected EACCES.
+
+Clean-source build:
+run_dir=/tmp/slurm-smd407-certgen-mac-clean-v2.7Lv3zI
+candidate=aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4
+
+Five consecutive clean-candidate client probes passed. `make check` reported
+`Nothing to be done for check`; this is not a test-suite PASS. The clean build
+retained the known libtool `integer expression expected` warnings.
+
+UBUNTU REVISED CANDIDATE
+The first clean attempt stopped before configure/compile because an unnecessary
+`autoreconf -fi` could not locate `AM_PATH_GLIB_2_0`. Production was unchanged.
+The corrected fresh attempt used the repository-provided configure script:
+run_dir=/tmp/slurm-smd407-certgen-linux-v2-LDFxsL
+candidate=3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14
+
+The candidate is an ELF x86-64 shared object. `make check` reported no work.
+Ten consecutive isolated client probes passed with production hashes, service
+PIDs, active tls/none, node allocation, and queue verified before/after each
+run. Probe directories were:
+/tmp/slurm-smd407-certgen-linux-client-ETovCY
+/tmp/slurm-smd407-certgen-linux-client-dU8Zij
+/tmp/slurm-smd407-certgen-linux-client-yiXpX6
+/tmp/slurm-smd407-certgen-linux-client-TTvqra
+/tmp/slurm-smd407-certgen-linux-client-8nCq1m
+/tmp/slurm-smd407-certgen-linux-client-L2lvjX
+/tmp/slurm-smd407-certgen-linux-client-eGwYG3
+/tmp/slurm-smd407-certgen-linux-client-LLxIoD
+/tmp/slurm-smd407-certgen-linux-client-e2itS1
+/tmp/slurm-smd407-certgen-linux-client-hSrSM6
+
+FINAL READBACK AFTER ROLLBACK
+d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+Mac slurmd remained launchd PID 47839. Ubuntu slurmdbd/slurmctld/slurmd were
+active at PIDs 149820/149857/149919. The controller was UP. Active TLSType was
+tls/none. Both ubuntu and PC-210 were IDLE with CPUAlloc=0 and AllocMem=0. The
+target queue contained zero jobs.
+
+REVISED VERDICT
+production_daemon_gate=FAIL_BEFORE_MAC_MUTATION
+failure_boundary=RUN_COMMAND_CLOSEALL_INVALIDATES_DEV_FD
+ubuntu_tls_restore=PASS
+production_failed_candidate_rollback=PASS_BOTH_HOSTS
+revised_candidate_mac_clean_build=PASS
+revised_candidate_linux_clean_build=PASS
+revised_candidate_mac_repetition=15_OF_15
+revised_candidate_linux_repetition=10_OF_10
+external_script_contract=PASS_POSITIVE_AND_NEGATIVE
+revised_candidate_production_install=NOT_PERFORMED
+mac_daemon_tls_runtime=NOT_RETESTED_WITH_REVISED_CANDIDATE
+jobs_and_accounting=NOT_TESTED
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Install the revised `/bin/sh -c` candidates into both production prefixes with
+new exact hashes and backups. Only after installed-path repeated client checks
+pass should another Mac daemon TLS registration attempt be considered. Jobs and
+accounting remain outside that boundary.
+
+REVISED PRODUCTION INSTALL AND INSTALLED-PATH REPETITION
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Install the revised `/bin/sh -c` candidates into both production prefixes
+  using exact hashes, root-only backups, and installer rollback on failure.
+- Repeatedly load the installed paths through isolated temporary TLS client
+  configurations while production remains tls/none.
+- Do not restart a daemon, apply the production TLS cutover, submit a job, or
+  test accounting.
+
+INSTALLER AND PROBE HASHES
+9e1b94d26ffab2f87d1ff8f73433b07e8b89a763ef4a35e3e40d88fa9d0ea463  contribs/macos-tests/smd407_macos_certgen_production_install.sh
+8d535cba40cd5f45af4702d8cec1199c51858687e438a2e9703e56cc6dda4fbe  contribs/macos-tests/smd407_ubuntu_certgen_production_install.sh
+58890e4b5965ea22bfb2753bd0a907b8b198f07f23d80bcca995bbe2b0e8798e  contribs/macos-tests/smd407_certgen_exec_probe.sh
+6cfb1218c3e5c56fa692d9ebae7c5532bdab5c856cf9afa6a7a95adfb9e52201  contribs/macos-tests/smd407_ubuntu_certgen_client_probe.sh
+
+PREFLIGHT STOP AND RECOVERY
+The first Ubuntu preflight stopped before mutation because PC-210 was
+DOWN+NOT_RESPONDING since 2026-09-23T10:41:52. CPUAlloc and AllocMem were zero,
+and the target queue was empty. The Mac PID file still contained 47839, the
+controller was UP, PC-210 resolved to 192.168.10.128, and Ubuntu connected to
+TCP/6818. The non-root Mac inspection could not run `launchctl procinfo`, so it
+was not treated as identity proof.
+
+With no allocation or queued job, controller state was changed once with
+`State=RESUME`. PC-210 returned to IDLE within one second without a daemon
+restart. The later privileged installer independently verified that PID 47839
+belonged to `system/org.schedmd.slurmd`.
+
+Failed preflight directory:
+/tmp/slurm-smd407-ubuntu-certgen-install-preflight-20260923T130857
+
+Successful Ubuntu preflight:
+SMD407_UBUNTU_CERTGEN_INSTALL_PREFLIGHT_PASS old=55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b candidate=3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14 tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-certgen-install-preflight-20260923T131054
+
+Mac privileged preflight completed with candidate architecture/hash, original
+production hash, launchd PID 47839, both nodes IDLE, and an empty queue. The UI
+authorization route did not return the marker text, so the readable run files
+are the retained evidence:
+/tmp/slurm-smd407-mac-certgen-install-preflight-20260923T131328
+
+UBUNTU PRODUCTION INSTALL
+SMD407_UBUNTU_CERTGEN_PRODUCTION_INSTALL_PASS old=55a755c4fd2bcc58a28f31188a0ac10fe2fb0345a4bbd8ea86ea31da2290c56b new=3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14 backup=/usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T131410 services_pids_unchanged=PASS tls=tls/none nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-certgen-install-install-20260923T131410
+
+Backup metadata readback:
+root:root:700 /usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T131410
+slurm:slurm:755 /usr/local/slurm/26.11.0/.smd407-certgen-backup-20260923T131410/certgen_script.so.before
+
+The installed Ubuntu path passed five consecutive client initialization and TLS
+connection probes. Each probe independently compared production plugin/config
+hashes, service states/PIDs, active tls/none, node allocation, and queue:
+/tmp/slurm-smd407-certgen-linux-client-KU9tLZ
+/tmp/slurm-smd407-certgen-linux-client-QZdJDf
+/tmp/slurm-smd407-certgen-linux-client-AZ5lUh
+/tmp/slurm-smd407-certgen-linux-client-BQcfL6
+/tmp/slurm-smd407-certgen-linux-client-XWs46K
+
+MAC PRODUCTION INSTALL
+SMD407_MAC_CERTGEN_PRODUCTION_INSTALL_PASS old=d329f6d4f5a14c3e6f7410033112333f8fb45b808b78d1f575d8254b2dfe50a1 new=aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4 backup=/opt/slurm/26.11.0/.smd407-certgen-backup-20260923T131503 slurmd_pid_unchanged=47839 tls=tls/none retained_runtime_state=fee2df1c8a9d6baf76eb3d294583b58609106ad885a6e45cb9f8bcf0349d3aa1 nodes=IDLE queue=EMPTY run_dir=/tmp/slurm-smd407-mac-certgen-install-install-20260923T131503
+
+Before the installed-path repetition, the Mac probe was corrected so its
+`production_unchanged` marker is now backed by before/after production plugin
+and config hashes, slurmd PID-file comparison, active tls/none, both node
+allocations, and an empty queue.
+
+The installed Mac path passed ten consecutive embedded-script client
+initialization and TLS connection probes:
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131637
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131641
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131642
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131644
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131646
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131648
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131649
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131651
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131653
+/tmp/slurm-smd407-certgen-exec-probe-after-20260923T131654
+
+The installed Mac path also retained the configured external-script contract:
+SMD407_CERTGEN_EXEC_PROBE_PASS mode=external certgen_init=PASS tls_client_connection=PASS client_route=UP_VIA_LOCAL_SACK production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-external-20260923T131725
+SMD407_CERTGEN_EXEC_PROBE_NEGATIVE_PASS mode=external-nonexec expected_eacces=PASS production_unchanged=PASS run_dir=/tmp/slurm-smd407-certgen-exec-probe-external-nonexec-20260923T131728
+
+FINAL READBACK
+aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+Mac slurmd remained launchd PID 47839. Ubuntu slurmdbd/slurmctld/slurmd
+remained active at PIDs 149820/149857/149919. The controller was UP. Active
+TLSType remained tls/none. PC-210 and ubuntu were IDLE with CPUAlloc=0 and
+AllocMem=0. The target queue count was zero.
+
+VERDICT
+revised_production_install=PASS_BOTH_HOSTS
+ubuntu_installed_path_repetition=5_OF_5
+mac_installed_path_repetition=10_OF_10
+mac_external_script_positive=PASS
+mac_external_script_nonexec=EXPECTED_EACCES
+services_pids_unchanged=PASS
+final_active_tls=tls/none
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+production_tls_cutover_with_revised_candidate=NOT_PERFORMED
+mac_daemon_tls_runtime=NOT_RETESTED_WITH_REVISED_CANDIDATE
+jobs_and_accounting=NOT_TESTED
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Temporarily switch only the Ubuntu production stack to tls/s2n and run repeated
+direct Mac TLS client pings with the revised installed path. Restore Ubuntu to
+tls/none immediately afterward. Do not switch the Mac daemon or submit a job in
+that boundary.
+
+REVISED PRODUCTION CONTROLLER DIRECT CLIENT REPETITION
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Temporarily switch only the Ubuntu production Slurm stack to tls/s2n.
+- Run repeated direct Mac TLS client pings with the revised installed certgen.
+- Restore Ubuntu to tls/none immediately after the client checks.
+- Do not change or restart the Mac daemon, submit a job, or test accounting.
+
+CONTROL SCRIPT HASHES
+dcb79506217ec1b1fddf522901c707b861618d7da6c5b2064685b3119038d964  contribs/macos-tests/smd407_macos_tls_diagnose.sh
+0dff1570c75b8a689b4641c3c9df471dbbd6232cf95fec21f819e368ca00a84f  contribs/macos-tests/smd407_ubuntu_tls_runtime_control.sh
+
+The only control-script change for this phase was updating the pinned certgen
+hash on each host to the already installed revised candidate. Both scripts
+passed `sh -n`. The transferred Ubuntu script hash matched before execution.
+
+PREFLIGHT
+Mac certgen and production config hashes were:
+aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+
+Mac production config contained zero TLS/certgen keys and launchd PID remained
+47839. Ubuntu certgen/config hashes were:
+3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+Ubuntu runtime state was absent, active TLS was tls/none, all three services
+were active, both nodes were IDLE with CPUAlloc=0 and AllocMem=0, and the target
+queue count was zero.
+
+UBUNTU TEMPORARY TLS APPLY
+mode=apply run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T133004
+node_idle phase=tls node=ubuntu wait_seconds=0
+SMD407_UBUNTU_TLS_APPLY_COMPLETE tls=tls/s2n disable_http=PASS services=ACTIVE ubuntu=IDLE mac_transition=EXPECTED state=/usr/local/slurm/26.11.0/.smd407-ubuntu-tls-runtime.env run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T133004
+
+An initial sandboxed client invocation stopped before either ping because its
+TCP reachability probe reported port 6817 unreachable:
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133021
+This was retained as a harness/environment failure, not a TLS result. It made no
+Mac production change. The same exact client script was then executed with the
+required local-network permission.
+
+MAC DIRECT CLIENT REPETITION
+Five independent runs passed. Every run recorded cleartext rc=1, TLS rc=0, one
+controller-UP marker, one successful TLS-connection marker,
+TLS_AES_128_GCM_SHA256, and byte-identical before/after client-input hashes:
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133042
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133044
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133047
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133049
+/tmp/slurm-smd407-mac-tls-diagnose-client-20260923T133051
+
+Each run emitted:
+SMD407_MAC_TLS_CLIENT_DIAG_PASS controller=UP certgen=PASS tls_connection=PASS tls_none_rejected=PASS no_job=PASS production_unchanged=PASS
+
+UBUNTU IMMEDIATE RESTORE
+mode=restore run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T133108
+node_idle phase=restored node=ubuntu wait_seconds=0
+node_idle phase=restored node=PC-210 wait_seconds=4
+SMD407_UBUNTU_TLS_RESTORE_COMPLETE tls=tls/none services=ACTIVE nodes=IDLE queue=EMPTY production_restored=PASS inactive_artifacts=RETAINED run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T133108 apply_run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T133004
+
+FINAL READBACK
+Mac certgen/config hashes remained aa366834...25ce4 and 9c7021e4...577a2,
+production TLS/certgen key count remained zero, and launchd PID remained 47839.
+Ubuntu certgen, slurm.conf, and slurmdbd.conf hashes returned to the exact
+preflight values above. Runtime state was absent. slurmdbd/slurmctld/slurmd were
+active at PIDs 181897/181930/181996 after the expected restart. Active TLS was
+tls/none. Both nodes were IDLE with CPUAlloc=0, and the target queue count was
+zero.
+
+VERDICT
+revised_production_controller_tls_apply=PASS_TEMPORARY
+mac_direct_tls_client_repetition=5_OF_5
+mac_tls_none_negative_control=5_OF_5_REJECTED
+tls_cipher=TLS_AES_128_GCM_SHA256
+mac_production_inputs_unchanged=PASS_5_OF_5
+ubuntu_tls_restore=PASS
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+mac_daemon_tls_runtime=NOT_RETESTED_WITH_REVISED_CANDIDATE
+jobs_and_accounting=NOT_TESTED
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Temporarily switch the Ubuntu stack to tls/s2n, switch only the Mac slurmd to
+TLS, verify controller registration, and restore the Mac and Ubuntu to tls/none
+before any job submission. Job and accounting tests remain a later boundary.
+
+REVISED MAC DAEMON TLS REGISTRATION AND NO-JOB RESTORE
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Temporarily switch the Ubuntu production stack to tls/s2n.
+- Switch only the Mac slurmd to TLS and verify controller registration.
+- Restore the Mac first and Ubuntu second to tls/none before any job.
+- Do not submit a job or test accounting.
+
+INITIAL HARNESS STOP
+Ubuntu TLS apply completed at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T134015
+
+The first Mac daemon attempt stopped before production config installation or
+daemon restart:
+/tmp/slurm-smd407-mac-tls-diagnose-daemon-20260923T134218
+
+`slurmd -G` reported that the temporary directory had no gres.conf and ignored
+the file-less Apple GPU declaration. The driver then failed its expected GRES
+marker check:
+Can not stat gres.conf file (.../gres.conf), using slurm.conf data
+warning: Ignoring file-less GPU gpu:apple from final GRES list
+error: candidate Apple GPU GRES validation missing
+
+The copied preflight config hash and live Mac production config hash were both
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2,
+and the Mac PID remained 47839. Ubuntu was immediately restored:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T134241
+
+HARNESS CORRECTION
+The daemon diagnostic now copies the production gres.conf beside its temporary
+slurm.conf before `slurmd -G`, matching the established runtime driver. No
+production file was changed by this correction.
+
+18f19e5963736e2b9a3a748fc527b64efa3b48b84efeae6a7b8cb9e3b2de00e1  contribs/macos-tests/smd407_macos_tls_diagnose.sh
+
+An isolated root `slurmd -G` using a temporary config directory passed and
+reported the expected Apple GPU entry:
+/tmp/slurm-smd407-mac-tls-diagnose-gres-fix.ZxBN0a
+Gres Name=gpu Type=apple Count=1 ... File=/dev/null
+
+SUCCESSFUL RETRY
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T134533
+
+Mac daemon diagnostic:
+/tmp/slurm-smd407-mac-tls-diagnose-daemon-20260923T134719
+
+The direct client gate recorded cleartext rc=1, TLS rc=0, controller UP,
+`connection successfully created`, and TLS_AES_128_GCM_SHA256. The corrected
+`slurmd -G` recorded the Apple GPU GRES entry. The launchd-managed Mac slurmd
+changed from initial PID 47839 to TLS PID 57668. The controller reported
+PC-210 IDLE with zero allocation. The same driver then restored the original
+Mac tls/none config and restarted launchd as PID 57711. Before/after hashes for
+the protected Mac inputs, including the retained runtime state, were identical.
+
+SMD407_MAC_TLS_DAEMON_DIAG_PASS client=PASS registration=IDLE no_job=PASS local_tls_none_restored=PASS protected_inputs_unchanged=PASS retained_runtime_state=UNCHANGED initial_pid=47839 tls_pid=57668 restored_pid=57711 run_dir=/tmp/slurm-smd407-mac-tls-diagnose-daemon-20260923T134719
+
+Ubuntu immediate restore:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T134823
+
+FINAL READBACK
+Mac certgen remained aa366834...25ce4, production config returned to
+9c7021e4...577a2 with zero TLS/certgen keys, launchd PID was 57711, the
+tls/none controller ping was UP, and the queue count was zero.
+
+Ubuntu certgen/config hashes were the exact preflight values:
+3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+Ubuntu runtime state was absent. slurmdbd/slurmctld/slurmd were active at PIDs
+183988/184019/184086 after the expected restore restart. Active TLS was
+tls/none. Both nodes were IDLE with CPUAlloc=0 and AllocMem=0, and the target
+queue count was zero.
+
+VERDICT
+initial_gres_harness_gate=FAIL_BEFORE_MAC_MUTATION
+harness_correction=PASS_ISOLATED_SLURMD_G
+revised_mac_daemon_tls_registration=PASS
+mac_tls_daemon_controller_state=IDLE
+mac_direct_tls_client_gate=PASS
+mac_local_tls_none_restore=PASS
+ubuntu_tls_none_restore=PASS
+jobs_and_accounting=NOT_TESTED
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+smd407_overall=NOT_PASS
+
+NEXT APPROVAL BOUNDARY
+Run the bounded TLS job and accounting matrix only after another explicit
+approval. Preserve separate CPU batch, direct srun, Apple GPU, mixed-node, and
+negative controls, then restore both hosts. Do not remove inactive artifacts or
+the retained failure state in that boundary.
+
+BOUNDED TLS JOB AND ACCOUNTING MATRIX
+Date: 2026-09-23 JST
+
+AUTHORIZED SCOPE
+- Temporarily switch the Ubuntu production stack to tls/s2n.
+- Temporarily switch the Mac slurmd to TLS.
+- Run CPU batch, direct srun, Apple GPU, mixed-node, accounting, and negative
+  controls.
+- Restore the Mac first and Ubuntu second to tls/none.
+- Retain inactive TLS artifacts, certificate material, old failure state, and
+  every new attempt state. Do not run the finalize or cleanup mode.
+
+CONTROL SCRIPT
+The Mac runtime driver was extended with a separate `jobs` mode. It protects the
+installed revised certgen hash, all pre-existing state files, production config,
+GRES config, key, launchd plist, and MLX payload. Every jobs attempt writes a
+timestamped root-only state so the old 2026-09-12 failure state is never
+overwritten. The final script passed `sh -n`, the unapproved invocation exited
+64, and the repository whitespace check passed.
+
+961f58dd50212f02c4d61e5cd62494c082957078b98767a6bd8dd532c401016c  contribs/macos-tests/smd407_macos_tls_runtime_driver.sh
+0dff1570c75b8a689b4641c3c9df471dbbd6232cf95fec21f819e368ca00a84f  contribs/macos-tests/smd407_ubuntu_tls_runtime_control.sh
+
+ATTEMPT 1: INHERITED WORKING DIRECTORY FAILURE
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T140326
+
+Mac jobs run:
+/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T140359
+
+The first sbatch stopped before allocating a job ID:
+sbatch: error: getcwd failed: Permission denied
+error: TLS CPU sbatch failed
+
+The root-launched driver changed user to testuser while retaining an
+untraversable app/workspace working directory. No job output was created. The
+driver restored the Mac production config and tls/none daemon. The failure state
+was retained as root:wheel mode 0600:
+
+33776ac4f884f8f5c98202350114814f0278c73edfb5c02d571aecb13da21b39  /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime.env
+
+All job IDs in that state were empty. The TLS controller remained UP and the
+queue was empty. Ubuntu was restored at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T140441
+
+Correction: change to /tmp before any command executed as testuser.
+
+ATTEMPT 2: MAC NODE ADDRESS RESOLUTION FAILURE
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T140945
+
+Mac jobs run:
+/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T141041
+
+CPU Job 624 and 624.batch completed with exit 0:0. Its payload was:
+job_id=624 node=PC-210.local uid=3001 gid=3001
+
+Direct srun Step 625 failed before payload launch:
+srun: error: _fwd_tree_get_addr: can't find address for host PC-210, check slurm.conf
+srun: error: Task launch for StepId=625.0 failed on node PC-210: Can't find an address, check slurm.conf
+srun: error: Application launch failed: Can't find an address, check slurm.conf
+srun: Job step aborted
+
+Accounting recorded Job 625 FAILED 0:116 and Step 625.0 CANCELLED 0:116. The
+timestamped failure state was retained:
+
+5b9b4271694261f1aee97f52fec97c2ca41681422a00ced9adf9b6686556b02f  /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T141041.env
+
+The driver restored the Mac and left the queue empty. Ubuntu was restored at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T141115
+
+Mac en0 was independently read as 192.168.10.128. Correction: add the exact
+numeric `NodeAddr=192.168.10.128` only to the temporary TLS candidate config.
+The production configs were not changed.
+
+ATTEMPT 3: UBUNTU NODE ADDRESS RESOLUTION FAILURE
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T141633
+
+Mac jobs run:
+/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T141746
+
+CPU Job 626, direct srun Job 627, and Apple GPU Job 628 completed. The direct
+payload was:
+job_id=627 step_id=0 node=PC-210.local uid=3001 gid=3001
+
+The GPU accounting contained both `gres/gpu:apple=1` and `gres/gpu=1`. The MLX
+payload reported version 0.32.2, Apple M5 Max, a 4096x4096 matrix for five
+iterations, and `gpu_smoke_test=PASS`.
+
+Mixed Job 629 produced the Mac rank before the Ubuntu launch failed:
+0: 629|0|arm64
+srun: error: _fwd_tree_get_addr: can't find address for host ubuntu, check slurm.conf
+
+Accounting recorded Job 629 FAILED 0:116 and its step CANCELLED 0:116. The
+timestamped failure state was retained:
+
+a6a7edbbbd97ab80cae0b5ab98b17332c95aa8da680bff192912d637ea283743  /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T141746.env
+
+The driver restored the Mac. Ubuntu was restored at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T141818
+
+Correction: add `NodeAddr=192.168.10.180 NodeHostName=ubuntu2504` only to the
+temporary TLS candidate config, matching the controller record. The production
+configs were not changed.
+
+ATTEMPT 4: STRICT STDERR HARNESS STOP AFTER COMPLETED JOBS
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T142141
+
+Mac jobs run:
+/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T142205
+
+CPU Job 630, direct srun Job 631, Apple GPU Job 632, and mixed Job 633 all
+completed with exit 0:0. Mixed output contained both ranks:
+1: 633|1|x86_64
+0: 633|0|arm64
+
+The strict harness nevertheless stopped because mixed.err was nonempty:
+1: error: couldn't chdir to `/private/tmp': No such file or directory: going to /tmp instead
+
+This was a cwd fallback notification, not a task or accounting failure. The
+timestamped failure state preserves all four job IDs:
+
+d1e5a8552a7a29e9aa2c2e9da056ad8b4781c6c9a5964200b957f056e9ff2bb4  /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T142205.env
+
+The driver restored the Mac. Ubuntu was restored at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T142238
+
+Correction: pass `--chdir=/tmp` to the mixed srun so both hosts use the same
+logical path instead of propagating the macOS physical path `/private/tmp`.
+
+ATTEMPT 5: COMPLETE
+Ubuntu TLS apply:
+/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T142558
+
+Mac jobs run:
+/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T142627
+
+The launchd-managed Mac slurmd transitioned from tls/none PID 59906 to TLS PID
+60110, registered with the controller, and returned to tls/none PID 60321. The
+driver emitted:
+
+SMD407_MAC_TLS_RUNTIME_COMPLETE mode=jobs cpu_job=634 srun_job=635 gpu_job=636 mixed_job=637 tls_none_rejected=PASS local_tls_none_restored=PASS slurmd_pid=60321 state=/opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T142627.env retained_state=UNCHANGED run_dir=/tmp/slurm-smd407-mac-tls-runtime-jobs-20260923T142627
+
+The success state is root:wheel mode 0600 and records phase
+TEST_COMPLETE_LOCAL_TLS_NONE_RESTORED:
+
+5e142c8c209295a0c0da0c5571d2b8c94e7c8668765da5f2260d518e1b9951e6  /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T142627.env
+
+JOB AND ACCOUNTING RESULTS
+- Job 634 and 634.batch: COMPLETED 0:0; payload
+  `job_id=634 node=PC-210.local uid=3001 gid=3001`; stderr empty.
+- Job 635 and 635.0: COMPLETED 0:0; payload
+  `job_id=635 step_id=0 node=PC-210.local uid=3001 gid=3001`; stderr empty.
+- Job 636 and 636.batch: COMPLETED 0:0; ReqTRES/AllocTRES contain
+  `gres/gpu:apple=1` and `gres/gpu=1`; MLX 0.32.2 on Apple M5 Max ran a
+  4096x4096 matrix for five iterations and emitted `gpu_smoke_test=PASS`;
+  stderr empty.
+- Job 637 and 637.0: COMPLETED 0:0 on PC-210,ubuntu; output contained
+  `0: 637|0|arm64` and `1: 637|1|x86_64`; stderr empty.
+
+NEGATIVE CONTROLS AND UBUNTU VERIFY
+The production tls/none Mac client was rejected by the active TLS controller
+with rc=1 and reported the controller DOWN. Production-before and restored
+hash sets were byte-identical. The retained-state listing and hashes were also
+byte-identical.
+
+The first Ubuntu verify invocation stopped before tests because the old /tmp
+rogue CA fixture no longer existed:
+/tmp/slurm-smd407-ubuntu-tls-runtime-verify-20260923T142708
+
+This was retained as a missing ephemeral fixture, not a TLS result. A controlled
+one-day self-signed rogue CA, subject and issuer `CN = SMD407-Rogue-CA`, was
+generated under Ubuntu /tmp:
+
+c4c1af28b0b6c1118670d0fb8cb2f92bd99fd4a2a4bdd539cbc69fae4f7e695c  rogue-ca-cert.pem
+
+The repeated verify passed at:
+/tmp/slurm-smd407-ubuntu-tls-runtime-verify-20260923T142817
+
+SMD407_UBUNTU_TLS_VERIFY_COMPLETE control_plane=PASS ubuntu=IDLE mac_transition=IDLE+NOT_RESPONDING queue=EMPTY tls_none_rejected=PASS rogue_ca_rejected=PASS disable_http=PASS run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-verify-20260923T142817 apply_run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-apply-20260923T142558
+
+The tls/none client returned rc=1. The untrusted-CA client timed out with rc=124
+without establishing a trusted session. Active settings were tls/s2n with
+CommunicationParameters=disable_http. The temporary Mac node transition to
+IDLE+NOT_RESPONDING was expected because the Mac had already been restored to
+tls/none before this Ubuntu-side negative-control verification.
+
+FINAL RESTORE AND READBACK
+Ubuntu restore:
+/tmp/slurm-smd407-ubuntu-tls-runtime-restore-20260923T142851
+
+The restore marker reported tls/none, three active services, both nodes IDLE,
+an empty queue, exact production config restoration, and retained inactive
+artifacts. Final Ubuntu service PIDs were slurmdbd 189104, slurmctld 189140,
+and slurmd 189203. The Ubuntu runtime state was absent.
+
+Final protected hashes were:
+aa36683403a51dcf9baba1190e0ee3ed2b8f81c4c4972229ce924e05bae25ce4  /opt/slurm/26.11.0/lib/slurm/certgen_script.so
+9c7021e4c794fd9ec4e76af0b7cd5c574d1cd058b9ba9c60c849103f0a7577a2  /opt/slurm/26.11.0/etc/slurm.conf
+3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14  /usr/local/slurm/26.11.0/lib/slurm/certgen_script.so
+56ab879e4ae3a845950e15d2665f33543c5108ecae9b2008ef886b600eff169f  /usr/local/slurm/26.11.0/etc/slurm.conf
+698cfd0d6b4bce6c1a68b4f25f999506de7a29ff4c368ba13e42e1b872ad3f29  /usr/local/slurm/26.11.0/etc/slurmdbd.conf
+
+The Mac production config contained zero TLS/certgen keys, final launchd PID was
+60321, the tls/none controller ping was UP, and the queue was empty. Both nodes
+were IDLE with CPUAlloc=0 and AllocMem=0. Jobs 634-637 remained exactly
+COMPLETED 0:0 in accounting. The 2026-09-12 retained failure state and all four
+new failed-attempt states kept their exact before/after hashes.
+
+VERDICT
+runtime_driver_hash=961f58dd50212f02c4d61e5cd62494c082957078b98767a6bd8dd532c401016c
+cpu_batch_tls=PASS_JOB_634
+direct_srun_tls=PASS_JOB_635
+apple_gpu_tls=PASS_JOB_636_GRES_AND_MLX
+mixed_node_tls=PASS_JOB_637_ARM64_AND_X86_64
+accounting=PASS_ALL_JOBS_AND_STEPS_COMPLETED_0_0
+tls_none_negative=PASS_REJECTED
+rogue_ca_negative=PASS_REJECTED
+disable_http=PASS
+mac_local_tls_none_restore=PASS
+ubuntu_tls_none_restore=PASS
+protected_inputs_unchanged=PASS
+retained_failure_states_unchanged=PASS
+final_active_tls=tls/none
+final_services=ACTIVE
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+smd407_runtime=PASS_REVISED_CERTGEN
+cleanup_rotation=NOT_PERFORMED
+smd407_current=PASS_TLS_RUNTIME_REVISED_CERTGEN_CLEANUP_ROTATION_PENDING
+
+REMAINING APPROVAL BOUNDARY
+Archive or otherwise preserve the retained failure states before any cleanup,
+then separately review inactive artifact removal, certificate rotation, and a
+final tls/none smoke. No cleanup, certificate deletion, rotation, or finalize
+mode was executed in this phase.
+
+NON-DESTRUCTIVE ARCHIVE STAGING
+Date: 2026-09-23 JST
+
+The existing finalize and cleanup modes would directly delete TLS plugins,
+dependency directories, private keys, certificates, and state. The Mac
+finalizer also selected the old retained failure state rather than the
+successful timestamped Job state. They were not executed.
+
+Two dedicated drivers were created with preflight, non-destructive stage, and
+recoverable archive modes. The stage mode copies exact inputs into root-only
+archives and verifies bytes and hashes without changing any active path. The
+archive mode is separately guarded, restores from its archive after a later
+failure, and was not executed in this phase.
+
+02ff0cd172c1aae0eecef47bdceaf25f207ae7d6471467898e0d397287be8ee3  contribs/macos-tests/smd407_macos_tls_archive_finalize.sh
+ee3d57d60a67fc5db49943a0be90779c6e0b69cedd77329914c99a4a32b9504e  contribs/macos-tests/smd407_ubuntu_tls_archive_cleanup.sh
+
+Both scripts passed `sh -n`, their unapproved stage invocation exited 64, and
+the repository whitespace check passed. shellcheck was unavailable and was not
+installed.
+
+MAC PREFLIGHT AND STAGE
+Initial read-only preflight:
+/tmp/slurm-smd407-mac-tls-archive-preflight-20260923T150139
+
+Stage run:
+/tmp/slurm-smd407-mac-tls-archive-stage-20260923T150412
+
+SMD407_MAC_TLS_ARCHIVE_STAGED active_artifacts=UNCHANGED certificates=COPIED states=COPIED hashes=PASS archive=/opt/slurm/26.11.0/.smd407-tls-archive-20260923T150412 run_dir=/tmp/slurm-smd407-mac-tls-archive-stage-20260923T150412
+
+The root:wheel mode-0700 archive contains copies of the inactive TLS plugin,
+s2n dependency tree, test CA/server certificate/private key, inactive install
+state, the 2026-09-12 retained failure state, four 2026-09-23 failure states,
+and the successful state for Jobs 634-637. Source/archive byte comparisons and
+pinned hashes passed before the stage marker.
+
+Independent readback:
+/tmp/slurm-smd407-mac-tls-archive-preflight-20260923T150546
+
+archive_metadata=root:wheel:700
+archive_env_sha256=13a26dbc7cdb4c0bd01b0debdff9a3a7dfd028f5c369fca2d88f7b6d92b8a261
+source_manifest_sha256=2402f5391d4de3a5ec8e1eafebdb084884f896615f1697c87d33683bf22d42c9
+archive_manifest_sha256=16b7b2a1189f3bb70b2aaae577eb3eef79972b812948209cc7597d1bb3624fa3
+active_tls=tls/none
+slurmd_pid=60321
+nodes=IDLE
+queue=EMPTY
+active_artifacts=UNCHANGED
+
+UBUNTU PREFLIGHT AND STAGE
+Initial read-only preflight:
+/tmp/slurm-smd407-ubuntu-tls-archive-preflight-20260923T150051
+
+Stage run:
+/tmp/slurm-smd407-ubuntu-tls-archive-stage-20260923T150440
+
+SMD407_UBUNTU_TLS_ARCHIVE_STAGED active_artifacts=UNCHANGED certificates=COPIED state=COPIED hashes=PASS archive=/usr/local/slurm/26.11.0/.smd407-tls-archive-20260923T150440 run_dir=/tmp/slurm-smd407-ubuntu-tls-archive-stage-20260923T150440
+
+The root:root mode-0700 archive contains copies of the inactive TLS plugin, s2n
+dependency tree, test CA, controller/database/worker certificates and private
+keys, and inactive install state. Source/archive byte comparisons and pinned
+hashes passed before the stage marker.
+
+Independent readback:
+/tmp/slurm-smd407-ubuntu-tls-archive-preflight-20260923T150533
+
+archive_metadata=root:root:700
+archive_env_sha256=4525d44bf9df936aa0b966537267c8c472283d843f5036acb34f0a91cb0b7d60
+source_manifest_sha256=108cead47996e2fbc99cadd676a26ae2333a6a154fa9b2df638533fb3774653d
+archive_manifest_sha256=9cc6579731678109e18d2bb24e35a0fcf640953e6ddc032649746ab02398789f
+active_tls=tls/none
+services=ACTIVE
+service_pids=189104,189140,189203
+nodes=IDLE
+queue=EMPTY
+active_artifacts=UNCHANGED
+
+CURRENT VERDICT
+archive_stage_mac=PASS_NON_DESTRUCTIVE
+archive_stage_ubuntu=PASS_NON_DESTRUCTIVE
+archive_permissions=ROOT_ONLY_0700
+archive_hash_readback=PASS_BOTH_HOSTS
+active_artifacts=UNCHANGED
+active_test_certificates=RETAINED
+certificate_rotation=NOT_PERFORMED
+final_post_cleanup_smoke=NOT_PERFORMED
+smd407_runtime=PASS_REVISED_CERTGEN
+smd407_current=PASS_TLS_RUNTIME_REVISED_CERTGEN_ARCHIVE_STAGED_ACTIVE_CLEANUP_APPROVAL_REQUIRED
+
+EXACT NEXT APPROVAL BOUNDARY
+After explicit approval, remove only the active copies listed below. The staged
+archives and installed revised certgen plugins remain untouched.
+
+Mac active copies:
+- /opt/slurm/26.11.0/lib/slurm/tls_s2n.so
+- /opt/slurm/26.11.0/lib/slurm-s2n-1.7.9
+- /opt/slurm/26.11.0/etc/ca_cert.pem
+- /opt/slurm/26.11.0/etc/slurmd_cert.pem
+- /opt/slurm/26.11.0/etc/slurmd_cert_key.pem
+- /opt/slurm/26.11.0/.smd407-mac-tls-inactive.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-runtime.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T141041.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T141746.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T142205.env
+- /opt/slurm/26.11.0/.smd407-mac-tls-job-runtime-20260923T142627.env
+
+Ubuntu active copies:
+- /usr/local/slurm/26.11.0/lib/slurm/tls_s2n.so
+- /usr/local/slurm/26.11.0/lib/slurm-s2n-1.7.9
+- /usr/local/slurm/26.11.0/etc/ca_cert.pem
+- /usr/local/slurm/26.11.0/etc/ctld_cert.pem
+- /usr/local/slurm/26.11.0/etc/ctld_cert_key.pem
+- /usr/local/slurm/26.11.0/etc/dbd_cert.pem
+- /usr/local/slurm/26.11.0/etc/dbd_cert_key.pem
+- /usr/local/slurm/26.11.0/etc/slurmd_cert.pem
+- /usr/local/slurm/26.11.0/etc/slurmd_cert_key.pem
+- /usr/local/slurm/26.11.0/.smd407-ubuntu-tls-inactive.env
+
+After active-copy removal, run a Mac tls/none smoke, then an Ubuntu-originated
+two-node arm64/x86-64 tls/none smoke with accounting. If either smoke fails, the
+new archive driver restores active copies from its newly verified archive.
+
+ACTIVE COPY ARCHIVAL CLEANUP AND FINAL TLS-NONE SMOKE
+Date: 2026-09-23 JST
+
+AUTHORIZATION
+The user explicitly approved removal of the exact active copies listed above.
+The root-only staged archives, production configs, revised certgen plugins, and
+all unrelated backups were outside the removal set.
+
+EXECUTION-TIME DRIVER HASHES
+02ff0cd172c1aae0eecef47bdceaf25f207ae7d6471467898e0d397287be8ee3  contribs/macos-tests/smd407_macos_tls_archive_finalize.sh
+ee3d57d60a67fc5db49943a0be90779c6e0b69cedd77329914c99a4a32b9504e  contribs/macos-tests/smd407_ubuntu_tls_archive_cleanup.sh
+
+Both scripts passed `sh -n`; `git diff --check` passed. Immediate preflight
+confirmed tls/none, both nodes IDLE, no allocation, and an empty queue. Mac PID
+was 60321. Ubuntu service PIDs were 189104/189140/189203.
+
+MAC ARCHIVAL CLEANUP
+Run directory:
+/tmp/slurm-smd407-mac-tls-archive-archive-20260923T151440
+
+New recovery archive:
+/opt/slurm/26.11.0/.smd407-tls-archive-20260923T151440
+
+The driver copied and byte/hash verified all exact active targets into the new
+root:wheel mode-0700 archive before removing their active copies. The earlier
+staged archive `/opt/slurm/26.11.0/.smd407-tls-archive-20260923T150412`
+remained untouched. The revised production certgen plugin and production
+configs were not removed or changed. No daemon restart occurred.
+
+Post-cleanup Mac tls/none smoke Job 638 emitted `PC-210.local`; stdout matched,
+stderr was empty, and Job 638 plus 638.batch were COMPLETED 0:0 on PC-210.
+Launchd PID remained 60321.
+
+SMD407_MAC_TLS_ARCHIVE_COMPLETE tls=tls/none active_artifacts=ABSENT certificates=ARCHIVED_RETIRED states=ARCHIVED final_smoke_job=638 accounting=COMPLETED_0_0 nodes=IDLE queue=EMPTY slurmd_pid=60321 archive=/opt/slurm/26.11.0/.smd407-tls-archive-20260923T151440 run_dir=/tmp/slurm-smd407-mac-tls-archive-archive-20260923T151440
+
+Final archive manifest hashes:
+fe15ad53e16e8ed20b369d32b277df5bc30a81ce7ca65775c9ea500c8d3fb240  archive.env
+2402f5391d4de3a5ec8e1eafebdb084884f896615f1697c87d33683bf22d42c9  source.sha256
+ed4169240fc7b3870c2faab7644bd9bdbe2524e33089075187e495590316fab0  archive.sha256
+
+UBUNTU ARCHIVAL CLEANUP
+Run directory:
+/tmp/slurm-smd407-ubuntu-tls-archive-archive-20260923T151505
+
+New recovery archive:
+/usr/local/slurm/26.11.0/.smd407-tls-archive-20260923T151505
+
+The driver copied and byte/hash verified all exact active targets into the new
+root:root mode-0700 archive before removing their active copies. The earlier
+staged archive `/usr/local/slurm/26.11.0/.smd407-tls-archive-20260923T150440`
+remained untouched. The revised production certgen plugin and both production
+configs were not removed or changed. No service restart occurred and all three
+PIDs remained 189104/189140/189203.
+
+The Ubuntu-originated final tls/none mixed smoke Job 639 emitted both ranks:
+1: 639|1|x86_64
+0: 639|0|arm64
+
+Its stderr was zero bytes. Job 639 and Step 639.0 were COMPLETED 0:0 on
+PC-210,ubuntu.
+
+SMD407_UBUNTU_TLS_ARCHIVE_COMPLETE tls=tls/none active_artifacts=ABSENT certificates=ARCHIVED_RETIRED state=ARCHIVED services=ACTIVE service_pids=189104,189140,189203 final_smoke_job=639 accounting=COMPLETED_0_0 ranks=ARM64_X86_64 nodes=IDLE queue=EMPTY archive=/usr/local/slurm/26.11.0/.smd407-tls-archive-20260923T151505 run_dir=/tmp/slurm-smd407-ubuntu-tls-archive-archive-20260923T151505
+
+Final archive manifest hashes:
+74bfd353bbf513a1efa38204b2093e8b3f5c9cafacd6f33247d686598bfd6fc3  archive.env
+108cead47996e2fbc99cadd676a26ae2333a6a154fa9b2df638533fb3774653d  source.sha256
+8202d2a792aef647aecee14d260182aae3611775ea0c11bea15c9856b4916ecd  archive.sha256
+
+INDEPENDENT READBACK AND HARNESS CORRECTION
+Ubuntu readback passed at:
+/tmp/slurm-smd407-ubuntu-tls-archive-readback-20260923T151903
+
+The first Mac readback stopped at:
+/tmp/slurm-smd407-mac-tls-archive-readback-20260923T151913
+
+It incorrectly tried to read Ubuntu-local
+`/tmp/slurm-smd407-final-tls-none-smoke-20260923T151505/mixed.out` from the Mac.
+This was a readback harness filesystem-scope error after cleanup and successful
+Jobs 638/639, not a Slurm or cleanup failure. Ubuntu independently validated
+the Job 639 payload and zero-byte stderr. The cross-host local-file read was
+removed from the Mac script; accounting remains independently visible from
+both hosts.
+
+Corrected readback hashes:
+8ff405b24454658b0a50e2e46fb0ddb9b94fde152be92070f98bd468ebbca26a  contribs/macos-tests/smd407_macos_tls_archive_readback.sh
+7c7baa84eb22c1d6f97d0d67aad8b140209c5158ea5d86a211a258cf080cde00  contribs/macos-tests/smd407_ubuntu_tls_archive_readback.sh
+
+Corrected Mac readback passed at:
+/tmp/slurm-smd407-mac-tls-archive-readback-20260923T152001
+
+SMD407_MAC_TLS_ARCHIVE_READBACK_COMPLETE active_artifacts=ABSENT archives=ROOT_ONLY_HASHED certgen=UNCHANGED slurm_conf=UNCHANGED tls=tls/none slurmd_pid=60321 jobs=638,639 accounting=COMPLETED_0_0 nodes=IDLE_NO_ALLOCATION queue=EMPTY run_dir=/tmp/slurm-smd407-mac-tls-archive-readback-20260923T152001
+
+SMD407_UBUNTU_TLS_ARCHIVE_READBACK_COMPLETE active_artifacts=ABSENT archives=ROOT_ONLY_HASHED certgen=UNCHANGED configs=UNCHANGED tls=tls/none services=ACTIVE service_pids=189104,189140,189203 jobs=638,639 accounting=COMPLETED_0_0 nodes=IDLE_NO_ALLOCATION queue=EMPTY run_dir=/tmp/slurm-smd407-ubuntu-tls-archive-readback-20260923T151903
+
+FINAL VERDICT
+active_tls_plugins=ABSENT_BOTH_HOSTS
+active_s2n_dependencies=ABSENT_BOTH_HOSTS
+active_test_certificates_and_keys=ABSENT_BOTH_HOSTS
+active_runtime_and_inactive_states=ABSENT_BOTH_HOSTS
+archives=ROOT_ONLY_0700_PRESERVED_BOTH_HOSTS
+archive_hashes=PASS_INDEPENDENT_READBACK
+revised_certgen_plugins=UNCHANGED_BOTH_HOSTS
+production_configs=UNCHANGED_BOTH_HOSTS
+mac_final_smoke=PASS_JOB_638
+dual_node_final_smoke=PASS_JOB_639_ARM64_AND_X86_64
+accounting=PASS_JOBS_638_639_COMPLETED_0_0
+final_tls=tls/none
+final_services=ACTIVE_PIDS_UNCHANGED
+final_nodes=IDLE_NO_ALLOCATION
+final_queue=EMPTY
+smd407_runtime=PASS_REVISED_CERTGEN
+active_cleanup=PASS_ARCHIVED_AND_REMOVED
+certificate_material=RETIRED_FROM_ACTIVE_PATHS_ARCHIVED_NOT_DESTROYED
+certificate_rotation=REQUIRED_BEFORE_ANY_FUTURE_TLS_REENABLE
+smd407_current=PASS_TLS_RUNTIME_REVISED_CERTGEN_CLEANUP_COMPLETE
+
+The test private keys still exist only inside root-only evidence/recovery
+archives; they were not cryptographically destroyed. They must not be reused.
+Any future tls/s2n enablement requires a separately approved fresh certificate
+issuance/rotation and a new runtime gate.

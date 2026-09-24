@@ -1,0 +1,258 @@
+# SMD-402 Open MPI mixed-architecture multi-node runtime Evidence
+
+日時: 2026-09-24 13:11–13:27 JST
+
+最終状態:
+
+```text
+PASS_MIXED_ARCH_OPENMPI_MULTINODE / ARCH_HETEROGENEOUS_DATA_LAYOUT_HOMOGENEOUS
+```
+
+## 対象と境界
+
+承認済みPhase 2として、Ubuntu x86-64 controller/workerとMac arm64 workerを同じ
+Slurm allocationへ割り当て、各architectureでnative buildしたOpen MPI 5.0.11を
+同じlogical prefix `/tmp/smd402-openmpi-5.0.11/install`から起動した。
+
+成功条件は次のとおり。
+
+- `mpirun`へrank数を渡さず、Slurmの2 node・2 task・1 task/nodeを継承する
+- `MPI_Init`、Bcast、Allreduce、ring Sendrecvが2 architecture間で成功する
+- success job/stepが`COMPLETED 0:0`
+- 実行中jobを`scancel`し、両rank PIDが各nodeで消滅する
+- queue、node allocation、MPI/PRRTE processが残らない
+- production config/binary、daemon PID、service状態を変えない
+
+この試験はx86-64とarm64というarchitecture heterogeneityを扱う。一方、両hostは
+little-endian、pointer/long 8 bytes、int 4 bytes、double 8 bytesであり、異なるendianや
+異なる基本型sizeを扱うtrue data-layout heterogeneityは試験していない。
+
+## 実行入力
+
+```text
+Open MPI=5.0.11
+PMIx=5.0.11rc1 (bundled)
+PRRTE=3.0.14 (bundled)
+rank_argument=omitted
+nodes=2
+ntasks=2
+ntasks_per_node=1
+hetero_nodes=true
+pml=ob1
+btl=self,sm,tcp
+```
+
+実行ドライバ:
+
+```text
+contribs/macos-tests/smd402_openmpi_multinode_runtime_driver.sh
+SHA-256=096fe8add8189650e373e6cd8e80f0898f78ea21b6ba61564993fb8a5ecaed92
+```
+
+probe:
+
+```text
+contribs/macos-tests/smd402_openmpi_probe.c
+SHA-256=79d5286b762c0c12c7e2e14c241621bfa95946bdac22060547f96aebe0c67680
+```
+
+## 失敗試行と訂正
+
+### Job 693: Attempt 1
+
+`btl=self,tcp`で起動した。allocationとPRRTE stepは両nodeへ作成されたが、probe stdoutは
+0 bytesのままlauncherがSIGABRTした。
+
+```text
+693|smd402-ompi-success-20260924T131130|testuser|FAILED|0:6|PC-210,ubuntu
+693.0|prted||FAILED|1:0|PC-210,ubuntu
+free(): double free detected in tcache 2
+```
+
+Ubuntu local 2-rank probeで`self,tcp`が停止し、default BTLおよび`self,sm,tcp`は成功したため、
+最初はshared-memory BTL除外が原因候補となった。ただしこれはlocal controlの結果であり、
+multi-node SIGABRTの根本原因を証明していなかった。
+
+### Job 694: Attempt 2
+
+`btl=self,sm,tcp`へ訂正したが、同じSIGABRTを再現した。これによりAttempt 1後の原因推定を
+棄却した。
+
+```text
+694|smd402-ompi-success-20260924T131753|testuser|FAILED|0:6|PC-210,ubuntu
+694.0|prted||FAILED|1:0|PC-210,ubuntu
+free(): double free detected in tcache 2
+```
+
+### Job 695: heterogeneous topology指定の単独確認
+
+同梱PRRTEの説明に従って`--hetero-nodes`を追加したが、未修正Mac buildでは同じSIGABRTと
+なった。したがって、option不足だけではなかった。
+
+```text
+695|smd402-ompi-hetero-diagnostic|testuser|FAILED|0:6|PC-210,ubuntu
+695.0|prted||FAILED|1:0|PC-210,ubuntu
+```
+
+### Job 696: GDB診断
+
+既存GDBでUbuntu上の`prterun`を追跡した。GDB wrapper自身が0を返したためroot jobは
+`COMPLETED 0:0`だが、PRRTE stepは`FAILED 1:0`でありruntime PASSではない。
+
+```text
+696|smd402-ompi-gdb|testuser|COMPLETED|0:0|PC-210,ubuntu
+696.0|prted||FAILED|1:0|PC-210,ubuntu
+PRTE does not currently support multi-endian operations.
+Nodename:      PC-210
+Endian:        unknown
+Local endian:  le
+#9 prte_plm_base_daemon_callback
+free(): double free detected in tcache 2
+```
+
+Macも実測probeではlittle-endianである。Open MPI 5.0.11同梱PRRTEの
+`prte_hwloc_base_get_topo_signature()`は`__BYTE_ORDER`形式だけを参照し、Apple Clangが提供する
+`__BYTE_ORDER__` / `__ORDER_LITTLE_ENDIAN__`形式を扱わないため、Macのsignature末尾が
+`unknown`となっていた。Ubuntu側は`le`であり、daemon callbackのmulti-endian拒否経路へ入り、
+そのerror pathで二重解放した。
+
+## 隔離修正
+
+productionではなくMacの`/tmp` isolated source/build/installだけを修正した。
+
+```text
+contribs/macos-tests/smd402_prrte_macos_endian.patch
+SHA-256=96202183be6e5ff469371dffa73e512baf5a3539e6aa7a3f06eff1cadd781566
+```
+
+既存`__BYTE_ORDER`分岐を維持し、未定義時にApple/GCC形式の
+`__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__`も認識する最小修正である。再現用build driverは
+Darwinだけへこのpatchを適用する。runtime driverは異なるnode topologyを明示する
+`--hetero-nodes`を使用する。
+
+修正後Mac isolated artifact:
+
+```text
+mpirun=dadc7d4b2e34618b8874d37467ed17f60031daecf3c408687bed118660dc8028
+prted=f9c723a2dc37ec1da82ffd67db4ab89d6c01df4e9ce43fabc895d021fcb8c20d
+libprrte.3.dylib=3fceda9a477ead9ff7ca6d10264a3098ab194140eb01327b91f4c300ae606285
+libmpi.40.dylib=1b315f34e7f7cffa46184a3a317b8ed4d726f585937326643d9f69538f34917d
+libpmix.2.dylib=51486ccc1cd714caba4fb1adc8615eea6d257f8be4a8e8f3e12ddefc9473660b
+probe=729013548cb1ac3bf524a765ba74a75c044bcd06768ec7bc7f1bec5b32da26cf
+```
+
+Ubuntu isolated artifactは再buildしていない。
+
+```text
+mpirun=3107df430fbed933f555510a4d972497c0a4bb6bb57134d59e0d356bff038c6d
+prted=cdeb8660f605606ac439856c3b0d60a7dbd503bce8b449ed71e0539928440e0e
+libprrte.so.3=25e388519ecc22a383752cba33afc8a7142e0875e2cd37fe0c8ce9179f09b552
+libmpi.so.40=cca982eb7b4cd7f82b6da66d45853fd3c35a8680a0bf96aee9685b312607697f
+libpmix.so.2=23c9680c5e7a589eb7f4291acd8509c485b43351a651f5d4d57a36241a9ad0d6
+probe=1bcee4f3c229138ad53b9fa3ce17e0e6bfbcbb1382157349b83ed732d3284efd
+```
+
+## 最終実行
+
+run directory:
+
+```text
+/tmp/slurm-smd402-openmpi-multinode-20260924T132638
+```
+
+### Job 697: success path
+
+2 rankはBcast値42、Allreduce値1、ring値2000/2001を相互確認した。
+
+```text
+mpi_runtime=PASS launcher=slurm job_id=697 rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=2000 processor=ubuntu2504 host=ubuntu2504 machine=x86_64 endian=little pointer=8 long=8 int=4 double=8 pid=591268 uid=3001 gid=3001 ompi=5.0.11
+mpi_runtime=PASS launcher=slurm job_id=697 rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=2001 processor=PC-210.local host=PC-210.local machine=arm64 endian=little pointer=8 long=8 int=4 double=8 pid=44108 uid=3001 gid=3001 ompi=5.0.11
+```
+
+会計はroot allocationとPRRTE stepの双方が`COMPLETED 0:0`で、1 stepを記録した。
+
+```text
+697|smd402-ompi-success-20260924T132638|testuser|COMPLETED|0:0|PC-210,ubuntu|billing=2,cpu=2,mem=512M,node=2|billing=3,cpu=3,mem=512M,node=2
+697.0|prted||COMPLETED|0:0|PC-210,ubuntu||billing=3,cpu=3,mem=512M,node=2
+```
+
+### Job 698: cancel path
+
+cancel前に両rankが通信を完了し、hold状態へ到達した。
+
+```text
+mpi_ready=PASS launcher=slurm job_id=698 rank=1 size=2 bcast=42 allreduce=1 ring_from=0 ring_value=2000 processor=ubuntu2504 host=ubuntu2504 machine=x86_64 endian=little pointer=8 long=8 int=4 double=8 pid=591372 uid=3001 gid=3001 ompi=5.0.11
+mpi_ready=PASS launcher=slurm job_id=698 rank=0 size=2 bcast=42 allreduce=1 ring_from=1 ring_value=2001 processor=PC-210.local host=PC-210.local machine=arm64 endian=little pointer=8 long=8 int=4 double=8 pid=44121 uid=3001 gid=3001 ompi=5.0.11
+```
+
+jobは意図どおりcancelされ、stepはSIGTERMを記録した。
+
+```text
+698|smd402-ompi-cancel-20260924T132638|testuser|CANCELLED by 0|0:0|PC-210,ubuntu|billing=2,cpu=2,mem=512M,node=2|billing=3,cpu=3,mem=512M,node=2
+698.0|prted||CANCELLED|0:15|PC-210,ubuntu||billing=3,cpu=3,mem=512M,node=2
+```
+
+### Job 699: node-local PID cleanup probe
+
+別jobで各node内からcancel対象PIDを検査し、両方の消滅を確認した。
+
+```text
+residual=NO job_id=699 node=ubuntu pid=591372
+residual=NO job_id=699 node=PC-210 pid=44121
+699|smd402-ompi-cleanup-20260924T132638|testuser|COMPLETED|0:0|PC-210,ubuntu
+699.0|smd402-ompi-cleanup-20260924T132638||COMPLETED|0:0|PC-210,ubuntu
+```
+
+## 独立readback
+
+- `runtime-inputs-before.sha256`と`runtime-inputs-after.sha256`: byte一致
+- `production-before.sha256`と`production-after.sha256`: byte一致
+- `ubuntu`: IDLE、CPUAlloc 0、AllocMem 0、AllocTRES空
+- `PC-210`: IDLE、CPUAlloc 0、AllocMem 0、AllocTRES空
+- 両nodeの`SlurmdStartTime`: 前後一致
+- 対象nodeのqueue: 空
+- Ubuntuのtarget `mpirun`/`prted`/probe process: 0
+- Macのtarget `mpirun`/`prted`/probe process: 0
+- Ubuntu `slurmctld/slurmdbd/slurmd/munge/mariadb`: 全5件active
+- Ubuntu `slurmctld` PID 197928、`slurmd` PID 198005: 不変
+- Mac `slurmd` PID 41674: 稼働継続
+
+production hashes:
+
+```text
+Mac slurm.conf=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+Mac slurmd=a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+Mac mpi_pmix_v6.so=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+Ubuntu slurm.conf=1e6c257b82aa82e507eb710a3e37690ffcfd7b402cb2b33fde53ed9bb1651c68
+Ubuntu slurmd=2c445fdf614b0554aa76f7b0df272ec6c0ea8af456736b3fa66a28a41847ed14
+Ubuntu slurmctld=834e8968209e0a989cf4bbdb917d14a5f0ae41b0db253aeb3ad7b9b458972c70
+```
+
+## 保持したwarningと観測制限
+
+- success/cancel起動時、Ubuntu hwlocはnon-16-bit PCI domainを無視するwarningを出した。
+  upstream message自身がABIを壊すため`--enable-32bits-pci-domain`を必要時以外使わないよう
+  指示しており、本試験のCPU/TCP通信は成功している。warning 0とは扱わない。
+- 意図的`scancel`後、PRRTEはremote daemonとの通信喪失をstderrへ報告した。job/stepの
+  CANCELLED、両PID消滅、queue/resource解放が一致するため期待したcancel経路である。
+  `cancel.err`末尾にはNUL 1 byteも保持した。
+- Mac `/var/log/slurm/slurmd.log`は通常ユーザーから`Permission denied`で、直接log readbackは
+  行えなかった。代わりにcontroller journal、Slurm accounting、node-local PID probe、Macの
+  production hash/PID/process一覧を独立確認した。
+- shellcheckは未導入のため未実施。`sh -n`、unapproved gate、`git diff --check`はPASSした。
+- 修正は既存isolated treeをincremental rebuild/installしてruntime検証した。更新したclean-build
+  driverへのpatch dry-runと構文検査はPASSしたが、修正版driverによるarchive展開からのfull clean
+  rebuildは未実施であり、runtime PASSとは分離する。
+- `/tmp`の両architecture build、Attempt 1保存領域、runtime run directoryは証跡確定時点で
+  保持している。cleanupは本Phaseに含めない。
+
+## 判定
+
+Open MPI 5.0.11の同一version・同一logical prefixを各architectureへnative buildし、Slurmの
+同一allocation/同一PRRTE stepでx86-64 Ubuntuとarm64 macOS間のMPI通信、正常終了、実行中
+cancel、rank PID回収、resource解放を実測した。production Slurmは変更・再起動していない。
+
+したがってSMD-402 Open MPI extensionを
+`PASS_MIXED_ARCH_OPENMPI_MULTINODE / ARCH_HETEROGENEOUS_DATA_LAYOUT_HOMOGENEOUS`
+とする。異なるendian、異なるC基本型size、heterogeneous GPU collective、production prefixへの
+Open MPI導入は未検証であり、このPASSには含めない。

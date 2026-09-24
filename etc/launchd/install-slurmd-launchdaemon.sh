@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-readonly source_dir="/Users/REDACTED_USER/dev/slurm.26-05"
+readonly script_dir="${0:A:h}"
+readonly source_dir="${SLURM_SOURCE_ROOT:-${script_dir:h:h}}"
 readonly prefix="/opt/slurm/26.11.0"
 readonly config_dir="${prefix}/etc"
 readonly runtime_dir="/var/run/slurm"

@@ -1,0 +1,99 @@
+SMD-303 cgroup device/process isolation negative runtime evidence
+Date: 2026-09-23 JST
+
+[driver]
+path=contribs/macos-tests/smd303_cgroup_negative_driver.sh
+sha256=5c195367adc3d4302789ddc0354c81f724973a784055d860dcee7c80bcb3d68b
+canonical_run_dir=/private/tmp/slurm-smd303-20260923T191136.Nucfhz
+
+[harness attempt 1]
+The first driver run stopped before every candidate case with:
+
+error: production slurmd pid 70710 is not running
+
+The root-owned production process was running, but non-root kill -0 returned an
+authorization error. The liveness guard was changed to a read-only ps lookup.
+No candidate daemon had started and no production state had changed.
+
+[build and installed plugin preconditions]
+config.h: /* #undef WITH_CGROUP */
+config.status --config contains: --disable-cgroupv2
+
+cgroup_v1.so ABSENT
+cgroup_v2.so ABSENT
+proctrack_cgroup.so ABSENT
+task_cgroup.so ABSENT
+
+Available control plugins used by the isolated harness:
+auth_none.so PRESENT
+cred_none.so PRESENT
+proctrack_pgid.so PRESENT
+task_affinity.so PRESENT
+
+[canonical driver output]
+SMD-303 cgroup negative runtime
+run_dir=/private/tmp/slurm-smd303-20260923T191136.Nucfhz
+execution_uid=501 execution_user=tera
+production_pid=70710 production_node=PC-210 production_state=IDLE queue=EMPTY
+build_WITH_CGROUP=UNDEFINED configure_cgroupv2=DISABLED
+installed_cgroup_plugins=ABSENT
+case=process rc=1 result=EXPECTED_REJECTION
+[2026-09-23T19:11:36.972] debug3: Trying to load plugin /opt/slurm/26.11.0/lib/slurm/proctrack_cgroup.so
+[2026-09-23T19:11:36.973] debug:  cannot find proctrack plugin for proctrack/cgroup
+[2026-09-23T19:11:36.973] error: cannot create proctrack context for proctrack/cgroup
+[2026-09-23T19:11:36.973] error: slurmd initialization failed
+case=task rc=1 result=EXPECTED_REJECTION
+[2026-09-23T19:11:37.152] debug3: Trying to load plugin /opt/slurm/26.11.0/lib/slurm/task_cgroup.so
+[2026-09-23T19:11:37.153] debug:  cannot find task plugin for task/cgroup
+[2026-09-23T19:11:37.153] error: cannot create task context for task/cgroup
+[2026-09-23T19:11:37.153] error: slurmd initialization failed
+case=device rc=1 result=EXPECTED_REJECTION
+[2026-09-23T19:11:37.326] debug:  Reading cgroup.conf file /private/tmp/slurm-smd303-20260923T191136.Nucfhz/device/cgroup.conf
+[2026-09-23T19:11:37.326] debug3: Trying to load plugin /opt/slurm/26.11.0/lib/slurm/cgroup_v2.so
+[2026-09-23T19:11:37.326] debug:  cannot find cgroup plugin for cgroup/v2
+[2026-09-23T19:11:37.326] error: cannot create cgroup context for cgroup/v2
+[2026-09-23T19:11:37.326] error: Unable to initialize cgroup plugin
+[2026-09-23T19:11:37.326] error: slurmd initialization failed
+production_unchanged=PASS pid=70710 node=IDLE allocation=ZERO queue=EMPTY hashes=IDENTICAL
+SMD303_PASS_EXPECTED_UNSUPPORTED process=EXPLICIT_REJECTION task=EXPLICIT_REJECTION device=EXPLICIT_REJECTION no_op_success=ABSENT candidate_listeners=ABSENT production=UNCHANGED run_dir=/private/tmp/slurm-smd303-20260923T191136.Nucfhz
+
+[candidate isolation]
+All three candidates ran as uid 501 without sudo.
+All controller addresses were 127.0.0.1 with unused ports 26817/26827/26837.
+All worker ports were isolated as 26818/26828/26838.
+Each candidate had a private pid file, spool, state directory, and log path.
+No candidate pid file or listening socket remained.
+No job was submitted.
+
+process candidate: ProctrackType=proctrack/cgroup
+task candidate: ProctrackType=proctrack/pgid, TaskPlugin=task/cgroup
+device candidate: ProctrackType=proctrack/pgid, TaskPlugin=task/affinity
+device cgroup.conf: CgroupPlugin=cgroup/v2, ConstrainDevices=yes
+
+[production hashes before and after]
+70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0  /opt/slurm/26.11.0/etc/slurm.conf
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  /opt/slurm/26.11.0/sbin/slurmd
+c3c4024bad4fa92242a6a9ccc1c7aa8c18a05b47c81f847260aedd694f8f94fc  /opt/slurm/26.11.0/lib/slurm/proctrack_pgid.so
+deeb77e87cdcec950fd2f9d43b265655aec479d06d8a1ce900ba6d69c1db7d79  /opt/slurm/26.11.0/lib/slurm/task_affinity.so
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+
+The before and after hash lists were byte-identical.
+
+[production state before and after]
+slurmd pid=70710
+slurmd command=/opt/slurm/26.11.0/sbin/slurmd -D -f /opt/slurm/26.11.0/etc/slurm.conf -N PC-210
+node=PC-210
+state=IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+queue=empty
+SlurmdStartTime=2026-09-23T18:04:36
+
+[classification]
+PASS_EXPECTED_UNSUPPORTED
+
+The result proves explicit startup rejection for the selected cgroup process,
+task, and device-control paths in this macOS build. It does not prove cgroup
+enforcement, successful job execution with cgroup plugins, or equivalence with
+Linux cgroup v2.

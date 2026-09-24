@@ -1,0 +1,100 @@
+SMD-301 task/affinity negative runtime evidence
+Date: 2026-09-23 JST
+
+[source contract]
+src/common/xsched.c Apple xsetaffinity path:
+
+extern int xsetaffinity(pid_t pid, xcpuset_t *mask)
+{
+	int rval;
+
+#ifdef __FreeBSD__
+	rval = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, pid,
+				  mask->size, &mask->mask);
+#elif defined(__APPLE__)
+	(void) pid;
+	(void) mask;
+	errno = ENOTSUP;
+	rval = -1;
+#else
+	rval = sched_setaffinity(pid, mask->size, &mask->mask);
+#endif
+
+[initial direct characterization]
+TEST_NAME=SMD301_MAP0_183843
+PAYLOAD_RAN host=PC-210.local uid=3001 bind=verbose,map_cpu:0 list=0
+SRUN_RC=0
+666|SMD301_MAP0_183843|COMPLETED|0:0|PC-210|1
+
+[harness attempt 1]
+The driver stopped before job submission because the clang executable returned
+by xcrun was invoked directly and did not inherit the SDK include path:
+
+fatal error: 'dlfcn.h' file not found
+
+Production state was not changed.
+
+[harness attempt 2]
+The probe binary was mode 0755, but its mktemp parent directory was mode 0700.
+The testuser could not traverse it. These are harness failures, not affinity
+results:
+
+667|S301N_184655|FAILED|13:0|PC-210|1
+668|S301M0_184655|FAILED|13:0|PC-210|1
+669|S301M1_184655|FAILED|13:0|PC-210|1
+670|S301C2_184655|FAILED|13:0|PC-210|2
+
+Each task reported:
+
+execve(): /private/tmp/slurm-smd301-20260923T184654.xsKRa0/smd301_affinity_probe: Permission denied
+
+The driver was corrected to use a 0711 evidence directory and a dedicated
+0755 payload subdirectory. Before retry, launchd slurmd PID 70710 was running,
+PC-210 was IDLE, CPUAlloc was 0, AllocTRES was empty, and the queue was empty.
+
+[final runtime]
+control:
+AFFINITY_PROBE pid=72288 mach_affinity_get=NOT_SUPPORTED(46) affinity_tag=UNOBSERVABLE strict_set_symbol=ABSENT strict_get_symbol=ABSENT logical_cpus=18 slurm_cpu_bind=quiet,none slurm_cpu_bind_list= slurm_localid=0
+SMD301_CASE_RC=0
+671|S301N_184839|COMPLETED|0:0|PC-210|1
+
+map_cpu:0:
+AFFINITY_PROBE pid=72293 mach_affinity_get=NOT_SUPPORTED(46) affinity_tag=UNOBSERVABLE strict_set_symbol=ABSENT strict_get_symbol=ABSENT logical_cpus=18 slurm_cpu_bind=verbose,map_cpu:0 slurm_cpu_bind_list=0 slurm_localid=0
+SMD301_CASE_RC=0
+672|S301M0_184839|COMPLETED|0:0|PC-210|1
+
+map_cpu:1:
+AFFINITY_PROBE pid=72299 mach_affinity_get=NOT_SUPPORTED(46) affinity_tag=UNOBSERVABLE strict_set_symbol=ABSENT strict_get_symbol=ABSENT logical_cpus=18 slurm_cpu_bind=verbose,map_cpu:1 slurm_cpu_bind_list=1 slurm_localid=0
+SMD301_CASE_RC=0
+673|S301M1_184839|COMPLETED|0:0|PC-210|1
+
+cores, two tasks:
+AFFINITY_PROBE pid=72304 mach_affinity_get=NOT_SUPPORTED(46) affinity_tag=UNOBSERVABLE strict_set_symbol=ABSENT strict_get_symbol=ABSENT logical_cpus=18 slurm_cpu_bind=verbose,cores slurm_cpu_bind_list= slurm_localid=0
+AFFINITY_PROBE pid=72305 mach_affinity_get=NOT_SUPPORTED(46) affinity_tag=UNOBSERVABLE strict_set_symbol=ABSENT strict_get_symbol=ABSENT logical_cpus=18 slurm_cpu_bind=verbose,cores slurm_cpu_bind_list= slurm_localid=1
+SMD301_CASE_RC=0
+674|S301C2_184839|COMPLETED|0:0|PC-210|2
+
+[daemon log delta]
+[2026-09-23T18:48:39.649] launch task StepId=671.0 request from UID:3001 GID:3001 HOST:192.168.10.180 PORT:42876
+[2026-09-23T18:48:42.106] launch task StepId=672.0 request from UID:3001 GID:3001 HOST:192.168.10.180 PORT:42894
+[2026-09-23T18:48:44.562] launch task StepId=673.0 request from UID:3001 GID:3001 HOST:192.168.10.180 PORT:42902
+[2026-09-23T18:48:47.006] launch task StepId=674.0 request from UID:3001 GID:3001 HOST:192.168.10.180 PORT:42912
+
+No sched_setaffinity, cpu-bind mask set, or affinity set message was present.
+
+[production hashes before and after]
+a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72  /opt/slurm/26.11.0/sbin/slurmd
+0aca56272a232fc1ba594fef1bcfddeb32e089313331e67f2fcf1eb7331f064e  /opt/slurm/26.11.0/sbin/slurmstepd
+deeb77e87cdcec950fd2f9d43b265655aec479d06d8a1ce900ba6d69c1db7d79  /opt/slurm/26.11.0/lib/slurm/task_affinity.so
+70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0  /opt/slurm/26.11.0/etc/slurm.conf
+5db42efbc0f476ae54968a397961807a6061eea2d53fb131c12329c6e611ede9  /Library/LaunchDaemons/org.schedmd.slurmd.plist
+
+The before and after files were byte-identical.
+
+[probe and driver hashes]
+af4d56a3bc3c772d78547c1c0d6e4d3b9d0fa2e8ae754b46b4965d5d4b6fa0c3  contribs/macos-tests/smd301_affinity_probe.c
+1cd437fbdd9d4438c108a4294c3ee2bde63f2f0671bc9ac9d3fdd89dbc135031  contribs/macos-tests/smd301_affinity_driver.sh
+fb626c90fa3d63a2e862c0fa3f1299ebbd5e24b682da7bdb1cc83efeca62b9ab  final Mach-O arm64 probe
+
+[final marker]
+SMD301_PASS_EXPECTED_UNSUPPORTED behavior=REQUEST_METADATA_ONLY mach_affinity_get=NOT_SUPPORTED strict_affinity_symbols=ABSENT strict_cpu_pinning=NOT_ENFORCED misleading_bind_success_log=ABSENT jobs=4 initial_probe_job=666 node=IDLE queue=EMPTY launchd_pid=70710 artifacts=UNCHANGED run_dir=/private/tmp/slurm-smd301-20260923T184838.mA8NfB

@@ -1,0 +1,113 @@
+# SMD-401 PMIx 6.1.0 production runtime final evidence
+
+local_date=2026-09-24
+host=PC-210
+architecture=arm64
+slurm=26.11.0-0rc1
+pmix=6.1.0
+test_user=testuser uid=3001 gid=3001
+
+[authorization]
+production_plugin_placement=AUTHORIZED_PREVIOUS_PHASE
+slurmd_restart=AUTHORIZED
+bounded_success_and_cancel_jobs=AUTHORIZED
+controller_restart=NO
+configuration_change=NO
+
+[pre-restart failure history]
+evidence=SMD-401-pmix-runtime-attempts-evidence.txt
+Job 683=FAILED because running slurmd could not resolve PMIx plugin_id 108
+recovery=queue empty, PC-210 IDLE, residual stepd removed, slurmd PID 70710 retained
+
+[slurmd restart]
+service=system/org.schedmd.slurmd
+run_dir=/private/tmp/slurm-smd401-pmix-restart.20260924T084635.41641
+old_pid=70710
+new_pid=41674
+old_start=2026-09-23T21:56:16
+new_start=2026-09-24T08:46:35
+plugin_mtime=2026-09-24T08:05:39
+controller=UP
+node_after=IDLE CPUAlloc=0 AllocMem=0 AllocTRES=empty
+queue_after=empty
+stepd_after=0
+PMIx-specific load errors=0 bytes
+production inputs before/after=MATCH
+
+[known restart log messages]
+_core_spec_init: not supported on macOS
+cannot create http_parser context for http_parser/llhttp_parser, http_parser/libhttp_parser
+classification=pre-existing non-PMIx macOS messages; restart log is not clean
+
+[runtime]
+run_dir=/private/tmp/slurm-smd401-pmix-runtime.20260924T084757.41746
+tasks=2
+plugin=pmix_v6
+probe=Mach-O 64-bit executable arm64
+probe dependency=/opt/homebrew/opt/pmix/lib/libpmix.2.dylib
+
+[success job]
+job_id=684
+namespace=slurm.pmix.684.0
+rank_0=size 2, value 42, fence PASS
+rank_1=size 2, value 42, fence PASS
+stdout_rows=2
+stderr_bytes=0
+job accounting=COMPLETED 0:0
+step accounting=COMPLETED 0:0
+AllocTRES=billing=2,cpu=2,mem=256M,node=1
+
+[cancel job]
+job_id=685
+namespace=slurm.pmix.685.0
+rank_0=size 2, fence PASS, pid 41855, uid/gid 3001:3001
+rank_1=size 2, fence PASS, pid 41856, uid/gid 3001:3001
+cancel_client_rc=143
+job accounting=CANCELLED by 0, exit 0:0
+step accounting=CANCELLED, exit 0:15
+task_pid_41855_after=ABSENT
+task_pid_41856_after=ABSENT
+
+[final state]
+controller=UP
+node=PC-210 IDLE
+CPUAlloc=0
+AllocMem=0
+AllocTRES=empty
+queue_rows=0
+slurmstepd_rows=0
+residual_test_processes_bytes=0
+unexpected_runtime_errors_bytes=0
+slurmd_pid=41674
+SlurmdStartTime=2026-09-24T08:46:35
+production inputs before/after=MATCH
+production PMIx plugin=RETAINED
+
+[production hashes]
+mpi_pmix_v6.so=aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+slurmd=a3df64dde33256a7dff621854ff56501e854cc51ffab2ebb6f91ec5a92d94d72
+slurm.conf=70d5f437c6622b860e3eff7c029dcd713a073bfdf90395f5399c9c95f50d16a0
+srun=0d5ff8c6ea7d793fe4f33588bf6c890d8e4bc7abe742296f6cbf5e061c0103d9
+
+[fixture hashes]
+smd401_pmix_slurmd_restart.sh=8753c52d7a768fc82d74aba86e41702e47d28b285e53638b3b29f04597167117
+smd401_pmix_runtime_driver.sh=6a81435ddf72b33107b7ab3c5775fb7639f57687389a39fcbfe454ce97b4fec9
+smd401_pmix_probe.c=d6a144ef571dc6bb728ef38a6f5210a37728feac82248fca1a649e2e52eb1b7b
+runtime probe binary=8b2cf896e947df8382642a79d629b28929d08aebe665f1c42965c34c0aec2dbf
+success.out=39c837ed1a40117b163bde68793009b9f0b63baab939643fd8ecbcc9a6e342da
+cancel-sacct.txt=18f19f440897e1996383667ac94c6d030d33747fd2c635b07c35ea13c509549b
+restart slurmd log delta=8115086801cd5bccd6d5e4e274237662c8e19df95a2d8cc294ecf1c273a0f8be
+runtime slurmd log delta=4de58d90a56ac31164c6880cc1d86e4e5c6019a333ecb75cc4c191ddc3927511
+
+[classification]
+PMIx production plugin placement=PASS
+PMIx production client discovery=PASS
+PMIx single-node runtime success=PASS
+PMIx single-node cancel cleanup=PASS
+multi-node PMIx=NOT_RUN
+external MPI implementation=NOT_RUN
+SMD-401=PARTIAL_PASS_PMI2_PMIX
+
+[remaining scope]
+Open MPI or MPICH application runtime and multi-node PMIx/MPI are not verified.
+No plugin rollback was requested; the verified PMIx production plugin remains installed.

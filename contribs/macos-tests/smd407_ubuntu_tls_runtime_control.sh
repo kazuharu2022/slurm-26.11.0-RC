@@ -22,6 +22,7 @@ scontrol=${prefix}/bin/scontrol
 squeue=${prefix}/bin/squeue
 sacctmgr=${prefix}/bin/sacctmgr
 plugin=${prefix}/lib/slurm/tls_s2n.so
+certgen_plugin=${prefix}/lib/slurm/certgen_script.so
 s2n_prefix=${prefix}/lib/slurm-s2n-1.7.9
 ca=${prefix}/etc/ca_cert.pem
 ctld_cert=${prefix}/etc/ctld_cert.pem
@@ -34,6 +35,7 @@ rogue_ca=/tmp/slurm-smd407-certificate-stage-20260912T221817/ca-private/rogue_ca
 inactive_state=${prefix}/.smd407-ubuntu-tls-inactive.env
 runtime_state=${prefix}/.smd407-ubuntu-tls-runtime.env
 plugin_hash=fac2507c6c5070c47c78959a005b2e861632c9ff837601353a178570d72808a1
+certgen_plugin_hash=3539895a90a3bff3770ab2b301460a6e3d140dd9e1fb4209b28783529347ff14
 libs2n_hash=7ca8f397d81e31b2dfe47229e72200115b24716b63f46a354c13b9e2a1ccfd70
 run_stamp=$(date '+%Y%m%dT%H%M%S')
 run_dir=/tmp/slurm-smd407-ubuntu-tls-runtime-${mode}-${run_stamp}
@@ -226,12 +228,14 @@ apply)
 	[ "$(state_value phase "$inactive_state")" = UBUNTU_INACTIVE_INSTALLED ] || \
 		fail 'unexpected inactive state phase'
 	[ ! -e "$runtime_state" ] || fail "runtime state already exists=$runtime_state"
-	for required in "$plugin" "$s2n_prefix/lib/libs2n.so" "$ca" "$ctld_cert" \
+	for required in "$plugin" "$certgen_plugin" "$s2n_prefix/lib/libs2n.so" "$ca" "$ctld_cert" \
 		"$ctld_key" "$dbd_cert" "$dbd_key" "$slurmd_cert" "$slurmd_key"; do
 		[ -e "$required" ] || fail "missing inactive TLS input=$required"
 	done
 	[ "$(sha256sum "$plugin" | awk '{print $1}')" = "$plugin_hash" ] || \
 		fail 'installed plugin hash mismatch'
+	[ "$(sha256sum "$certgen_plugin" | awk '{print $1}')" = "$certgen_plugin_hash" ] || \
+		fail 'installed certgen plugin hash mismatch'
 	[ "$(sha256sum "$s2n_prefix/lib/libs2n.so" | awk '{print $1}')" = "$libs2n_hash" ] || \
 		fail 'installed libs2n hash mismatch'
 	for service in slurmdbd slurmctld slurmd; do

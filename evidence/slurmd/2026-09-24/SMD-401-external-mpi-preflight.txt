@@ -1,0 +1,105 @@
+SMD-401 external MPI preflight
+Date: 2026-09-24 09:00 JST
+Scope: read-only inventory and official-document review
+Mutations: none
+Install: not run
+Job submission: not run
+Slurm configuration/daemon changes: none
+
+Result
+======
+PREFLIGHT_PASS_AWAITING_MAC_OPENMPI_INSTALL_APPROVAL
+
+Observed facts: macOS PC-210
+=============================
+- Architecture: arm64
+- OS: macOS 26.5.1 (25F80)
+- External MPI commands: mpicc/mpicxx/mpirun/mpiexec/ompi_info/mpichversion all absent
+- Open MPI prefix/Cellar: absent
+- MPICH prefix/Cellar: absent
+- PMIx: 6.1.0 at /opt/homebrew/bin/pmix_info
+- Homebrew dependency prefixes already present:
+  - hwloc 2.14.0
+  - libevent 2.1.13
+  - pmix 6.1.0
+- Homebrew dependency prefixes absent:
+  - gcc
+  - prrte
+- Apple clang: 21.0.0
+- Free space on Homebrew volume: approximately 3.0 TiB
+- Slurm MPI plugins reported by /opt/slurm/26.11.0/bin/srun --mpi=list:
+  - none
+  - cray_shasta
+  - pmix (pmix_v6)
+  - pmi2
+- Production PMIx plugin SHA-256:
+  aebc2697891d643b4484e3953853fc0f392a57791c6b791bcd32c3f458563c57
+
+Observed facts: Ubuntu controller/worker
+========================================
+- Host: ubuntu2504
+- Architecture: x86_64
+- OS: Ubuntu 24.04.4 LTS noble
+- External MPI commands: mpicc/mpicxx/mpirun/mpiexec/ompi_info/mpichversion all absent
+- PMIx command: absent
+- Installed Open MPI/MPICH/PMIx packages: none returned by dpkg-query
+- Slurm MPI plugins reported by /usr/local/slurm/26.11.0/bin/srun --mpi=list:
+  - none
+  - cray_shasta
+  - pmi2
+  - pmix is absent
+- APT candidates from the current local package index:
+  - openmpi-bin/libopenmpi-dev 4.1.6-7ubuntu2
+  - mpich/libmpich-dev 4.2.0-5build3
+  - libpmix2t64/libpmix-dev 5.0.1-4.1build1
+- Services: slurmctld/slurmdbd/slurmd all active
+- Queue: empty
+- Nodes reported idle: PC-210 and ubuntu; vmtest01 is idle~
+
+Official current package facts
+==============================
+- Homebrew Open MPI stable: 5.0.11
+- Homebrew Open MPI dependencies include gcc 16.2.0, hwloc 2.14.0,
+  libevent 2.1.13, PMIx 6.1.0, and PRRTE 4.1.0.
+- Homebrew Open MPI conflicts with Homebrew MPICH because both install MPI wrappers.
+- Homebrew MPICH stable: 5.0.1; the formula does not list PMIx or PRRTE as dependencies.
+
+Decision
+========
+1. Recommend Open MPI rather than MPICH for the next macOS-only phase.
+   The Homebrew Open MPI dependency graph directly matches the already verified
+   PMIx 6.1.0/libevent 2.1.13/hwloc 2.14.0 stack. The stock MPICH formula does
+   not establish the PMIx linkage required for the current direct-launch goal.
+2. The next bounded action is installation of Homebrew Open MPI 5.0.11 on PC-210,
+   followed only by version/linkage/compiler-wrapper readback. It must not include
+   a Slurm job, daemon restart, Slurm configuration change, or Ubuntu installation.
+3. This native MPI implementation cannot be installed through a Python uv
+   environment. Homebrew is therefore a documented native-toolchain exception to
+   the repository's uv rule and requires explicit approval before host mutation.
+4. Multi-node MPI is not approved or ready:
+   - Ubuntu's stock Open MPI candidate is 4.1.6 while macOS Homebrew provides 5.0.11.
+   - Open MPI documents that a single MPI job is only guaranteed when exactly the
+     same Open MPI version is used everywhere.
+   - Ubuntu's installed Slurm client/plugin set has no PMIx plugin, so Open MPI 5
+     direct launch with srun --mpi=pmix is not currently available from that stack.
+   - A later multi-node phase needs an exact-version Open MPI build/install plan on
+     both architectures and a separate choice between mpirun-in-allocation and
+     Slurm PMIx direct launch.
+
+Unmeasured
+==========
+- Open MPI installation and executable/linkage readback
+- MPI_Init/MPI_Finalize on PC-210
+- Open MPI under a Slurm allocation
+- normal completion, cancellation, accounting, and cleanup for an MPI application
+- any mixed arm64/x86_64 Open MPI job
+- Ubuntu PMIx plugin build/runtime
+
+Primary references read on 2026-09-24
+=====================================
+- https://formulae.brew.sh/formula/open-mpi
+- https://formulae.brew.sh/formula/mpich
+- https://docs.open-mpi.org/en/v5.0.x/launching-apps/slurm.html
+- https://docs.open-mpi.org/en/main/version-numbering.html
+- https://slurm.schedmd.com/mpi_guide.html
+- https://www.mpich.org/downloads/

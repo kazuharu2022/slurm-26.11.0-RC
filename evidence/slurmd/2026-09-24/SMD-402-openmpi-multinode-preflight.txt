@@ -1,0 +1,147 @@
+# SMD-402 Open MPI multi-node extension preflight
+
+- date: 2026-09-24 12:24–12:25 JST
+- base SMD-402: `PASS`（native `/bin/sh`によるx86_64 Ubuntu + arm64 macOS step）
+- extension state: `PREFLIGHT_PASS / AWAITING_DUAL_ARCH_ISOLATED_BUILD_APPROVAL`
+- host package/install change: none
+- production config change: none
+- daemon restart/reconfigure: none
+- Slurm job submission: none
+
+## Research Question
+
+既にPASSしているSMD-402の2-node Slurm allocationを使い、同一version・同一構成の
+Open MPIをx86_64 Ubuntuとarm64 macOSへarchitecture-nativeに用意すれば、1 rank/nodeの
+collective、point-to-point通信、正常終了、cancel、accounting、process/resource回収を
+検証できるか。
+
+本preflightは構築前提の確認だけを対象とし、MPI runtime PASSを主張しない。
+
+## 公式仕様から固定した制約
+
+1. 単一MPI job内のOpen MPI runtime/libraryは全hostでexact same versionにする。
+   versionが一致しない構成は正常動作が保証されない。
+   <https://docs.open-mpi.org/en/v5.0.5/version-numbering.html>
+2. Open MPIは全nodeで同じfilesystem pathに置くことが強く推奨される。
+   <https://docs.open-mpi.org/en/v5.0.3/installing-open-mpi/installation-location.html>
+3. Slurm allocation内では`mpirun`が推奨経路で、`--hostfile`、`--host`、`-n`は不要。
+   direct `srun`はSlurm PMIx pluginを必要とし、Open MPI 5はPMI-2をサポートしない。
+   <https://docs.open-mpi.org/en/v5.0.5/launching-apps/slurm.html>
+4. Hwloc、Libevent、PMIx、PRRTEは`--with-*=internal`で同梱版へ固定できる。
+   <https://docs.open-mpi.org/en/v5.0.x/installing-open-mpi/configure-cli-options/required-support-libraries.html>
+5. Open MPI 5.0系のtrue data heterogeneityはknown brokenである。
+   <https://docs.open-mpi.org/en/v5.0.10/tuning-apps/heterogeneity.html>
+
+公式配布ページでcurrent stableは5.0.11、固定tarballは次である。
+
+```text
+URL=https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.11.tar.bz2
+size=45250787 bytes
+SHA-256=e668a3c4acd50c41dc204c8a6dd98a611e0f26af89cf677577fa9be8a2698003
+```
+
+<https://www.open-mpi.org/software/ompi/v5.0/>
+
+## 実測matrix
+
+### PC-210 / macOS arm64
+
+- Darwin 25.5.0、macOS 26.5.1、arm64
+- Homebrew Open MPI 5.0.11、`mpirun`と`libmpi.40.dylib`はarm64 Mach-O
+- 現行Homebrew buildはexternal hwloc/libevent/PMIx/PRRTEを使用
+- `ompi_info`: `Heterogeneous support: no`
+- C data model: little-endian、pointer/long/double=8 bytes、int=4 bytes
+- Slurm MPI plugin: none、cray_shasta、pmix、pmi2、specific pmix_v6
+- Apple clang 21.0.0、GNU Make 3.81、m4/perl/tar/bzip2/curl/pkg-configあり
+- `/private/tmp`空き約3.0 TiB
+- 公式tarballへのHTTPS HEAD: 200、Content-Length 45250787
+- macOS application firewall: disabled
+- `ubuntu2504`は192.168.10.180へ解決。short name `ubuntu`は解決結果なし
+
+### ubuntu2504 / Ubuntu x86_64
+
+- Ubuntu 24.04.4、Linux 7.0.0-31、x86_64
+- `mpirun`、`mpicc`、`ompi_info`、Open MPI/PMIx development packageは未導入
+- APT候補: Open MPI 4.1.6-7ubuntu2、PMIx 5.0.1-4.1build1
+- C data model: little-endian、pointer/long/double=8 bytes、int=4 bytes
+- Slurm MPI plugin: none、cray_shasta、pmi2。PMIx pluginなし
+- GCC 13.3.0、GNU Make 4.3、m4/perl/tar/bzip2/curl/pkg-config/python3あり
+- flex/bisonは未導入。公式release tarballのconfigure/buildで要否を実測する
+- `/tmp`はroot filesystem上でnoexecなし、空き347 GiB
+- 公式tarballへのHTTPS HEAD: 200、Content-Length 45250787
+- UFW: inactive
+- `PC-210`は192.168.10.128へ解決
+- short name `ubuntu`は旧192.168.10.118、`ubuntu2504`は127.0.1.1へ解決
+
+### Slurm live state
+
+- partition `smd402`: UP、Nodes=PC-210,ubuntu、TotalNodes=2、TotalCPUs=26
+- PC-210: arm64、IDLE、CPUAlloc=0、AllocMem=0、AllocTRES空
+- ubuntu: x86_64、IDLE、CPUAlloc=0、AllocMem=0、AllocTRES空
+- queue: empty
+- Ubuntuのslurmctld/slurmdbd/slurmd/munge/mariadb: all active
+- controller: `Slurmctld(primary) at ubuntu2504 is UP`
+- Macから192.168.10.180:6817/TCP: reachable
+
+## 判定
+
+Ubuntu APTのOpen MPI 4.1.6はMacの5.0.11とexact versionが一致しないため採用しない。
+Ubuntu SlurmにはPMIx pluginがないため、`srun --mpi=pmix` direct launchも本extensionの
+初期経路にしない。公式推奨どおり、Slurm allocation内の`mpirun`を使う。
+
+両hostのCPU architectureは異なるが、今回測ったC data modelは同一である。したがって
+本extensionは「architecture-heterogeneous / data-layout-homogeneous」の限定試験とする。
+true data heterogeneity対応は主張せず、`--enable-heterogeneous`も初期buildでは有効化しない。
+
+### 承認後のPhase 1: isolated dual-architecture build
+
+- 両hostで同じ公式5.0.11 tarballとSHA-256を検証
+- 同じlogical prefix `/tmp/smd402-openmpi-5.0.11/install`へ各architecture-nativeにbuild
+- configureを両hostで同一化:
+  - `--with-hwloc=internal`
+  - `--with-libevent=internal`
+  - `--with-pmix=internal`
+  - `--with-prrte=internal`
+  - `--enable-mpi-fortran=no`
+  - `--disable-oshmem`
+- C probeも各hostでnative compileし、同じlogical pathへ配置
+- version、configure、binary architecture、linkage、hash、world execute/readをreadback
+- `/tmp`配下だけを変更し、production prefix、Slurm config、daemon、jobには触れない
+
+Open MPIと同梱support librariesはnative HPC toolchainでありuv管理対象ではない。またDocker
+Compose内でbuild/runするとhost native Slurm・launchd/systemd・mixed OS transportの試験に
+ならない。このためPhase 1はAGENTS方針に対する限定的なnative build例外として、明示承認後に
+だけ実施する。
+
+### Phase 2: runtime（Phase 1 PASS後に別承認）
+
+- `salloc --partition=smd402 --nodes=2 --ntasks=2 --ntasks-per-node=1`
+- allocation内で`mpirun`を実行し、`-n`、`--host`、`--hostfile`は指定しない
+- 1 rank/node、hostname、architecture、Open MPI version、data modelを記録
+- broadcast、all-reduce、ring通信のsuccess case
+- 通信完了後cancel caseと両hostのMPI/PRRTE/PID回収
+- job/step accounting shape、最終IDLE、allocation/queue/process残留0
+- production config/hash、daemon PID/StartTime不変
+
+Phase 2は未承認・未実施であり、本preflightのPASSには含めない。
+
+## 2026-09-24 Phase 1結果
+
+明示承認後、Mac arm64とUbuntu x86_64のisolated native buildを実施した。Attempt 1の
+validator false negativeとUbuntu固有MUNGE自動検出を保持・補正し、Attempt 2で同一source SHA、
+Open MPI 5.0.11、同一internal support library構成、同一logical prefixのbuildと独立readbackが
+PASSした。production hash/PID不変、両node IDLE、queue/process残留0を確認した。
+
+状態を`ISOLATED_DUAL_ARCH_BUILD_PASS / AWAITING_MULTINODE_RUNTIME_APPROVAL`へ進める。
+runtime jobは未実施である。詳細は
+[`SMD-402-openmpi-multinode-build-evidence.txt`](SMD-402-openmpi-multinode-build-evidence.txt)
+を参照する。
+
+## 観測系の失敗記録
+
+- Mac disk確認で最初に存在しない`/usr/bin/df`を指定した。正しい`/bin/df`で再取得した。
+- Ubuntuでbare `scontrol`を呼び、別prefixのclientが`libslurmfull.so`を見つけられず失敗した。
+  正規`/usr/local/slurm/26.11.0/bin/scontrol`ではcontroller/node readbackが成功した。
+- Macのsandbox内Slurm clientはnetwork restrictionによりcontroller connect failureとなった。
+  network許可付き同一clientではcontroller UP、PC-210 IDLE、queue empty、6817/TCP reachableを
+  確認した。production failureには分類しない。
