@@ -1,0 +1,59 @@
+diff --git a/src/common/Makefile.in b/src/common/Makefile.in
+index 801d56a09c..9fabdbedb2 100644
+--- a/src/common/Makefile.in
++++ b/src/common/Makefile.in
+@@ -175,8 +175,8 @@ am_libcommon_la_OBJECTS = assoc_mgr.lo atomic.lo bitstring.lo \
+-	node_conf.lo node_features.lo oci_config.lo openapi.lo optz.lo \
+-	pack.lo parse_config.lo parse_time.lo parse_value.lo \
+-	part_record.lo persist_conn.lo plugin.lo plugrack.lo \
+-	port_mgr.lo power_action.lo print_fields.lo probes.lo \
+-	proc_args.lo read_config.lo reverse_tree.lo run_command.lo \
+-	run_in_daemon.lo sack_api.lo sercli.lo serdes.lo \
+-	setproctitle.lo sluid.lo slurm_errno.lo slurm_opt.lo \
+-	slurm_protocol_api.lo slurm_protocol_defs.lo \
++	node_conf.lo node_features.lo oci_config.lo openapi.lo \
++	openssl_helper.lo optz.lo pack.lo parse_config.lo \
++	parse_time.lo parse_value.lo part_record.lo persist_conn.lo \
++	plugin.lo plugrack.lo port_mgr.lo power_action.lo \
++	print_fields.lo probes.lo proc_args.lo read_config.lo \
++	reverse_tree.lo run_command.lo run_in_daemon.lo sack_api.lo \
++	sercli.lo serdes.lo setproctitle.lo sluid.lo slurm_errno.lo \
++	slurm_opt.lo slurm_protocol_api.lo slurm_protocol_defs.lo \
+@@ -244,14 +244,14 @@ am__depfiles_remade = ./$(DEPDIR)/assoc_mgr.Plo ./$(DEPDIR)/atomic.Plo \
+-	./$(DEPDIR)/openapi.Plo ./$(DEPDIR)/optz.Plo \
+-	./$(DEPDIR)/pack.Plo ./$(DEPDIR)/parse_config.Plo \
+-	./$(DEPDIR)/parse_time.Plo ./$(DEPDIR)/parse_value.Plo \
+-	./$(DEPDIR)/part_record.Plo ./$(DEPDIR)/persist_conn.Plo \
+-	./$(DEPDIR)/plugin.Plo ./$(DEPDIR)/plugrack.Plo \
+-	./$(DEPDIR)/port_mgr.Plo ./$(DEPDIR)/power_action.Plo \
+-	./$(DEPDIR)/print_fields.Plo ./$(DEPDIR)/probes.Plo \
+-	./$(DEPDIR)/proc_args.Plo ./$(DEPDIR)/read_config.Plo \
+-	./$(DEPDIR)/reverse_tree.Plo ./$(DEPDIR)/run_command.Plo \
+-	./$(DEPDIR)/run_in_daemon.Plo ./$(DEPDIR)/sack_api.Plo \
+-	./$(DEPDIR)/sercli.Plo ./$(DEPDIR)/serdes.Plo \
+-	./$(DEPDIR)/setproctitle.Plo ./$(DEPDIR)/sluid.Plo \
+-	./$(DEPDIR)/slurm_errno.Plo ./$(DEPDIR)/slurm_opt.Plo \
+-	./$(DEPDIR)/slurm_protocol_api.Plo \
++	./$(DEPDIR)/openapi.Plo ./$(DEPDIR)/openssl_helper.Plo \
++	./$(DEPDIR)/optz.Plo ./$(DEPDIR)/pack.Plo \
++	./$(DEPDIR)/parse_config.Plo ./$(DEPDIR)/parse_time.Plo \
++	./$(DEPDIR)/parse_value.Plo ./$(DEPDIR)/part_record.Plo \
++	./$(DEPDIR)/persist_conn.Plo ./$(DEPDIR)/plugin.Plo \
++	./$(DEPDIR)/plugrack.Plo ./$(DEPDIR)/port_mgr.Plo \
++	./$(DEPDIR)/power_action.Plo ./$(DEPDIR)/print_fields.Plo \
++	./$(DEPDIR)/probes.Plo ./$(DEPDIR)/proc_args.Plo \
++	./$(DEPDIR)/read_config.Plo ./$(DEPDIR)/reverse_tree.Plo \
++	./$(DEPDIR)/run_command.Plo ./$(DEPDIR)/run_in_daemon.Plo \
++	./$(DEPDIR)/sack_api.Plo ./$(DEPDIR)/sercli.Plo \
++	./$(DEPDIR)/serdes.Plo ./$(DEPDIR)/setproctitle.Plo \
++	./$(DEPDIR)/sluid.Plo ./$(DEPDIR)/slurm_errno.Plo \
++	./$(DEPDIR)/slurm_opt.Plo ./$(DEPDIR)/slurm_protocol_api.Plo \
+@@ -684,0 +685,2 @@ libcommon_la_SOURCES = \
++	openssl_helper.c			\
++	openssl_helper.h			\
+@@ -936,0 +939 @@ distclean-compile:
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openssl_helper.Plo@am__quote@ # am--include-marker
+@@ -1177,0 +1181 @@ distclean: distclean-am
++	-rm -f ./$(DEPDIR)/openssl_helper.Plo
+@@ -1338,0 +1343 @@ maintainer-clean: maintainer-clean-am
++	-rm -f ./$(DEPDIR)/openssl_helper.Plo

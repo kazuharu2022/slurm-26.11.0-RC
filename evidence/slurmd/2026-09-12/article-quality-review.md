@@ -6,7 +6,8 @@
   clean candidate runtimeで解消した。固定HEADからのMac clean rebuildとUbuntu分離buildも完了した。
   TLSは再修正版によるbounded runtime、accounting、負例、復旧、試験用active artifactのarchive退避・削除、
   最終`tls/none` smokeまで完了した。archive内の試験鍵は再利用せず、再有効化時は新規証明書を発行する。
-  memory enforcement、広範なLinux runtime regression、SMD-102修正のcommit provenanceが未解決であり、
+  SMD-102のLinux codegen/runtime regressionは2026-09-26に完了した。memory enforcementと
+  移植patch series全体のclean reproductionが未解決であり、
   production-ready記事とはしない。
 
 ## Evidence Gate
@@ -35,7 +36,7 @@
 | Authoritativeness | 2 | 主要仕様をSchedMD公式documentへ接続 |
 | Trustworthiness | 2 | `PASS_STAGING`、unsupported、blocked、failureを分離 |
 | Originality | 2 | M5 Max、Metal GRES、mixed arch、IPv6/TLSの実測 |
-| Reproducibility | 1 | SMD-102の固定HEAD clean buildとLinux分離buildは再現したが、修正は未commitで、Linux checkは実行1 test、移植patch series全体のclean reproductionも未完 |
+| Reproducibility | 1 | SMD-102は固定HEAD clean build、Linux分離build、source commit provenance、正規化codegen一致、Jobs 730〜732のruntimeまで完了したが、移植patch series全体のclean reproductionは未完 |
 | Usefulness | 2 | 再現check、失敗TIPS、導入blockerを提示 |
 | Evidence | 2 | job/step accounting、PID、queue、hashで結論を支持 |
 | Clarity | 2 | Research Questionから結果、限界、結論まで対応 |
@@ -44,10 +45,9 @@
 ## 改善すべきEvidence
 
 1. `完了`: 固定HEADへSMD-102修正を適用し、Mac configure/build/stage/installを再現した。
-2. `部分完了`: Ubuntu x86-64分離treeでconfigure/build/checkを完了したが、実行testは1件だけ。
-   production daemon/job runtimeと広範な回帰を追加する。
+2. `完了`: Ubuntu x86-64分離treeのconfigure/build/checkに加え、raw codegen差をsource line metadataへ限定し、正規化assembly/object一致、production workerの正常・期待失敗・cancel Jobs 730〜732、accounting、資源回収を確認した。
 3. `完了（TLS runtimeとcleanup）`: Darwin `/dev/fd/N`問題とLibreSSL `openssl req -new`を修正し、両hostへbackup付き導入。Ubuntu TLS active中の旧client拒否、修正版Mac TLS client接続5/5、Mac daemon登録、CPU/direct srun/Apple GPU/mixed-node、全accounting、未信頼CA負例、両host復旧を確認した。active artifact/stateはroot-only archive後に削除し、最終tls/none Jobs 638/639もPASSした。archive内試験鍵は再利用せず、将来TLS再有効化時は新規証明書を発行する。
 4. `完了`: clean build由来binaryをproductionで読み戻し、SMD-102の不一致Job 622・一致Job 623を再実行した。
-5. SMD-102修正をcommitへ固定し、commitからbinaryまでのprovenanceを確立する。
+5. `完了（source commit provenance）`: SMD-102修正をcommit `ce597ed8fd`へ固定し、親commit、対象source SHA-256、clean build source、live `origin/master`を対応付けた。
 
 このレビューは記事品質の判定であり、macOS Slurmのproduction承認ではない。

@@ -28,6 +28,36 @@ MLX/Metalによる計算、反復実行などは実機で確認しています�
   smokeも完了しました。保全archive内の試験鍵は再利用せず、TLSを再有効化する場合は
   新規証明書を発行します。恒久運用設計、clean sourceからの再現、Linux側の完全な
   回帰試験などは未完了です。
+- SMD-405のbackup controllerはstandby起動とbackup昇格まで観測しましたが、takeover時に
+  旧primaryがshutdown ABRTしました。隔離したsignal、認証RPC、二controller takeoverでは
+  再現しませんでした。ABRT binaryはprimary build ELFとbyte一致しましたが、そのbuild後に公式upstreamへ
+  OpenSSL atexit shutdown race修正`4a84b112`が入り、元のproduction buildには未導入でした。最有力候補ですがbacktraceがなく
+  原因確定ではありません。このfixはhelper追加commitに依存し、primary revisionへの直接cherry-pickは生成済み
+  `Makefile.in`で競合するため、公式3 commitのsource-level差分だけを固定したpatchと、本番prefixへinstallしない
+  primary用隔離build driverを準備しました。初回はprimaryにGLib Autoconf macroがなく`autoreconf`で安全停止し、
+  本番状態の不変を確認しました。追加packageを入れず、元と同じAutomake 1.18.1で生成した`Makefile.in`限定差分を
+  SHA固定して使う再試行版で、full build、`make check`、DESTDIR install、candidate ELF検査をPASSしました。
+  helperはcandidate `libslurmfull.so`に定義され、auth/slurm pluginから参照されます。ただし`make check`で実行された
+  testは`log-test` 1件だけです。本番PID・binary・serviceは不変です。candidateの隔離shutdown回帰として、直接SIGTERMと
+  認証済み`REQUEST_SHUTDOWN`を同じcandidate artifactで実行し、helper runtime、RPC受理、GDB正常終了をPASSしました。
+  この段階ではJob受付、worker再登録、正常failbackは未実施でした。初回candidate SIGTERM driverはprivate prefixのdirectory traversal不足でdaemon起動前に安全停止し、
+  本番不変と鍵削除を確認後、run固有copyだけの権限を補正したretryで、helper runtime logとGDB配下のclean SIGTERMを
+  PASSしました。candidate認証RPCとcandidate二controller隔離takeoverもcleanで、backupのprimary role移行と
+  旧primaryの正常終了を確認しました。導入前のread-only監査では、関連差分をcandidate `libslurmfull.so`、
+  `auth_slurm.so`、`auth_jwt.so`の3点へ限定し、両hostの依存解決と本番不変を確認しました。`tls_s2n.so`は
+  candidate未構築・production不在です。production binaryとこの3点だけを組み合わせた隔離overlayでも、両hostの
+  helper runtime、backup昇格、旧primary正常終了、cleanup後の本番不変をPASSしました。
+  production backup controllerへrollback付きで3点を導入した後、run `20260926T032748`で旧primaryを停止したところ
+  修正前artifactではshutdown ABRTを再現しました。patched backupをprimary roleへ昇格してからprimaryにも同じ3点を導入し、
+  3 daemonを再起動しました。両hostの独立監査でfixed 3 SHA、依存解決、current inode、期待controller role、両controller、
+  slurmdbd、queue、両node、現行processのABRT markerなし、original rollback保全をPASSしています。rollback directoryの親が
+  `0755`だった問題は既知directoryを`0700`へ修復し、将来のcontrolも全階層を明示的に`0700`で作成するよう補正しました。
+  patched primary自身の本番通常停止はexit 0、SIGABRT/fasttopなしとなり、backup昇格、primary再起動、期待role復帰、
+  両host最終監査までPASSしました。さらに共通partition `smd402`で非特権`testuser`のJobs 728/729をUbuntu/Macへ
+  逐次投入し、x86_64/arm64 payload、accounting `COMPLETED`、queue解放、両node IDLE、両controller、slurmdbdをPASSしました。
+  bootstrap用に残存していた
+  広範なpasswordless sudoは撤去し、過去のSMD-405 shell driver 30本は履歴専用として
+  実行不能化しました。これらを再有効化して本番試験へ流用しないでください。
 - `PASS_STAGING`や個別フェーズの成功は、production構成全体の成功を意味しません。
 
 テスト結果は成功例だけでなく、失敗、復旧、未実施項目も含めて保存しています。
@@ -57,9 +87,12 @@ git remote add upstream https://github.com/SchedMD/slurm.git
 
 > [!NOTE]
 > 61項目の検証は、複数日にわたるdirtyな開発treeと段階的に導入したstaging artifactで
-> 実施しました。上記commitは記事・Evidenceを含む公開snapshotですが、すべての途中状態を
-> clean checkoutから一括再現できたという意味ではありません。clean-source再buildとLinux
-> regressionは引き続きMissing Evidenceです。
+> 実施しました。2026-09-26に固定upstream baseへ公開3 commitを順次適用し、target tree一致、
+> macOS clean configure/full build、316-file DESTDIR installをPASSしました。現行upstream
+> `9f9da53b4a`では2 fileの意味解決が必要でしたが、解決後のmacOS full buildと319-file installも
+> PASSしました。`make check`で実行されたtestは各buildとも`log-test` 1件だけです。現行upstream用
+> 解決は一時clone内であり未commit、Linux clean full buildと包括的Linux regressionも引き続き
+> Missing Evidenceです。
 
 ## macOSで検証したconfigure条件
 

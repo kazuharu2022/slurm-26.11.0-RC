@@ -1,0 +1,12 @@
+services:
+  builder:
+    image: local/smd405-backup-runtime-builder:20260924
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: none
+    environment:
+      SMD405_RUNTIME_BUILD_CONFIRMED: ${SMD405_RUNTIME_BUILD_CONFIRMED:-NO}
+    volumes:
+      - ${SMD405_RUNTIME_OUTPUT:-/tmp/smd405-backup-runtime-bundle}:/output

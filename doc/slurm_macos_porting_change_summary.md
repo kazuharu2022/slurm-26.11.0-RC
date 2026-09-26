@@ -105,8 +105,14 @@ git remote add upstream https://github.com/SchedMD/slurm.git
 この公開snapshotに記事とEvidenceは含まれますが、全途中状態をclean checkoutから一括再現した
 証明ではありません。現在の正確なbuild条件、起動前check、launchd手順はrepository直下の
 [`README.md`](../README.md)へ集約しました。SMD-102の1 file修正は固定HEADからの
-clean-source buildとUbuntu分離buildまで再現しましたが、移植patch series全体のclean reproduction、
-広範なLinux runtime regression、commit provenanceはMissing Evidenceとして残しています。
+clean-source buildとUbuntu分離buildまで再現しました。source修正はcommit `ce597ed8fd`と
+live `origin/master`、clean build sourceのbyte一致を確認しました。Linuxではsource line metadataを
+正規化したassembly/object一致と、正常・期待失敗・cancel Jobs 730〜732、accounting、資源回収を
+完了しました。検証専用の`smdmismatch` accountも両nodeで退役済みです。Ubuntuはaccount、HOME、
+subordinate ID mappingまで削除し、MacはaccountとHOMEを削除しました。MacにはSIP/rootless保護の
+空cache directory 5件だけが残るため、OSが回収するまでUID 3202を再利用しません。移植patch
+series全体も固定baseからMac clean full buildを再現し、現行upstreamは2 file解決後のbuildを
+確認しました。残るMissing Evidenceは解決のcommit化とLinux clean full build・包括的regressionです。
 
 ## クラスタ構成と検証範囲
 
@@ -1016,20 +1022,20 @@ NodeName=PC-210 Name=gpu Type=apple File=/dev/null
 
 ## 動作確認マトリクス
 
-2026-09-24時点の61項目を、成功・部分成功・未達を分けて集計しました。
+2026-09-26時点の61項目を、成功・部分成功・未達を分けて集計しました。
 
 | 最終ラベル | 件数 | 意味 |
 |---|---:|---|
-| `PASS` | 50 | production構成または明示した隔離runtimeで全成功条件を満たした |
+| `PASS` | 51 | production構成または明示した隔離runtimeで全成功条件を満たした |
 | `PASS_STAGING` | 0 | stagingだけで止まっている項目はない |
 | `PASS_EXPECTED_UNSUPPORTED` | 5 | 非対応という期待結果を実processで確認した |
 | `EXPECTED_UNSUPPORTED` | 0 | 非対応設計だけで独立runtime negative testが未実施の項目はない |
 | `PARTIAL_PASS_PMI2_PMIX` | 0 | SMD-401はOpen MPIとmulti-node PMIxまで完了し`PASS`へ昇格 |
-| `PREREQUISITE_MISSING_*` | 5 | scrun、backup controller、dynamic node、power control、別versionの前提不足 |
+| `PREREQUISITE_MISSING_*` | 4 | scrun、dynamic node、power control、別versionの前提不足 |
 | `PASS_TLS_RUNTIME_REVISED_CERTGEN / CLEANUP_COMPLETE` | 1 | 初版候補はrollback。再修正版で直接TLS client、daemon登録、CPU/direct srun/Apple GPU/mixed-node、accounting、負例、復旧をPASS。active TLS artifact/stateをroot-only archive後に削除し、最終tls/none Jobs 638/639もPASS |
 
-`50 + 5 + TLS runtime 1 = 56`件が定義済みの成功ラベルへ到達しました。ただしTLSの1件は
-runtimeとcleanupまで完了しています。割合だけなら56/61ですが、
+`51 + 5 + TLS runtime 1 = 57`件が定義済みの成功ラベルへ到達しました。ただしTLSの1件は
+runtimeとcleanupまで完了しています。割合だけなら57/61ですが、
 履歴中の`PASS_STAGING`や「期待どおり非対応」をproduction対応と混ぜると誤解を招くため、
 本記事では単一の「成功率」へ丸めません。
 
@@ -1038,11 +1044,11 @@ runtimeとcleanupまで完了しています。割合だけなら56/61ですが�
 | 試験群 | 完了した範囲 | 未達・境界 |
 |---|---|---|
 | P0 task/daemon | SMD-001〜016は全件`PASS`。PTY、signal、process tree、timeout、daemon/controller再起動、通信断、sleep/wake、24時間soak | SMD-001〜007、012〜013もproduction再検証済み。daemon停止を伴う試験中はMacのidle sleep抑止が必要 |
-| identity/resource | SMD-101〜113がPASS。SMD-102はmacOS local identity照合を追加し、incremental Jobs 620/621とclean candidate Jobs 622/623で不一致拒否・一致正常系を再現 | SMD-102のclean rebuildとLinux分離buildは完了。Linux checkは1 testだけで、広範なruntime regressionとcommit provenanceは未完了 |
+| identity/resource | SMD-101〜113がPASS。SMD-102はmacOS local identity照合を追加し、incremental Jobs 620/621とclean candidate Jobs 622/623で不一致拒否・一致正常系を再現。source commit `ce597ed8fd`、live `origin/master`、clean build sourceのbyte対応、Linux正規化codegen一致、Jobs 730〜732の正常・負例・cancelも確認。専用accountは両nodeで退役済み | SMD-102のrelease Evidenceは完了。MacにはSIP/rootless保護の空cache directory 5件だけが残り、OS回収までUID 3202は再利用禁止。macOSにLinux同等のmemory/process isolationがない境界は維持 |
 | hook/plugin | SMD-120〜127がPASS | hookはroot実行を伴うため、test path・timeout・復旧を限定して検証 |
 | Apple GPU | SMD-201〜208がPASS | scheduling countは成立するがdevice isolationはない。gpumem/gpuutilも未取得 |
 | negative | SMD-301〜306を全件runtime確認。SMD-301はJobs 671〜674でbind request metadataのみ、strict affinity API不在、Mach readback非対応、bind成功表示0件。SMD-303はcgroup process/task/deviceの3候補が明示的に起動拒否。SMD-304はJob 675の実CPU/RSS/I/Oと0/空のaccountingを比較し、`sstat AveCPU`のsentinel表示も特定。SMD-305はJobs 680〜682でcore specializationの明示的なclearとCPU frequency要求のmetadata-only経路を確認 | 独立runtime negative testの未実施項目はない。非対応機能をproduction対応とみなさない |
-| integration | SMD-401、402、404、406がPASS。401はPMI2、PMIx 6.1.0、Open MPI 5.0.11の単一node runtime、allocation内`mpirun`に加え、Job 719でx86-64/arm64のPMIx v6 2-node Put/Get/Fence、Job 720で通信後cancelとPID回収を完了。Job 710の名前解決失敗、job-scoped disable失敗も保持。さらにMac local configへUbuntuの`NodeAddr`を恒久同期し、hosts aliasなしのJobs 723〜726で同じ正常・cancel・cleanupを再PASSした。407は再修正版certgenでMac直接TLS client 5/5、daemon登録、CPU/direct srun/Apple GPU/mixed-node、全accounting、負例、両host復旧、archive cleanup、最終tls/none smokeをPASS | SMD-401の名前解決対策は保持したがUbuntu PMIx v6 pluginは一時配置後に撤去しており、plugin恒久配置は別判断。403、405、408〜410は前提不足。407のarchive内試験鍵は再利用禁止で、将来TLS再有効化時に新規発行が必要 |
+| integration | SMD-401、402、404、405、406がPASS。401はPMI2、PMIx 6.1.0、Open MPI 5.0.11の単一node runtime、allocation内`mpirun`に加え、Job 719でx86-64/arm64のPMIx v6 2-node Put/Get/Fence、Job 720で通信後cancelとPID回収を完了。Job 710の名前解決失敗、job-scoped disable失敗も保持。さらにMac local configへUbuntuの`NodeAddr`を恒久同期し、hosts aliasなしのJobs 723〜726で同じ正常・cancel・cleanupを再PASSした。405は旧primary停止ABRT再現、候補fixの両controller導入、patched停止、failover/failback、両host監査、Jobs 728/729のUbuntu/Mac実行とaccountingをPASS。407は再修正版certgenでMac直接TLS client 5/5、daemon登録、CPU/direct srun/Apple GPU/mixed-node、全accounting、負例、両host復旧、archive cleanup、最終tls/none smokeをPASS | SMD-405の修正効果は本番実証したが、旧core/backtrace不在のためfree元は法医学的未確定。passwordless sudoを撤去し、過去driver 30本を退役した。403、408〜410は前提不足。SMD-401のUbuntu PMIx v6 plugin恒久配置は別判断。407のarchive内試験鍵は再利用禁止 |
 
 ### 代表的な実測値
 
@@ -1288,8 +1294,10 @@ node** として組み込める可能性であり、Slurmクラスタ全体をma
 - CPU affinity、cgroup、memory enforcement、詳細 job accounting は未実装。
 - interactive `srun` / PTY の最終成功確認がない。
 - plugin global state sharing の一般解はなく、観測された symbol の個別対応。
-- SMD-102の1 file修正はclean patch reproductionとLinux分離buildを完了。ただしLinux checkは
-  実行1 testだけで、production daemon/job runtimeと移植patch series全体のclean reproductionは未実施。
+- SMD-102の1 file修正はclean patch reproduction、Linux分離build、source commit provenance、
+  line metadata正規化後のLinux codegen一致、production worker Jobs 730〜732の正常・負例・cancelを完了。
+  移植patch series全体も固定baseと現行upstream解決版のMac clean full buildを完了したが、現行upstream
+  用2 file解決のcommit化とLinux clean full build・包括的regressionは未実施。
 - launchd service化、clean restart、SIGKILL後KeepAlive、実機reboot後のRunAtLoad、controller再登録、post-reboot job、DHCP/name-resolution対策後のcontroller再起動と後続`srun`は成功。
 - GPU は scheduling count と Metal 実行までで、device isolation や長時間安定性
   は未確認。
@@ -1431,12 +1439,41 @@ byte/hash照合後にactive pathから削除しました。Mac Job 638と両node
 5. native IPv6の恒久address、DNS、再起動後の持続性、network障害時の回復。
 6. `certgen/script`の`/dev/fd/N`依存を除いた`/bin/sh -c`再修正版は両hostへ導入し、Mac直接TLS client 5/5、daemon TLS登録、CPU/direct srun/Apple GPU/mixed-node、accounting、負例、両host復旧、archive cleanup、最終`tls/none` smokeを確認済み。archive内試験鍵は再利用禁止であり、将来TLS再有効化時は新規証明書の発行が必要。
 7. Linux側のtask binding/jobacctを維持したままmacOSと共有できるconfigless profile。
-8. SMD-102修正は固定HEADへのpatch適用、Mac clean rebuild、production readback、Ubuntu分離buildまで
-   完了した。残るのは広範なLinux runtime regression、修正を含むcommit provenance、移植patch series
-   全体のclean reproduction、upstream適用性。
-9. 長時間のGPU workload、複数node soak、電源・sleepを含む運用監視。
+8. SMD-102修正は固定HEADへのpatch適用、Mac clean rebuild、production readback、Ubuntu分離build、
+   source commit `ce597ed8fd`とlive `origin/master`、clean build sourceのbyte対応、Linux codegen一致、
+   production workerの正常・期待失敗・cancel runtimeまで完了した。SMD-102固有のrelease Evidenceは完了。
+   repository全体の公開3 commitも固定upstream baseからtarget tree一致、Mac clean full build、316-file
+   DESTDIR installを再現した。現行upstream `9f9da53b4a`では`cgroup_v1.c`のobsolete差分除去と
+   `pack-test.c`のtest unionが必要で、解決後のMac full build、319-file installもPASSした。ただし
+   解決は一時clone内で未commit、`make check`の実行testは1件だけで、Linux clean full buildと
+   包括的Linux regressionは残る。
+9. SMD-405はbackup昇格を観測したが旧primaryのshutdownでABRTした。隔離した直接signal、認証RPC、
+   二controller takeoverでは再現せず、free元は未特定。ABRT binaryとprimary build ELFのbyte一致は確認した。
+   build後の公式upstream OpenSSL atexit shutdown race修正`4a84b112`は未導入で最有力候補だが、backtraceがなく
+   原因確定ではない。直接cherry-pickはhelper前段commitが必要で、primary revisionの生成済み`Makefile.in`と競合した。
+   source-level 7 fileだけのpatchと、本番prefixへinstallしないprimary用build driverを固定し、native tool/config/diskの
+   preflightまで完了した。初回buildはprimaryにGLib Autoconf macroがなく`autoreconf`で安全停止し、本番不変を確認した。
+   packageを追加せず、元と同じAutomake 1.18.1で生成した`Makefile.in`限定差分をSHA固定する再試行版で、
+   full build、`make check`、DESTDIR install、candidate ELF検査をPASSした。helper symbol/providerとauth/slurm参照も確認したが、
+   `make check`の実testは`log-test` 1件だけだった。本番PID・binary・serviceは不変だった。
+   candidate helperのruntime実行、GDB配下のdirect SIGTERM正常終了、認証済み`REQUEST_SHUTDOWN`の受理と正常終了、
+   二controller隔離takeoverでbackupのprimary role移行と旧primary正常終了を確認した。導入前の両host read-only監査で、
+   関連差分をcandidate `libslurmfull.so`、`auth_slurm.so`、`auth_jwt.so`の3点へ限定し、dependency解決、provider/consumer
+   symbol、production process map、本番不変を確認した。`tls_s2n.so`はcandidate未構築・production不在だった。
+   production binaryへこの3点だけをoverlayした二controller隔離takeoverも、helper runtime、backup昇格、旧primary正常終了、
+   両host cleanup/postflight、本番不変をPASSした。production backup controllerへrollback付きで3点を導入した後、旧primaryの
+   通常停止でABRTを再現し、patched backupを昇格してprimaryにも同じ3点を導入した。両hostの独立監査はfixed SHA、dependency、
+   current inode、期待role、両controller、slurmdbd、queue/node、current process ABRT markerなし、original rollback保全をPASSした。
+   rollback directory親の`0755`は既知対象を`0700`へ修復し、controlも全階層`0700`作成へ補正した。patched primaryの同じ通常停止経路は
+   systemd success/exit 0、SIGABRT/fasttopなしとなり、backup昇格、primary再起動、期待role復帰、両host独立監査もPASSした。
+   failback後のJobs 728/729を非特権`testuser`でUbuntu/Macへ投入し、x86_64/arm64 payload、accounting `COMPLETED`、
+   queue解放、両node IDLE、両controller、slurmdbdをPASSした。SMD-405の定義済み成功条件は完了したが、backtrace不在のため
+   free元の法医学的原因確定ではない。
+   広範なpasswordless sudoは撤去し、過去driver 30本は実行不能な履歴資材へ退役した。
+10. 長時間のGPU workload、複数node soak、電源・sleepを含む運用監視。
 
-特に6と8はreliabilityとrelease provenanceに直結するため、production導入前のblockerです。
+8のMac clean reproductionは完了しました。release provenanceに直結して残るのは現行upstream用2 file解決のcommit化とLinux clean full build・包括的regressionです。9のcontroller fixはproduction導入と定義済みruntime検証まで完了し、
+残る制約は旧crashのcore/backtrace不在によるfree元の法医学的未確定であって、SMD-405の成功判定を妨げるblockerではありません。
 
 ## 再現時の最小チェック
 
@@ -1476,13 +1513,15 @@ CPU/direct srun/Apple GPU/mixed-node、accounting、負例、両host復旧まで
 root-only archiveへの保全後に削除、最終`tls/none` smokeも完了しました。archive内の試験鍵は再利用せず、
 将来のTLS再有効化には新規証明書の発行が必要です。SMD-102のidentity fail-openはincremental candidateのJobs 620/621に加え、
 固定HEADからclean rebuildしたproduction candidateのJobs 622/623でも解消を確認しました。Ubuntu分離buildも
-成功しましたが、checkで実行されたtestは1件だけで、広範なLinux runtime regressionとcommit provenanceは
-未完了です。このため最終判定は、**機能範囲と復旧手順を限定した検証済みPoC** です。
+成功後、Linux raw codegen差をsource line metadataへ限定し、`__LINE__`正規化後のassembly/object一致、
+production worker Jobs 730〜732の正常・期待失敗・cancel、accounting、資源回収まで確認しました。
+source修正はcommit `ce597ed8fd`、live `origin/master`、clean build sourceへ対応付けました。このため最終判定は、
+**機能範囲と復旧手順を限定した検証済みPoC** です。
 Linuxと同等のproduction worker、security boundary、upstream-ready portと呼べる段階ではありません。
 
 「成功したtest数」より重要なのは、どこから先が未測定かを明示できたことでした。
 macOS nodeを研究・個人clusterへ導入する場合も、少なくともmemory、process containment、TLS、
-およびidentity修正のrelease provenanceを別blockerとして扱う必要があります。
+および移植patch seriesのLinux再現性と現行upstream解決の未commit状態を別blockerとして扱う必要があります。
 
 ## 参考資料（追加検証後）
 

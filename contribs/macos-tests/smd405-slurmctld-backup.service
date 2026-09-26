@@ -1,0 +1,21 @@
+[Unit]
+Description=Slurm backup controller daemon (SMD-405 staging)
+After=network-online.target remote-fs.target
+Wants=network-online.target
+RequiresMountsFor=/var/spool/slurm/slurmctld
+ConditionPathExists=/usr/local/slurm/26.11.0/etc/slurm.conf
+
+[Service]
+Type=notify
+Environment=LD_LIBRARY_PATH=/usr/local/slurm/26.11.0/lib/smd405-runtime/lib:/usr/local/slurm/26.11.0/lib
+User=slurm
+Group=slurm
+RuntimeDirectory=slurmctld
+RuntimeDirectoryMode=0755
+ExecStart=/usr/local/slurm/26.11.0/sbin/slurmctld --systemd
+ExecReload=/bin/kill -HUP $MAINPID
+LimitNOFILE=65536
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target
